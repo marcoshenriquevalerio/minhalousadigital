@@ -7539,6 +7539,7 @@
         const nmCalc = () => { const t = performance.now(); if (t - nmC.t > 400) { nmC.t = t; nmC.v = [kind === 'free' || cpuMode ? 'Você' : plWho(cur(), 0).name, kind === 'free' ? 'Você' : cpuMode ? 'Computador' : plWho(cur(), 1).name]; } return nmC.v; };
         const names = { get 0() { return nmCalc()[0]; }, get 1() { return nmCalc()[1]; } };
         b.innerHTML = '<div style="position:relative"><canvas width="' + (W * SC) + '" height="' + (H * SC) + '" class="edit-input" style="width:100%;display:block;touch-action:none;border-radius:10px;cursor:crosshair;border:0"></canvas>' +
+          '<div class="pl-pwr edit-input" title="Deslize para baixo para dar força e solte para tacar" style="display:none;position:absolute;left:93.2%;top:5.6%;width:6.8%;height:72.9%;border:0;padding:0;box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ns-resize;z-index:3;border-radius:8px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(252,211,77,.35);flex-direction:column;align-items:center;justify-content:space-between;color:#fde68a;font:700 max(10px,2.2cqw) Arial,sans-serif;line-height:1"><span style="margin-top:3px">&#9650;</span><span style="margin-bottom:3px">&#9660;</span></div>' +
           '<div class="edit-input" style="position:absolute;right:2.2%;bottom:1.4%;width:auto;border:0;padding:0;height:6.6%;min-height:22px;display:flex;gap:5px;align-items:stretch"><button class="pl-go" title="Segure para dar força e solte para tacar" style="border:1px solid rgba(252,211,77,.55);background:rgba(0,0,0,.38);color:#fde68a;border-radius:7px;padding:0 7px;font:600 max(10px,2.1cqw) Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;touch-action:none;user-select:none;-webkit-user-select:none"><i class="fa-solid fa-bullseye"></i>Tacar</button><button class="pl-cfg" title="Configurações" style="border:1px solid rgba(252,211,77,.55);background:rgba(0,0,0,.38);color:#fde68a;border-radius:7px;padding:0 7px;font:600 max(10px,2.1cqw) Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;touch-action:none;user-select:none;-webkit-user-select:none"><i class="fa-solid fa-gear"></i></button><button class="pl-new" title="Novo jogo" style="border:1px solid rgba(252,211,77,.55);background:rgba(0,0,0,.38);color:#fde68a;border-radius:7px;padding:0 7px;font:600 max(10px,2.1cqw) Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;touch-action:none;user-select:none;-webkit-user-select:none"><i class="fa-solid fa-rotate-right"></i>Novo jogo</button></div>' +
           '<div class="pl-panel edit-input" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:auto;min-width:min(86%,300px);max-width:94%;max-height:94%;overflow-y:auto;border:0;background:rgba(18,12,8,.96);color:#fff;border-radius:14px;padding:12px 14px;font-size:max(13px,2.8cqw);box-shadow:0 8px 28px rgba(0,0,0,.65);z-index:5;text-align:left">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:10px"><b style="font-size:1.15em">Configurações</b><button class="pl-x" title="Fechar" style="border:0;background:transparent;color:#fff;font-size:1.2em;cursor:pointer;padding:0 4px">✕</button></div>' +
@@ -7546,6 +7547,7 @@
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px"><span>Modo leve<br><small style="opacity:.65">para aparelho lento: menos detalhe, mais fluidez (só neste aparelho)</small></span><button class="pl-lsw" role="switch" aria-checked="false" style="flex:none;width:44px;height:25px;border-radius:13px;border:0;padding:0;position:relative;cursor:pointer;transition:background .2s"><span style="position:absolute;top:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .2s"></span></button></div>' +
           '<div class="pl-vrow" style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px"><span>Aviso sonoro<br><small style="opacity:.65">toca um sinal quando a vez passa para você</small></span><button class="pl-vsw" role="switch" aria-checked="true" style="flex:none;width:44px;height:25px;border-radius:13px;border:0;padding:0;position:relative;cursor:pointer;transition:background .2s"><span style="position:absolute;top:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .2s"></span></button></div>' +
           '<div class="pl-sbrow" style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px"><span>Placar<br><small style="opacity:.65">fica solto na lousa; só zera quando você zerar</small></span><button class="pl-sbsw" role="switch" aria-checked="true" style="flex:none;width:44px;height:25px;border-radius:13px;border:0;padding:0;position:relative;cursor:pointer;transition:background .2s"><span style="position:absolute;top:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .2s"></span></button></div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px"><span>Força deslizando<br><small style="opacity:.65">barra na lateral direita da mesa: deslize para baixo = mais força, para cima = menos; ao soltar, a tacada é feita</small></span><button class="pl-pwsw" role="switch" aria-checked="false" style="flex:none;width:44px;height:25px;border-radius:13px;border:0;padding:0;position:relative;cursor:pointer;transition:background .2s"><span style="position:absolute;top:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .2s"></span></button></div>' +
           '<div class="pl-plrs"></div><div style="opacity:.7;margin:10px 0 5px"><small>Modo de jogo</small></div><div class="pl-modes" style="display:flex;flex-direction:column;gap:5px"></div></div></div>';
         const cv = b.querySelector('canvas'), ctx = cv.getContext('2d'), pw = { value: 55 }, goBtn = b.querySelector('.pl-go'), newBtn = b.querySelector('.pl-new');
         const POOL = WG.pool || (WG.pool = {}); let legend = '', legendOn = true;
@@ -7700,7 +7702,7 @@
           rr(4, 456, W - 8, 75, 10); g.strokeStyle = 'rgba(255,220,170,.2)'; g.lineWidth = 1.5; g.stroke();
           return c;
         }
-        const TBL = (WG.poolTbl && WG.poolTblSC === SC) ? WG.poolTbl : (WG.poolTblSC = SC, WG.poolTbl = buildTable());
+        let TBL = (WG.poolTbl && WG.poolTblSC === SC) ? WG.poolTbl : (WG.poolTblSC = SC, WG.poolTbl = buildTable());
 
         /* ---------- bola: esfera sombreada pixel a pixel (gira de acordo com o rolamento) ---------- */
         const LX = -.42, LY = -.55, LZ = .72, ll = Math.hypot(LX, LY, LZ), lx = LX / ll, ly = LY / ll, lz = LZ / ll;
@@ -7944,9 +7946,28 @@
 
         /* ---------- desenho ---------- */
         let SHD = null, FR = 0;
+        /* ---------- recuperação ao girar o celular: o navegador pode apagar as telas internas (mesa/bolas) ---------- */
+        const alphaAt = (cvs, x, y) => { try { return cvs.getContext('2d').getImageData(x, y, 1, 1).data[3]; } catch (e) { return 255; } };
+        function poolFix(full) {
+          try {
+            let bad = !!full;
+            if (!bad && alphaAt(TBL, (W * SC) >> 1, (H * SC) >> 2) === 0) bad = true;   // a mesa é 100% opaca: transparente = foi apagada
+            if (!bad) { const bl = S.balls.find(x => !x.in && !x.dirty); if (bl && alphaAt(bl.cv, bl.cv.width >> 1, bl.cv.height >> 1) === 0) bad = true; }
+            if (!bad) return;
+            WG.poolTbl = TBL = buildTable(); WG.poolTblSC = SC; SHD = null;
+            S.balls.forEach(bl => {
+              const sp = document.createElement('canvas'); sp.width = sp.height = Math.ceil(R * SC * 2) + 4;
+              bl.cv = sp; bl.cx = sp.getContext('2d'); bl.img = bl.cx.createImageData(sp.width, sp.height); bl.dirty = true; bl.pf = undefined;
+            });
+          } catch (e) { console.warn('Sinuca: recuperar desenho', e); }
+        }
+        let fixT = 0; const fixSoon = (full) => { clearTimeout(fixT); fixT = setTimeout(() => { if (b.isConnected) poolFix(full); }, 350); };
+        const onRot = () => { fixSoon(true); }, onRes = () => { fixSoon(false); }, onVis = () => { if (!document.hidden) fixSoon(true); };
+        window.addEventListener('orientationchange', onRot); window.addEventListener('pageshow', onRot); window.addEventListener('resize', onRes); document.addEventListener('visibilitychange', onVis);
+        let lastChk = 0;
         function draw() {
           FR++;
-          ctx.setTransform(LS, 0, 0, LS, 0, 0); ctx.drawImage(TBL, 0, 0, W, H);
+          ctx.setTransform(LS, 0, 0, LS, 0, 0); ctx.clearRect(0, 0, W, H); ctx.drawImage(TBL, 0, 0, W, H);
           const bs = balls();
           if (!SHD) { const q = Math.ceil(R * 2.6 * SC); SHD = document.createElement('canvas'); SHD.width = SHD.height = q; const g2 = SHD.getContext('2d'), m = q / 2, gg = g2.createRadialGradient(m, m, 1 * SC, m, m, R * 1.25 * SC); gg.addColorStop(0, 'rgba(0,0,0,.5)'); gg.addColorStop(1, 'rgba(0,0,0,0)'); g2.fillStyle = gg; g2.beginPath(); g2.arc(m, m, R * 1.25 * SC, 0, 7); g2.fill(); }
           { const hs = SHD.width / SC / 2; bs.forEach(bl => { if (bl.in) return; ctx.drawImage(SHD, bl.x + 2.5 - hs, bl.y + 3.5 - hs, hs * 2, hs * 2); }); }
@@ -7964,7 +7985,7 @@
               if (r.ball) { const nx = r.ball.x - gx, ny = r.ball.y - gy, nl = Math.hypot(nx, ny) || 1; ctx.strokeStyle = 'rgba(255,230,120,.8)'; ctx.beginPath(); ctx.moveTo(r.ball.x, r.ball.y); ctx.lineTo(r.ball.x + nx / nl * 55, r.ball.y + ny / nl * 55); ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); const tx = -ny / nl, ty = nx / nl, sg = (dx * tx + dy * ty) >= 0 ? 1 : -1; ctx.moveTo(gx, gy); ctx.lineTo(gx + tx * sg * 34, gy + ty * sg * 34); ctx.stroke(); }
               ctx.restore();
             }
-            let tip = 8 + S.power * .5; if (S.mode === 'strike') { const e = S.anim * S.anim; tip = S.pullFrom * (1 - e); } else if ((S.charging || (RA && RA.c)) && S.power > 60) tip += (rnd() - .5) * (S.power - 60) / 40 * 3.5;
+            let tip = 8 + S.power * .5; if (S.mode === 'strike') { const e = S.anim * S.anim; tip = S.pullFrom * (1 - e); } else if (((S.charging || S.sliding) || (RA && RA.c)) && S.power > 60) tip += (rnd() - .5) * (S.power - 60) / 40 * 3.5;
             if (!(S.mode === 'aim' && isCpu() && !S.cpu)) drawCue(a, tip);
           }
           // medidor de força (na madeira, à direita)
@@ -8032,7 +8053,7 @@
           else if (kind === '9') t = (S.brk ? 'Abertura — ' : '') + who + ' — bola da vez: ' + lowest();
           else t = (S.brk ? 'Abertura — ' : '') + who + (S.g[S.turn] ? ' (' + gName(S.g[S.turn]) + (S.shot ? '' : (targets(S.turn)[0] && targets(S.turn)[0].n === 8 ? ' — bola 8!' : '')) + ')' : ' (mesa aberta)');
           if (S.note && S.mode !== 'over' && S.mode !== 'rolling' && S.mode !== 'strike' && S.mode !== 'wait') t += ' · ' + S.note;
-          if (S.mode === 'aim' && mine && !S.charging && t.length < 58) t += ' · segure e solte para tacar';
+          if (S.mode === 'aim' && mine && !S.charging && t.length < 58) t += (cur().plSlide ? ' · deslize a barra da direita e solte' : ' · segure e solte para tacar');
           legend = t;
           cv.style.cursor = ((S.mode === 'aim' || S.mode === 'place') && mine) ? 'crosshair' : 'default';
           const can = S.mode === 'aim' && mine; goBtn.style.opacity = can ? (S.charging ? .75 : 1) : .4; goBtn.style.pointerEvents = can ? 'auto' : 'none';
@@ -8057,7 +8078,7 @@
         function sendAim(now) {
           if (!online || !PN || !PN.open || !human()) return;
           let m = null;
-          if (S.mode === 'aim' && !cue().in) m = { t: 'aim', s: SS, q: (WG.psq = (WG.psq || 0) + 1), a: +S.ang.toFixed(4), p: +S.power.toFixed(1), c: S.charging ? 1 : 0, g: S.gid, u: S.turn };
+          if (S.mode === 'aim' && !cue().in) m = { t: 'aim', s: SS, q: (WG.psq = (WG.psq || 0) + 1), a: +S.ang.toFixed(4), p: +S.power.toFixed(1), c: (S.charging || S.sliding) ? 1 : 0, g: S.gid, u: S.turn };
           else if (S.mode === 'place' && S.ghost) m = { t: 'gh', s: SS, q: (WG.psq = (WG.psq || 0) + 1), x: +S.ghost.x.toFixed(1), y: +S.ghost.y.toFixed(1) };
           if (!m) return; const k = JSON.stringify(Object.assign({}, m, { q: 0, s: 0 }));
           if (k !== lastK || now - lastAt > 350) { lastK = k; lastAt = now; pnSend(m, 1); }
@@ -8074,6 +8095,7 @@
           }
           else if (S.mode === 'strike') { S.anim += 1 / 9; if (S.anim >= 1) startShot(); }
           else if (S.mode === 'aim' && isCpu()) cpuTick();
+          if (S.sliding && !(S.mode === 'aim' && human())) S.sliding = false;
           if (S.charging) { if (S.mode === 'aim' && human()) { S.ct++; S.power = Math.min(100, 8 + S.ct * 92 / 90); } else S.charging = false; }   // segurando: sobe até a força máxima em ~1,5 s
         }
         let raf = 0, last = 0, acc = 0;
@@ -8081,6 +8103,7 @@
           if (!b.isConnected) return;
           if (!last) last = now; acc += Math.min(50, now - last); last = now;
           while (acc >= 16.667) { update(); acc -= 16.667; }
+          if (now - lastChk > 1500) { lastChk = now; poolFix(false); }
           smoothRemote(now); draw(); perfWatch(now); status(); sendAim(now); window.__rtcBusy = (PN && PN.open && (S.mode === 'rolling' || S.mode === 'strike')) ? performance.now() : 0; raf = requestAnimationFrame(loop);
         };
 
@@ -8089,7 +8112,9 @@
         const aimAt = (e) => { const p = pos(e), c = cue(); if (S.mode === 'aim' && human() && !c.in) S.ang = Math.atan2(p.y - c.y, p.x - c.x); else if (S.mode === 'place' && human()) S.ghost = { x: clamp(p.x, X0 + R, X1 - R), y: clamp(p.y, Y0 + R, Y1 - R) }; };
         /* ---------- configurações ---------- */
         const panel = b.querySelector('.pl-panel'), swEl = b.querySelector('.pl-sw'), sbEl = b.querySelector('.pl-sbsw'), cfgBtn = b.querySelector('.pl-cfg'), modesEl = b.querySelector('.pl-modes'), plrsEl = b.querySelector('.pl-plrs'); let panelOpen = false;
-        const setPanel = (v) => { panelOpen = v; panel.style.display = v ? 'block' : 'none'; if (v) endCharge(true); };
+        let slide = null;
+        const endSlide = (cancel) => { if (!S.sliding) return; S.sliding = false; slide = null; if (cancel || S.power < 12) { S.power = 55; return; } fire(); };   // soltou: tacada feita (na força mínima cancela)
+        const setPanel = (v) => { panelOpen = v; panel.style.display = v ? 'block' : 'none'; if (v) { endCharge(true); endSlide(true); } };
         const setSw = (el, on) => { el.setAttribute('aria-checked', on ? 'true' : 'false'); el.style.background = on ? '#22c55e' : '#6b7280'; el.firstChild.style.left = on ? '22px' : '3px'; };
         const sbNote = () => getActiveBoard().notes.find(x => x.type === 'widget' && x.wk === 'poolscore' && x.pid === n.id);
         const vEl = b.querySelector('.pl-vsw'); if (!online) b.querySelector('.pl-vrow').style.display = 'none';
@@ -8128,6 +8153,21 @@
           saveData(); reopen();
         });
         b.querySelector('.pl-x').addEventListener('click', () => setPanel(false));
+        const pwStrip = b.querySelector('.pl-pwr'), pwSw = b.querySelector('.pl-pwsw');
+        const applyPw = () => { const on = !!cur().plSlide; setSw(pwSw, on); pwStrip.style.display = on ? 'flex' : 'none'; };
+        pwSw.addEventListener('click', () => { const c = cur(); c.plSlide = !c.plSlide; saveData(); applyPw(); });
+        applyPw();
+        pwStrip.addEventListener('pointerdown', (e) => {
+          if (e.button > 0) return; e.preventDefault(); e.stopPropagation();
+          if (panelOpen) { setPanel(false); return; }
+          if (!(S.mode === 'aim' && human() && !cue().in)) return;
+          b.focus(); try { pwStrip.setPointerCapture(e.pointerId); } catch (er) {}
+          S.sliding = true; S.power = 8; slide = { y: e.clientY, h: Math.max(80, pwStrip.getBoundingClientRect().height) };
+        });
+        pwStrip.addEventListener('pointermove', (e) => { if (!S.sliding || !slide) return; e.preventDefault(); S.power = clamp(8 + (e.clientY - slide.y) / (slide.h * .6) * 92, 8, 100); });   // para baixo aumenta, para cima diminui
+        pwStrip.addEventListener('pointerup', () => endSlide(false));
+        pwStrip.addEventListener('pointercancel', () => endSlide(true));
+        pwStrip.addEventListener('contextmenu', (e) => e.preventDefault());
         cfgBtn.addEventListener('click', () => setPanel(!panelOpen));
         applyLeg();
         cv.addEventListener('pointermove', aimAt);
@@ -8159,7 +8199,7 @@
           }
         });
         b.addEventListener('keyup', (e) => { if (e.target.closest('.pl-panel')) return; if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endCharge(false); } });
-        S.charging = false;
+        S.charging = false; S.sliding = false;
         if (fresh && !online) announceStart();
         if (S.cfgOpen) { S.cfgOpen = false; setPanel(true); }
         const ingest = (pg) => {
@@ -8197,7 +8237,7 @@
           } else if (isOwner()) { publish(0); announceStart(); }
         } else if (S.mode === 'rolling' || S.mode === 'strike') { S.mode = 'aim'; }
         raf = requestAnimationFrame(loop);
-        return () => { cancelAnimationFrame(raf); window.__rtcBusy = false; };
+        return () => { cancelAnimationFrame(raf); window.__rtcBusy = false; clearTimeout(fixT); window.removeEventListener('orientationchange', onRot); window.removeEventListener('pageshow', onRot); window.removeEventListener('resize', onRes); document.removeEventListener('visibilitychange', onVis); };
       },
       poolscore(b, n) {
         const cur = () => findNote(n.id) || n; let sig = '';
