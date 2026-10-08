@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- NOVO: dados do usuário (o plano Pro NÃO pode ser gravado pelo navegador) ----
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{uid}/plan/{d} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.data.plan in ['free', 'legacy'];
+    }
+    match /users/{uid}/{sub}/{d=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && sub != 'plan';
+    }
+
+    // ---- NOVO: assinaturas e configurações (só o servidor escreve; o dono lê a própria) ----
+    match /subscriptions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /_config/{d} { allow read, write: if false; }
+
+    // ---- MANTENHA aqui as suas regras atuais de: shared/{sid}/... e invites/{id} ----
+  }
+}

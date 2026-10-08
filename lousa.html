@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>if(top===self){try{sessionStorage.setItem("lousa.page",location.pathname.split("/").pop().replace(/^$/,"site")+(/\.html$/.test(location.pathname)?"":".html")+location.search)}catch(e){}location.replace("/")}</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Quadro Verde Escolar Vintage - Lousa Interativa</title>
@@ -9414,6 +9415,41 @@
         if (!ok) { location.replace('login.html'); return; }
         return hi(u);
       };
+    })();
+  </script>
+  <script>
+    /* =========================================================================
+       ACESSO E PLANO: só entra quem tem conta ativa; plano grátis tem limite de 2 quadros;
+       administradores ganham um atalho para o painel.
+       ========================================================================= */
+    (function () {
+      let tier = null;
+      window.addEventListener('fb-auth', async (e) => {
+        const u = e.detail && e.detail.user;
+        if (!u) { location.replace('login.html'); return; }
+        try { tier = await FB.tier(); } catch (err) { console.warn('plano:', err); return; }
+        if (tier === null) { location.replace('login.html'); return; }
+        if (tier === 'admin' && !document.getElementById('goPainel')) {
+          const a = document.createElement('a');
+          a.id = 'goPainel'; a.href = 'painel.html'; a.textContent = 'Painel de controle';
+          a.style.cssText = 'position:fixed;left:14px;bottom:14px;z-index:90;padding:9px 16px;border-radius:99px;background:#9be3c0;color:#0c1f17;font:700 13px system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px #0007';
+          document.body.appendChild(a);
+        }
+      });
+      function limite() {
+        if (tier !== 'free') return false;
+        const own = ((typeof appData !== 'undefined' && appData.boards) || []).filter((b) => !b.shared).length;
+        if (own < 2) return false;
+        const go = () => { location.href = 'login.html?plano=pro'; };
+        try {
+          showCustomDialog({ title: 'Limite do plano Grátis', message: 'O plano Grátis tem até 2 quadros. Assine o Pro para criar quadros ilimitados.', onConfirm: go });
+        } catch (err) { if (confirm('O plano Grátis tem até 2 quadros. Ver o plano Pro?')) go(); }
+        return true;
+      }
+      ['createNewBoard', 'createFinanceBoard'].forEach((n) => {
+        const f = window[n];
+        if (typeof f === 'function') window[n] = function () { if (limite()) return; return f.apply(this, arguments); };
+      });
     })();
   </script>
 </body>

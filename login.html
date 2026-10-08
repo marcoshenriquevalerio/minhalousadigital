@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<script>if(top===self){try{sessionStorage.setItem("lousa.page",location.pathname.split("/").pop().replace(/^$/,"site")+(/\.html$/.test(location.pathname)?"":".html")+location.search)}catch(e){}location.replace("/")}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Entrar | Lousa Digital</title>
@@ -51,7 +52,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
 </head>
 <body>
 <canvas id="bg"></canvas><div class="gl"></div><div class="gl b"></div>
-<header class="nav"><a class="logo" href="index.html">Lousa Digital</a><a class="btn o" href="index.html">Voltar ao site</a></header>
+<header class="nav"><a class="logo" href="site.html">Lousa Digital</a><a class="btn o" href="site.html">Voltar ao site</a></header>
 <main><div class="w">
  <div class="cd">
   <!-- 1. entrar -->
@@ -74,25 +75,37 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <h1 style="font-size:clamp(28px,5vw,36px)">Escolha como começar</h1>
    <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
    <button class="pl" id="pFree" type="button"><b>Grátis <span>R$ 0</span></b><small>2 quadros, listas, setas e post-its</small></button>
-   <button class="pl p" id="pPro" type="button"><b>Pro <span>R$ 19,90/mês</span></b><small>Quadros ilimitados, equipe ao vivo, finanças e calendário</small></button>
+   <button class="pl p" id="pPro" type="button"><b>Pro <span id="pPrice">R$ 19,90/mês</span></b><small>Quadros ilimitados, equipe ao vivo, finanças e calendário</small></button>
    <p class="msg" id="msg2" role="status"></p>
    <button class="lk" data-out type="button">Entrar com outra conta</button>
   </div>
-  <!-- 4. pagamento do Pro (simulado) -->
+  <!-- 4. assinatura do Pro (Mercado Pago) -->
   <div id="vPay" hidden>
-   <span class="demo">Demonstração: nenhum pagamento real é feito</span>
+   <span class="ch">quase lá</span>
    <h1 style="font-size:clamp(28px,5vw,36px)">Assinar o Pro</h1>
-   <div class="sum"><span>Plano Pro, mensal</span><b>R$ 19,90</b></div>
-   <button class="btn" id="pay" type="button" style="width:100%">Pagar R$ 19,90</button>
+   <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
+   <div class="sum"><span>Plano Pro, mensal</span><b data-price>R$ 19,90</b></div>
+   <p class="s" style="font-size:14px;margin-bottom:18px">Você paga no Mercado Pago (cartão ou saldo). A primeira cobrança é hoje e a renovação vem automática, todo mês nesta mesma data. Cancele quando quiser.</p>
+   <button class="btn" id="pay" type="button" style="width:100%">Continuar para o pagamento</button>
    <p class="msg" id="msg3" role="status"></p>
    <button class="lk" id="payBack" type="button">Voltar aos planos</button>
   </div>
+  <!-- 5. confirmando pagamento -->
+  <div id="vWait" hidden>
+   <div class="spin" id="wsp"></div>
+   <h1 style="font-size:clamp(26px,5vw,32px)" id="wt">Confirmando seu pagamento</h1>
+   <p class="s" id="ws" style="margin:10px 0 0">Isso leva só alguns segundos...</p>
+   <div id="wb" hidden style="margin-top:22px;display:grid;gap:10px">
+    <button class="btn" id="wRetry" type="button">Verificar de novo</button>
+    <button class="btn o" id="wGo" type="button" hidden>Entrar na lousa</button>
+   </div>
+  </div>
  </div>
- <a class="back" href="index.html">&larr; Voltar ao site</a>
+ <a class="back" href="site.html">&larr; Voltar ao site</a>
 </div></main>
 <footer>&copy; <span id="yr">2026</span> Lousa Digital. Todos os direitos reservados.</footer>
 <script>
-const $=id=>document.getElementById(id),APP='lousa.html',V=['vLogin','vLoad','vPlans','vPay'];
+const $=id=>document.getElementById(id),APP='lousa.html',V=['vLogin','vLoad','vPlans','vPay','vWait'];
 const want=new URLSearchParams(location.search).get('plano');
 const show=v=>V.forEach(i=>$(i).hidden=i!==v);
 const say=(id,t)=>$(id).textContent=t||'';
@@ -107,21 +120,52 @@ $('gl').onclick=async()=>{
  if(!window.FB){say('msg','Aguarde um instante e tente de novo.');return}
  say('msg','');
  try{await FB.login()}catch(e){say('msg',authMsg(e))}};
+const RETORNO=new URLSearchParams(location.search).get('retorno')==='1';
+const money=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
+fetch('/api/public').then(r=>r.json()).then(j=>{if(j&&j.price){document.querySelectorAll('[data-price]').forEach(e=>e.textContent=money(j.price));$('pPrice').textContent=money(j.price)+'/mês'}}).catch(()=>{});
+function sair(url){ // navega a página inteira (o endereço do site fica fixo)
+ if(top!==self)parent.postMessage({type:'lousa-ext',url},location.origin);else location.href=url}
+let who=null;
 addEventListener('fb-auth',async e=>{
  const u=e.detail&&e.detail.user;
- if(!u){show('vLogin');return}
- show('vLoad');
- try{if(await FB.hasAccess()){location.replace(APP);return}}
+ if(!u){who=null;show('vLogin');return}
+ who=u;show('vLoad');
+ if(RETORNO){confirmar(0);return}
+ let tier;
+ try{tier=await FB.tier()}
  catch(err){console.error(err);show('vLogin');say('msg','Não foi possível verificar sua conta. Tente de novo.');return}
+ if(tier==='admin'){location.replace('painel.html');return}
+ if(tier==='pro'||(tier==='free'&&want!=='pro')){location.replace(APP);return}
  $('hello').textContent='olá, '+String(u.name||'').split(' ')[0]+'!';
  show(want==='pro'?'vPay':'vPlans')});
+/* depois do checkout: espera o Mercado Pago confirmar */
+async function confirmar(n){
+ show('vWait');$('wb').hidden=true;$('wsp').hidden=false;$('wt').textContent='Confirmando seu pagamento';$('ws').textContent='Isso leva só alguns segundos...';
+ try{
+  const st=await FB.status(true);
+  if(st.admin){location.replace('painel.html');return}
+  if(st.pro){$('wt').textContent='Pagamento aprovado!';$('ws').textContent='Abrindo a sua lousa...';setTimeout(()=>location.replace(APP),900);return}
+  if(n<8){setTimeout(()=>confirmar(n+1),2500);return}
+ }catch(err){console.error(err)}
+ $('wsp').hidden=true;$('wt').textContent='Ainda não recebemos a confirmação';
+ $('ws').textContent='Pagamentos por Pix ou boleto no Mercado Pago podem levar alguns minutos. Assim que aprovar, o acesso Pro é liberado.';
+ $('wb').hidden=false;$('wGo').hidden=false}
+$('wRetry').onclick=()=>confirmar(0);
+$('wGo').onclick=()=>location.replace(APP);
 async function activate(plan,msgId){
- try{await FB.setPlan({status:'active',plan,source:plan==='pro'?'demo':'free'});location.replace(APP)}
- catch(err){console.error(err);show(plan==='pro'?'vPay':'vPlans');say(msgId,'Não foi possível concluir. Tente de novo.')}}
+ try{await FB.setPlan({status:'active',plan,source:'free'});location.replace(APP)}
+ catch(err){console.error(err);show('vPlans');say(msgId,'Não foi possível concluir. Tente de novo.')}}
 $('pFree').onclick=()=>activate('free','msg2');
 $('pPro').onclick=()=>{say('msg3','');show('vPay')};
 $('payBack').onclick=()=>show('vPlans');
-$('pay').onclick=()=>{show('vLoad');setTimeout(()=>activate('pro','msg3'),1500)};
+$('pay').onclick=async()=>{
+ const b=$('pay');b.disabled=true;say('msg3','');
+ try{
+  const r=await FB.api('subscribe');
+  if(r.already){location.replace(APP);return}
+  if(!r.url)throw new Error('Resposta inválida do pagamento.');
+  say('msg3','Abrindo o Mercado Pago...');sair(r.url);
+ }catch(err){console.error(err);b.disabled=false;say('msg3',err.message||'Não foi possível iniciar o pagamento.')}};
 document.querySelector('[data-out]').onclick=()=>{if(window.FB)FB.logout()};
 setTimeout(()=>{if(!window.FB&&!$('vLogin').hidden)say('msg','Não foi possível carregar o login. Confira sua conexão.')},8000);
 /* fundo de estrelas */

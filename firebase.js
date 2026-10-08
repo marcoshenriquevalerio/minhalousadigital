@@ -393,24 +393,54 @@ onAuthStateChanged(auth, (user) => {
 
 /* =====================================================================
    PLANO / ACESSO — liga o site de vendas à lousa
-   users/{uid}/plan/me -> { status: "active", plan: "free"|"pro", source, updatedAt }
-   (coberto pela regra users/{uid}/{document=**}; não precisa mudar as regras)
-   Quem já tinha lousa salva antes do site (documento principal existe) entra direto
-   e recebe plano "legacy", sem precisar comprar.
+   O plano Pro é decidido pelo SERVIDOR (Mercado Pago -> /api/webhook -> subscriptions/{uid}).
+   users/{uid}/plan/me guarda só o plano grátis (ou "legacy" de quem já tinha lousa salva).
    ===================================================================== */
 Object.assign(window.FB, {
+  async getToken() { return auth.currentUser.getIdToken(); },
+
+  // chama o backend (Vercel) com o token do usuário
+  async api(path, body) {
+    const token = await auth.currentUser.getIdToken();
+    const r = await fetch("/api/" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify(body || {})
+    });
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) { const e = new Error(j.error || ("Erro " + r.status)); e.status = r.status; throw e; }
+    return j;
+  },
+
+  // { admin, owner, pro, sub } — consultado no servidor (sincroniza com o Mercado Pago se preciso)
+  async status(force) {
+    if (!force && FB._st && Date.now() - FB._stAt < 20000) return FB._st;
+    FB._st = await FB.api("me");
+    FB._stAt = Date.now();
+    return FB._st;
+  },
+
   async getPlan() {
     const snap = await getDoc(doc(db, "users", uid(), "plan", "me"));
     return snap.exists() ? snap.data() : null;
   },
+  // só o plano grátis pode ser gravado pelo navegador (as regras do Firestore também bloqueiam "pro")
   async setPlan(p) {
+    if (p.plan !== "free" && p.plan !== "legacy") throw new Error("O plano Pro só é ativado pelo pagamento.");
     await setDoc(doc(db, "users", uid(), "plan", "me"), Object.assign({ updatedAt: Date.now() }, p));
   },
-  async hasAccess() {
+
+  // devolve "admin" | "pro" | "free" | null (null = conta nova, ainda sem plano escolhido)
+  async tier() {
+    let st = null;
+    try { st = await FB.status(true); } catch (e) { console.warn("status:", e); }
+    if (st && st.admin) return "admin";
+    if (st && st.pro) return "pro";
     const plan = await FB.getPlan();
-    if (plan && plan.status === "active") return true;
+    if (plan && plan.status === "active") return "free"; // um "pro" gravado no navegador (demo antigo) não vale mais
     const main = await getDoc(mainRef());
-    if (main.exists()) { await FB.setPlan({ status: "active", plan: "legacy", source: "existing-account" }); return true; }
-    return false;
-  }
+    if (main.exists()) { await FB.setPlan({ status: "active", plan: "legacy", source: "existing-account" }); return "free"; }
+    return null;
+  },
+  async hasAccess() { return (await FB.tier()) !== null; }
 });
