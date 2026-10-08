@@ -9233,10 +9233,14 @@
       if (FR.un) FR.un();
       if (!FR.wrapped) { FR.wrapped = true; const o = window.shPublishAllMine; window.shPublishAllMine = function () { try { if (o) o.apply(this, arguments); } catch (e) {} frPublish(); }; }
       frPublish();
+      if (FR.hb) clearInterval(FR.hb);
+      const beat = (t) => { try { SOCIAL.ping(FB.me().uid, t === undefined ? Date.now() : t).catch(() => {}); } catch (e) {} };
+      beat(); FR.hb = setInterval(() => { beat(); if (!byId('friendsModal').classList.contains('hidden') && FR.tab === 'search' && !FR.pick) frLoadDir(); }, 30000);
+      if (!FR.pl) { FR.pl = true; window.addEventListener('pagehide', () => beat(0)); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') beat(); }); }
       FR.un = SOCIAL.watch(frMe(), (d) => { FR.data = d; frChanged(); });
     }
-    function frStop() { if (FR.un) { FR.un(); FR.un = null; } FR.data = { follows: [], blocks: [], noReq: false }; FR.dir = null; closeOv('friendsModal'); frBadge(); }
-    function frPublish() { try { if (window.SOCIAL && window.FB && FB.me()) SOCIAL.publish(frMe()).catch(e => console.warn('diretório:', e)); } catch (e) {} }
+    function frStop() { if (FR.hb) { clearInterval(FR.hb); FR.hb = null; } if (FR.un) { FR.un(); FR.un = null; } FR.data = { follows: [], blocks: [], noReq: false }; FR.dir = null; closeOv('friendsModal'); frBadge(); }
+    function frPublish() { try { if (window.SOCIAL && window.FB && FB.me()) SOCIAL.publish(frMe()).then(() => { FR.pubOk = true; }).catch(e => console.warn('diretório:', e)); } catch (e) {} }
     function frBadge() { const n = (window.FB && FB.me() && FR.un) ? frIncoming().length : 0, b = byId('frBadge'); if (b) { b.textContent = n > 9 ? '9+' : n; b.classList.toggle('hidden', !n); } }
     function frChanged() {
       frBadge();
@@ -9246,7 +9250,7 @@
 
     function openFriends(tab) { FR.tab = tab || 'friends'; FR.pick = null; FR.msg = ''; openOv('friendsModal'); if (FR.tab === 'search') frLoadDir(); frRender(); }
     function frTab(t) { FR.tab = t; FR.pick = null; FR.msg = ''; if (t === 'search') frLoadDir(); frRender(); }
-    function frLoadDir() { if (!window.SOCIAL) return; SOCIAL.list().then(d => { FR.dir = d; frSearchList(); }).catch(e => { console.warn(e); FR.dir = []; FR.msg = 'Não foi possível carregar as pessoas (veja as regras do Firestore).'; frSearchList(); }); }
+    function frLoadDir() { if (!window.SOCIAL) return; SOCIAL.list().then(d => { FR.dir = d; frSearchList(); }).catch(e => { console.warn(e); FR.dir = []; frSearchList(); }); }
 
     const frRow = (o, right, sub) => `<div class="sh-row">${ntAvatar(o.photo, o.name, 34)}<span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(o.name || 'Sem nome')}</b>${sub ? '<br><small>' + sub + '</small>' : ''}</span>${right || ''}</div>`;
     function frRender(keepSearch) {
@@ -9292,8 +9296,9 @@
       const list = FR.dir.filter(d => d.uid !== me && d.username).map(d => ({ d, s: frScore(d.username, q) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s || a.d.username.localeCompare(b.d.username)).slice(0, 40);
       box.innerHTML = list.length ? list.map(({ d }) => {
         const st = blk[d.uid] ? '<small>bloqueado</small>' : fr[d.uid] === 'friend' ? '<small>amigo</small>' : fr[d.uid] === 'sent' ? '<small>pedido enviado</small>' : fr[d.uid] === 'rej' ? '<small>não aceitou</small>' : fr[d.uid] === 'inc' ? '<button class="sh-btn ok" onclick="frTab(\'req\')">Ver pedido</button>' : d.noRequests ? '<small>não recebe pedidos</small>' : `<button class="sh-btn ok" onclick="frFollow('${d.uid}')">Seguir</button>`;
-        return `<div class="sh-row"><i class="fa-solid fa-user"></i><b class="flex-1" style="color:#fef3c7">${html(d.username)}</b>${st}</div>`;
-      }).join('') : `<p class="text-xs text-stone-400">${q ? 'Ninguém encontrado com esse nome.' : 'Nenhuma pessoa cadastrada ainda.'}</p>`;
+        const on = d.lastSeen && Date.now() - d.lastSeen < 150000;
+        return `<div class="sh-row"><span style="width:10px;height:10px;min-width:10px;border-radius:50%;background:${on ? '#22c55e' : '#78716c'}"></span><span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(d.username)}</b><br><small style="color:${on ? '#4ade80' : '#a8a29e'}">${on ? 'online' : 'offline'}</small></span>${st}</div>`;
+      }).join('') : `<p class="text-xs text-stone-400">${q ? 'Ninguém encontrado com esse nome.' : 'Nenhuma pessoa cadastrada ainda.'}</p><button class="sh-btn mt-2" onclick="FR.dir=null;frSearchList();frLoadDir()"><i class="fa-solid fa-rotate mr-1"></i>Atualizar lista</button>`;
     }
 
     async function frFollow(uid) {

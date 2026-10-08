@@ -10,6 +10,7 @@ window.SOCIAL = {
     await setDoc(ref('directory', me.uid), { uid: me.uid, username: me.name, lower: norm(me.name) }, { merge: true });
     await setDoc(ref('dirPhotos', me.uid), { photo: me.photo || '' });
   },
+  ping(uid, t) { return setDoc(ref('directory', uid), { lastSeen: t }, { merge: true }); },   // presença: online se visto há < 2,5 min
   async list() { return (await getDocs(query(col('directory'), limit(500)))).docs.map(d => d.data()); },
   async photo(uid) { const s = await getDoc(ref('dirPhotos', uid)); return s.exists() ? (s.data().photo || '') : ''; },
   watch(me, cb) {
