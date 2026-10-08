@@ -746,6 +746,30 @@
       #boardViewport { touch-action: none; overscroll-behavior: contain; }
     }
 
+    /* ===== Guia de tela do celular (linhas suaves, só visual) ===== */
+    #phoneGuide { position: absolute; inset: 0; pointer-events: none; z-index: 0; display: none; }
+    body.phone-guide-on #phoneGuide { display: block; }
+    .pg-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed rgba(255,255,255,.12); }
+    .pg-tag { position: absolute; top: 8px; font: 600 11px/1 system-ui, sans-serif; letter-spacing: .3px; color: rgba(255,255,255,.2); white-space: nowrap; }
+    .theme-marker .pg-line { border-left-color: rgba(15,23,42,.16); }
+    .theme-marker .pg-tag { color: rgba(15,23,42,.3); }
+    .pg-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+    .pg-switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .pg-track { flex: none; width: 44px; height: 24px; border-radius: 999px; background: rgba(255,255,255,.18); position: relative; transition: background .2s ease; }
+    .pg-track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s ease; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+    .pg-switch input:checked + .pg-track { background: #f59e0b; }
+    .pg-switch input:checked + .pg-track::after { transform: translateX(20px); }
+    /* Ajustes no celular: sempre embaixo, como as outras gavetas */
+    @media (max-width: 899px) {
+      #quoteEditor { left: 0 !important; right: 0 !important; top: auto !important; bottom: var(--bar-h, 0px) !important; width: 100% !important; max-width: none !important;
+        transform: none !important; border-radius: 22px 22px 0 0 !important; border-bottom: 0 !important; padding: 8px 14px 14px !important;
+        max-height: min(62dvh, calc(100dvh - var(--bar-h, 0px) - 70px)); overflow-y: auto; overscroll-behavior: contain;
+        box-shadow: 0 -10px 30px rgba(0,0,0,.5) !important; animation: sheetUp .22s ease-out; }
+      #quoteEditor::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 5px; margin: 0 auto 10px; background: rgba(255,255,255,.3); }
+      #quoteEditor #qeHint { display: none; }
+      #quoteEditor [data-qtab] { padding: 0 10px; }
+    }
+
     /* Card de finanças: começa recolhido; a setinha abre e fecha */
     #finDock { padding: 4px; }
     #finDock.open { padding: 5px 8px 5px 5px; }
@@ -961,6 +985,7 @@
 
   <!-- MAIN: Área da Lousa Verde Escolar Vintage -->
   <div id="boardViewport" class="chalkboard-bg flex-1 min-h-0 w-full relative overflow-hidden"><div id="boardSizer" style="position:relative;width:100%;height:100%"><main id="boardCanvas" class="relative overflow-hidden" style="width:100%;height:100%;transform-origin:0 0">
+    <div id="phoneGuide" aria-hidden="true"></div>
     
     <!-- Frase decorativa (configurável: texto, linhas, posição) -->
     <div id="boardQuote" class="font-chalk chalk-text select-none"></div>
@@ -1117,6 +1142,7 @@
         <button class="q-btn px-3" data-qtab="frase" onclick="setSettingsTab('frase')"><i class="fa-solid fa-quote-left mr-1"></i>Frase</button>
         <button class="q-btn px-3" data-qtab="apagador" onclick="setSettingsTab('apagador')"><i class="fa-solid fa-eraser mr-1"></i>Apagador</button>
         <button class="q-btn px-3" data-qtab="giz" onclick="setSettingsTab('giz')"><i class="fa-solid fa-pen mr-1"></i><span id="gizTabLbl">Giz</span></button>
+        <button class="q-btn px-3" data-qtab="tela" onclick="setSettingsTab('tela')" title="Guia da tela do celular"><i class="fa-solid fa-mobile-screen-button mr-1"></i>Tela</button>
       </div>
       <span id="qeHint" class="text-[10px] text-amber-100/60 text-right">arraste a frase para mover</span>
     </div>
@@ -1140,6 +1166,15 @@
       <label class="mt-2.5 flex items-center justify-between text-[11px] text-amber-100/80 cursor-pointer"><span><i class="fa-solid fa-volume-high mr-1"></i>Som ao apagar</span><input id="eraserSound" type="checkbox" checked onchange="setEraserSound(this.checked)" style="accent-color:#fbbf24;width:16px;height:16px"></label>
       <button id="eraserPlaceBtn" onclick="toggleEraserPlace()" class="mt-2.5 w-full px-3 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition"><i class="fa-solid fa-up-down-left-right"></i><span>Mudar posição de descanso</span></button>
       <button onclick="resetEraser()" class="mt-1.5 w-full px-3 py-1.5 bg-stone-700/70 hover:bg-stone-600 text-stone-200 rounded-lg text-xs transition">Restaurar tamanho e posição</button>
+    </div>
+
+    <div id="qeTela" class="hidden">
+      <label class="pg-switch text-[12px] text-amber-100/90">
+        <span><i class="fa-solid fa-mobile-screen-button mr-1.5"></i>Guia da tela do celular</span>
+        <input id="phoneGuideChk" type="checkbox" onchange="setPhoneGuide(this.checked)">
+        <span class="pg-track"></span>
+      </label>
+      <p class="text-[10px] text-amber-100/55 mt-2 leading-snug">Mostra linhas suaves na lousa marcando o que cabe numa tela de celular em pé. Use como referência para organizar suas peças dentro de cada faixa. As linhas só aparecem para você e não atrapalham em nada.</p>
     </div>
 
     <div id="qeGiz" class="hidden">
@@ -4400,6 +4435,7 @@
         sz.style.cssText = 'position:relative;width:100%;height:100%';
         mn.style.position = 'relative'; mn.style.left = mn.style.top = '';
         mn.style.width = '100%'; mn.style.height = '100%'; mn.style.transform = 'none';
+        renderPhoneGuide();
         return;
       }
       const vw = vp.clientWidth, vh = vp.clientHeight;
@@ -4416,7 +4452,35 @@
       mn.style.position = 'absolute'; mn.style.left = '0'; mn.style.top = '0';
       mn.style.width = W + 'px'; mn.style.height = H + 'px';
       mn.style.transform = `scale(${boardScale})`;
+      renderPhoneGuide();
     }
+    /* ===== Guia da tela do celular (em pé): linhas suaves a cada "largura de celular" ===== */
+    const PHONE_GUIDE_KEY = 'lousa_phone_guide';
+    const PHONE_ASPECT = 0.6;   // largura/altura da área visível do celular em pé
+    function renderPhoneGuide() {
+      const g = byId('phoneGuide'), mn = byId('boardCanvas');
+      if (!g || !mn || !document.body.classList.contains('phone-guide-on')) return;
+      let W = 1366, H = 700;
+      const b = appData.boards && appData.boards[appData.activeBoardIndex];
+      if (b && b.notes) b.notes.forEach(n => {
+        W = Math.max(W, (n.x || 0) + (n.width || 0) + 60);
+        H = Math.max(H, (n.y || 0) + (n.height ? n.height + 40 : 200));
+      });
+      const cw = isMobileBar() ? W : (mn.offsetWidth || W);
+      const fw = H * PHONE_ASPECT;
+      let html = '', k = 1;
+      for (let x = 0; x < cw - 4; x += fw, k++) {
+        if (x > 0) html += `<div class="pg-line" style="left:${Math.round(x)}px"></div>`;
+        html += `<div class="pg-tag" style="left:${Math.round(x) + 10}px">celular · tela ${k}</div>`;
+      }
+      g.innerHTML = html;
+    }
+    function setPhoneGuide(on) {
+      document.body.classList.toggle('phone-guide-on', !!on);
+      try { localStorage.setItem(PHONE_GUIDE_KEY, on ? '1' : '0'); } catch (e) {}
+      renderPhoneGuide();
+    }
+    try { if (localStorage.getItem(PHONE_GUIDE_KEY) === '1') document.body.classList.add('phone-guide-on'); } catch (e) {}
     function relayoutAll() { layoutStage(); placeFinDock(); if (typeof renderQuote === 'function') { renderQuote(); renderEraser(); } }
     new ResizeObserver(() => relayoutAll()).observe(byId('boardViewport'));
     window.addEventListener('resize', relayoutAll);
@@ -4726,6 +4790,7 @@
     function placeQuoteEditor() {
       const ed = byId('quoteEditor'), el = (settingsTab === 'apagador' ? byId('eraser') : settingsTab === 'giz' ? byId('chalkStick') : byId('boardQuote'));
       if (!ed || !el) return;
+      if (isMobileBar()) { ed.style.top = 'auto'; ed.style.bottom = 'var(--bar-h, 0px)'; return; }   // celular: sempre embaixo
       const r = el.getBoundingClientRect();
       const lower = (r.top + r.height / 2) > window.innerHeight * 0.5;
       const hdr = byId('topbar');
@@ -4746,13 +4811,14 @@
     }
 
     function setSettingsTab(tab) {
-      settingsTab = (tab === 'apagador' || tab === 'giz') ? tab : 'frase';
+      settingsTab = (tab === 'apagador' || tab === 'giz' || tab === 'tela') ? tab : 'frase';
       const isF = settingsTab === 'frase';
       quoteEditing = isF;                       // a frase só fica movível na aba Frase
       if (!isF) { setEraserPlace(false); setChalkPlace(false); }
       byId('qeFrase').classList.toggle('hidden', !isF);
       byId('qeApagador').classList.toggle('hidden', settingsTab !== 'apagador');
       byId('qeGiz').classList.toggle('hidden', settingsTab !== 'giz');
+      byId('qeTela').classList.toggle('hidden', settingsTab !== 'tela');
       byId('qeHint').classList.toggle('hidden', !isF);
       document.querySelectorAll('#quoteEditor [data-qtab]').forEach(b => b.classList.toggle('active', b.dataset.qtab === settingsTab));
       if (isF) {
@@ -4761,6 +4827,8 @@
         ta.rows = window.innerHeight < 500 ? 2 : 3;
         updateLinesButtons();
         setTimeout(() => ta.focus(), 50);
+      } else if (settingsTab === 'tela') {
+        byId('phoneGuideChk').checked = document.body.classList.contains('phone-guide-on');
       } else if (settingsTab === 'giz') {
         syncChalkPanel();
       } else {
