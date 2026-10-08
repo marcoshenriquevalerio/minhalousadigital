@@ -603,6 +603,15 @@
     .fin-dock-title { font-family: 'Patrick Hand','Caveat',cursive; font-size: 17px; color: #fde68a; white-space: nowrap; margin-right: 2px; }
     .fin-dock-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-family: 'Patrick Hand','Caveat',cursive; font-size: 16px; line-height: 1; color: #f5f7f8; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.32); transition: background .2s ease, transform .12s ease; }
     .fin-dock-btn:hover { background: rgba(255,255,255,.22); }
+    .fin-pdf-btn { border-color: rgba(76,201,255,.75); background: linear-gradient(135deg, rgba(76,201,255,.30), rgba(167,139,250,.30)); box-shadow: 0 0 12px rgba(76,201,255,.28); }
+    .fin-pdf-btn i { color: #7dd3fc; }
+    .fin-pdf-btn:hover { background: linear-gradient(135deg, rgba(76,201,255,.45), rgba(167,139,250,.45)); }
+    .theme-marker .fin-pdf-btn { background: #fff; border-color: #38bdf8; } .theme-marker .fin-pdf-btn i { color: #0284c7; }
+    .fin-rep-opt { display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color: #e7e5e4; cursor: pointer; transition: border-color .15s, background .15s; }
+    .fin-rep-opt b { font-size: 15px; } .fin-rep-opt span { font-size: 12px; color: #a8a29e; }
+    .fin-rep-opt:hover { background: rgba(255,255,255,.08); }
+    .fin-rep-opt.on { border-color: #4cc9ff; background: linear-gradient(135deg, rgba(76,201,255,.16), rgba(167,139,250,.16)); box-shadow: 0 0 14px rgba(76,201,255,.25); }
+    .fin-rep-opt.dis { opacity: .45; cursor: not-allowed; }
     .fin-dock-btn:active { transform: scale(.95); }
     .theme-marker #finDock { background: rgba(255,255,255,.94); border-color: #94a3b8; box-shadow: 0 2px 10px rgba(15,23,42,.22); }
     .theme-marker .fin-dock-title { color: #065f46; }
@@ -1232,9 +1241,29 @@
     <button class="fin-dock-btn" onclick="finOpenCards()" title="Adicionar cards (escolha quais)"><i class="fa-solid fa-wallet"></i> Cards</button>
     <button class="fin-dock-btn" onclick="openFinChartModal()" title="Montar um gráfico"><i class="fa-solid fa-chart-column"></i> Gráficos</button>
     <button class="fin-dock-btn" onclick="openFinLinkModal()" title="Ligar esta lousa a outras lousas de finanças"><i class="fa-solid fa-link"></i> Ligar</button>
+    <button class="fin-dock-btn fin-pdf-btn" onclick="finOpenReport()" title="Gerar relatório em PDF (esta lousa ou todas)"><i class="fa-solid fa-file-pdf"></i> PDF</button>
     </div>
   </div>
   <datalist id="finDestList"></datalist>
+
+  <!-- FINANÇAS: relatório em PDF -->
+  <div id="finRepModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:9600">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+        <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-file-pdf mr-2" style="color:#7dd3fc"></i>Relatório em PDF</h3>
+        <button onclick="closeOv('finRepModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="p-5 space-y-3">
+        <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
+        <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
+        <p class="text-[11px] text-stone-400 leading-snug">Traz resumo, os gráficos que você montou e a tabela de lançamentos. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
+      </div>
+      <div class="flex justify-end gap-2.5 px-5 py-3 border-t border-stone-600">
+        <button onclick="closeOv('finRepModal')" class="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg text-sm transition">Cancelar</button>
+        <button onclick="finRunReport()" class="px-4 py-2 bg-sky-400 hover:bg-sky-300 text-stone-950 font-bold rounded-lg text-sm transition"><i class="fa-solid fa-file-pdf mr-1"></i>Gerar PDF</button>
+      </div>
+    </div>
+  </div>
 
   <!-- FINANÇAS: escolher cards individuais -->
   <div id="finCardModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
@@ -10016,6 +10045,276 @@
     const onRotate = () => { closeSheets(); try { updateBarH(); } catch (e) {} };
     if (mq.addEventListener) mq.addEventListener('change', onRotate); else if (mq.addListener) mq.addListener(onRotate);
     window.addEventListener('load', () => { try { updateBarH(); } catch (e) {} setTimeout(() => { try { updateBarH(); } catch (e) {} }, 400); });
+  })();
+  </script>
+  <script>
+  /* =========================================================================
+     RELATÓRIO DE FINANÇAS EM PDF — uma lousa ou todas as lousas de finanças.
+     Abre o relatório numa aba (visual futurista, gráficos que você montou + tabela)
+     e chama a impressão: escolha "Salvar como PDF".
+     ========================================================================= */
+  (function () {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const C = { in: '#34f5c5', out: '#ff5ea8', bal: '#4cc9ff', warn: '#ffd75e', vio: '#a78bfa' };
+    const SWAP = [['#c9f5cf', C.in], ['#ffc4de', C.out], ['#bfe9ff', C.bal], ['#fff0a0', C.warn], ['#f5f7f8', '#e8f0ff']];
+    const money = c => finBRL((c || 0) / 100);            // centavos -> "R$ 1.234,56"
+    const pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, Math.round(a * 100 / b))) : 0;
+    const TYPE_NAME = { bar: 'Barras', line: 'Linha', pie: 'Pizza', donut: 'Rosca', progress: 'Progresso', thermo: 'Termômetro', treemap: 'Mapa de blocos', radar: 'Radar', funnel: 'Funil' };
+    const WIDE = ['bar', 'line'];
+    const dateBR = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : '—'; };
+    const nowTxt = () => { const d = new Date(); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
+
+    /* ---------- dados ---------- */
+    function statsOf(b) {
+      const rows = finData(b).rows.filter(r => !finIsBlank(r));
+      const t = finTotals(rows);
+      return { b, rows, t, bal: t.in - t.out, fc: t.in - t.out + t.pin - t.pout, charts: chartsOf(b) };
+    }
+    function chartsOf(b) {
+      const out = [];
+      appData.boards.forEach(bd => (bd.notes || []).forEach(n => { if (n.type === 'finchart' && finSrcOf(n) === b) out.push(n); }));
+      out.sort((a, c) => (Math.round((a.y || 0) / 60) - Math.round((c.y || 0) / 60)) || ((a.x || 0) - (c.x || 0)));
+      return out;
+    }
+    function chartSvg(n, W, H) {
+      const pb = finCtxBoard, pn = finCtxNote, th = appData.theme;
+      try {
+        finCtxNote = n; finCtxBoard = finSrcOf(n); appData.theme = 'chalk';
+        let s = finChartSvg(Object.assign({}, n.cfg || {}, { fontScale: 1 }), W, H);
+        SWAP.forEach(p => { s = s.replace(new RegExp(p[0], 'gi'), p[1]); });
+        return s;
+      } catch (e) { console.warn('relatório: gráfico', e); return '<div class="empty">Não foi possível desenhar este gráfico.</div>'; }
+      finally { finCtxBoard = pb; finCtxNote = pn; appData.theme = th; }
+    }
+    function chartTitle(n) {
+      const cfg = n.cfg || {};
+      const t = (n.title == null || n.title === '') ? finDefaultTitle(cfg) : n.title;
+      return String(t).replace(/^[^\p{L}\p{N}]+/u, '').trim() || 'Gráfico';
+    }
+
+    /* ---------- peças visuais ---------- */
+    const kpi = (label, val, sub, col) => `<div class="kpi" style="--c:${col}"><i></i><small>${label}</small><b>${val}</b><em>${sub}</em></div>`;
+    function kpis(t, nRows) {
+      const bal = t.in - t.out, fc = bal + t.pin - t.pout, pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+      return `<div class="kpis">` +
+        kpi('ENTRADAS', money(t.in), pl(t.nIn, 'lançamento', 'lançamentos'), C.in) +
+        kpi('SAÍDAS', money(t.out), pl(t.nOut, 'lançamento', 'lançamentos'), C.out) +
+        kpi('SALDO', money(bal), bal < 0 ? 'no vermelho' : 'no azul', bal < 0 ? C.out : C.bal) +
+        kpi('A RECEBER', money(t.pin), pl(t.nPin, 'pendente', 'pendentes'), C.warn) +
+        kpi('A PAGAR', money(t.pout), pl(t.nPout, 'pendente', 'pendentes'), '#ff9d5c') +
+        kpi('PREVISTO', money(fc), 'saldo + pendências', C.vio) + `</div>`;
+    }
+    function panelDest(rows) {
+      const groups = finDestGroups(rows).map(g => ({ g, out: g.t.out + g.t.pout, inn: g.t.in + g.t.pin }));
+      let useOut = groups.some(x => x.out > 0), key = useOut ? 'out' : 'inn';
+      const list = groups.filter(x => x[key] > 0).sort((a, b) => b[key] - a[key]);
+      const total = list.reduce((s, x) => s + x[key], 0), top = list.slice(0, 6), max = top.length ? top[0][key] : 1;
+      const col = useOut ? C.out : C.in;
+      let h = `<div class="panel"><h3>${useOut ? 'Para onde vai o dinheiro' : 'De onde vem o dinheiro'}</h3>`;
+      if (!top.length) h += `<div class="empty">Sem lançamentos ainda.</div>`;
+      top.forEach(x => {
+        h += `<div class="hb"><div class="hb-t"><span>${finEmoji(x.g.label)} ${esc(x.g.label)}</span><b>${money(x[key])}</b></div><div class="hb-bar"><u style="width:${Math.max(3, Math.round(x[key] * 100 / max))}%;--c:${col}"></u></div><small>${pct(x[key], total)}% do total</small></div>`;
+      });
+      return h + `</div>`;
+    }
+    function panelFlow(rows) {
+      const map = {};
+      rows.forEach(r => { const k = (r.date || '').slice(0, 7); if (!/^\d{4}-\d{2}$/.test(k)) return; (map[k] = map[k] || []).push(r); });
+      const months = Object.keys(map).sort().slice(-6);
+      let h = `<div class="panel"><h3>Fluxo mensal <span>(pagos e recebidos)</span></h3>`;
+      if (!months.length) return h + `<div class="empty">Sem datas nos lançamentos.</div></div>`;
+      const data = months.map(k => { const t = finTotals(map[k]); return { k, i: t.in, o: t.out }; });
+      const max = Math.max(1, ...data.map(d => Math.max(d.i, d.o))), W = 320, H = 250, base = 220, bw = Math.min(22, Math.floor((W - 20) / data.length / 2.6));
+      const step = (W - 20) / data.length;
+      let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.in}"/><stop offset="1" stop-color="${C.in}" stop-opacity=".25"/></linearGradient><linearGradient id="go" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.out}"/><stop offset="1" stop-color="${C.out}" stop-opacity=".25"/></linearGradient></defs>`;
+      for (let g = 0; g <= 3; g++) { const y = base - (base - 14) * g / 3; s += `<line x1="10" x2="${W - 10}" y1="${y}" y2="${y}" stroke="#7aa2ff" stroke-opacity=".12"/>`; }
+      data.forEach((d, i) => {
+        const cx = 10 + step * i + step / 2, hi = Math.round((base - 14) * d.i / max), ho = Math.round((base - 14) * d.o / max);
+        s += `<rect x="${cx - bw - 1}" y="${base - hi}" width="${bw}" height="${hi}" rx="4" fill="url(#gi)"/><rect x="${cx + 1}" y="${base - ho}" width="${bw}" height="${ho}" rx="4" fill="url(#go)"/>` +
+          `<text x="${cx}" y="${base + 18}" text-anchor="middle" font-size="11" fill="#9db0d8">${esc(finMonthShort(d.k))}</text>`;
+      });
+      s += `</svg><div class="lg"><span style="--c:${C.in}">Entradas</span><span style="--c:${C.out}">Saídas</span></div>`;
+      return h + s + `</div>`;
+    }
+    function panelProgress(t) {
+      const m = (label, a, b, col) => `<div class="pg"><div class="hb-t"><span>${label}</span><b>${pct(a, b)}%</b></div><div class="hb-bar big"><u style="width:${pct(a, b)}%;--c:${col}"></u></div><small>${money(a)} de ${money(b)}</small></div>`;
+      return `<div class="panel"><h3>Andamento</h3><div class="pgs">${m('Saídas já pagas', t.out, t.out + t.pout, C.out)}${m('Entradas já recebidas', t.in, t.in + t.pin, C.in)}</div></div>`;
+    }
+    function panelBoards(list) {
+      const max = Math.max(1, ...list.map(s => Math.max(s.t.in + s.t.pin, s.t.out + s.t.pout)));
+      let h = `<div class="panel"><h3>Comparativo por lousa</h3>`;
+      list.slice(0, 8).forEach(s => {
+        h += `<div class="cmp"><div class="hb-t"><span>${esc(s.b.name || 'Finanças')}</span><b style="color:${s.bal < 0 ? C.out : C.in}">${money(s.bal)}</b></div>` +
+          `<div class="hb-bar"><u style="width:${Math.max(2, Math.round((s.t.in) * 100 / max))}%;--c:${C.in}"></u></div>` +
+          `<div class="hb-bar"><u style="width:${Math.max(2, Math.round((s.t.out) * 100 / max))}%;--c:${C.out}"></u></div>` +
+          `<small>Entradas ${money(s.t.in)} · Saídas ${money(s.t.out)}</small></div>`;
+      });
+      if (list.length > 8) h += `<small>+ ${list.length - 8} outras lousas nas próximas páginas</small>`;
+      return h + `</div>`;
+    }
+    function periodTxt(rows) {
+      const ds = rows.map(r => r.date).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d || '')).sort();
+      return ds.length ? dateBR(ds[0]) + ' — ' + dateBR(ds[ds.length - 1]) : 'sem datas';
+    }
+
+    /* ---------- páginas ---------- */
+    function summaryPage(s) {
+      const nCh = s.charts.length;
+      return { label: s.b.name || 'Finanças', html:
+        `<div class="eyebrow">RELATÓRIO FINANCEIRO</div><h1>${esc(s.b.name || 'Finanças')}</h1>` +
+        `<div class="sub">${periodTxt(s.rows)} · ${s.rows.length} lançamento${s.rows.length === 1 ? '' : 's'} · ${nCh} gráfico${nCh === 1 ? '' : 's'}</div>` +
+        kpis(s.t, s.rows.length) + `<div class="grid2">${panelDest(s.rows)}${panelFlow(s.rows)}</div>` + panelProgress(s.t) };
+    }
+    function generalPage(list) {
+      const all = [].concat(...list.map(s => s.rows)), t = finTotals(all), nCh = list.reduce((a, s) => a + s.charts.length, 0);
+      return { label: 'Relatório geral', html:
+        `<div class="eyebrow">RELATÓRIO GERAL</div><h1>Todas as lousas de finanças</h1>` +
+        `<div class="sub">${list.length} lousa${list.length === 1 ? '' : 's'} · ${periodTxt(all)} · ${all.length} lançamentos · ${nCh} gráficos</div>` +
+        kpis(t, all.length) + `<div class="grid2">${panelDest(all)}${panelFlow(all)}</div>` + panelBoards(list) };
+    }
+    function chartPages(s) {
+      const list = s.charts, rows = [];
+      for (let i = 0; i < list.length;) {
+        const a = list[i], wide = WIDE.indexOf((a.cfg || {}).type) >= 0, nx = list[i + 1];
+        if (!wide && nx && WIDE.indexOf((nx.cfg || {}).type) < 0) { rows.push([a, nx]); i += 2; } else { rows.push([a]); i++; }
+      }
+      const pages = [];
+      for (let i = 0; i < rows.length; i += 3) {
+        const chunk = rows.slice(i, i + 3);
+        const first = i === 0;
+        let h = `<div class="sec"><span>${first ? 'GRÁFICOS' : 'GRÁFICOS · continuação'}</span><b>${esc(s.b.name || 'Finanças')}</b></div>`;
+        chunk.forEach(r => {
+          h += `<div class="crow">` + r.map(n => {
+            const cfg = n.cfg || {}, W = r.length === 2 ? 318 : 686, H = 215;
+            const tags = [TYPE_NAME[cfg.type] || 'Barras', 'por ' + String(FIN_X[cfg.x] || 'Data').toLowerCase().replace(' (dia)', ''), cfg.period && cfg.period !== 'all' ? finMonthLong(cfg.period) : 'todo o período'];
+            return `<div class="card"><div class="card-h"><b>${esc(chartTitle(n))}</b><span>${tags.map(esc).join(' · ')}</span></div><div class="chart">${chartSvg(n, W, H)}</div></div>`;
+          }).join('') + `</div>`;
+        });
+        pages.push({ label: s.b.name || 'Finanças', html: h });
+      }
+      return pages;
+    }
+    function tablePages(s) {
+      const rows = s.rows.slice().sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
+      const sizes = [24, 28], pages = [];
+      let i = 0, pg = 0;
+      const rowHtml = r => {
+        const inn = r.cat === 'in', col = inn ? C.in : C.out;
+        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
+      };
+      const totals = `<div class="tot"><div><small>ENTRADAS</small><b style="color:${C.in}">${money(s.t.in)}</b></div><div><small>SAÍDAS</small><b style="color:${C.out}">${money(s.t.out)}</b></div><div><small>SALDO</small><b style="color:${s.bal < 0 ? C.out : C.bal}">${money(s.bal)}</b></div></div>`;
+      if (!rows.length) return [{ label: s.b.name || 'Finanças', html: `<div class="sec"><span>LANÇAMENTOS</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="empty">Nenhum lançamento nesta lousa ainda.</div>` }];
+      while (i < rows.length) {
+        const size = sizes[pg === 0 ? 0 : 1];
+        let n = Math.min(size, rows.length - i);
+        const last = i + n >= rows.length;
+        if (last && n > size - 4) { n = Math.max(1, size - 4); }
+        const chunk = rows.slice(i, i + n); i += n;
+        const isLast = i >= rows.length;
+        pages.push({ label: s.b.name || 'Finanças', html:
+          `<div class="sec"><span>${pg === 0 ? 'LANÇAMENTOS' : 'LANÇAMENTOS · continuação'}</span><b>${esc(s.b.name || 'Finanças')}</b></div>` +
+          `<table class="tb"><thead><tr><th>Data</th><th>Situação</th><th>Tipo</th><th>Destino</th><th class="v">Valor</th></tr></thead><tbody>${chunk.map(rowHtml).join('')}</tbody></table>` + (isLast ? totals : '') });
+        pg++;
+      }
+      return pages;
+    }
+
+    /* ---------- documento ---------- */
+    const CSS = `@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#03050b}body{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;color:#e6eeff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bar{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;padding:10px 14px;background:#0a1122;border-bottom:1px solid #1e2b4a;font-size:13px;color:#9db0d8}
+.bar button{font:inherit;font-weight:700;color:#04101c;background:linear-gradient(135deg,#4cc9ff,#a78bfa);border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
+.page{position:relative;width:210mm;height:296mm;margin:16px auto;padding:30px 40px 22px;overflow:hidden;display:flex;flex-direction:column;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.55);break-after:page;page-break-after:always;
+background:radial-gradient(760px 460px at 108% -6%,rgba(76,201,255,.17),transparent 62%),radial-gradient(700px 480px at -12% 108%,rgba(167,139,250,.17),transparent 62%),#070b16}
+.page:last-child{break-after:auto;page-break-after:auto}
+.page::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(120,170,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(120,170,255,.04) 1px,transparent 1px);background-size:28px 28px}
+.page>*{position:relative}
+.hd{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;margin-bottom:18px;border-bottom:1px solid rgba(120,170,255,.16)}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Orbitron','Space Grotesk',sans-serif;font-size:11px;letter-spacing:3px;color:#cfe0ff}
+.logo{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#4cc9ff,#a78bfa 60%,#34f5c5);box-shadow:0 0 14px rgba(76,201,255,.6);position:relative}.logo::after{content:'';position:absolute;inset:5px;border-radius:3px;background:#070b16}
+.hd-r{font-size:10px;letter-spacing:2px;color:#7f93bd;text-align:right}.hd-r span{display:block;color:#9db0d8;letter-spacing:1px;margin-top:2px}
+.bd{flex:1;min-height:0}
+.ft{display:flex;justify-content:space-between;font-size:10px;color:#6d82ad;padding-top:10px;border-top:1px solid rgba(120,170,255,.12);letter-spacing:.5px}
+.eyebrow{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:4px;color:#4cc9ff}
+h1{font-size:38px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:linear-gradient(100deg,#fff 20%,#9fdcff 60%,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:12px;color:#8ea2cc;margin-bottom:20px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.kpi{position:relative;padding:14px 14px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(140,180,255,.18);overflow:hidden}
+.kpi i{position:absolute;left:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,var(--c),transparent)}
+.kpi small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#8ea2cc}
+.kpi b{display:block;font-size:22px;margin:6px 0 2px;color:var(--c);text-shadow:0 0 18px color-mix(in srgb,var(--c) 45%,transparent);white-space:nowrap}
+.kpi em{font-style:normal;font-size:10.5px;color:#7f93bd}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.panel{padding:14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(140,180,255,.16)}
+.panel h3{font-size:12px;letter-spacing:1px;margin-bottom:10px;color:#cfe0ff;font-weight:600}.panel h3 span{color:#6d82ad;font-weight:400}
+.hb{margin-bottom:9px}.hb-t{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;margin-bottom:4px}.hb-t b{font-weight:600}
+.hb-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:3px}.hb-bar.big{height:11px}
+.hb-bar u{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 40%,transparent),var(--c));box-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
+.panel small{font-size:9.5px;color:#7f93bd}
+.pgs{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cmp{margin-bottom:10px}
+.lg{display:flex;gap:14px;font-size:10px;color:#9db0d8;margin-top:4px}.lg span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--c);margin-right:5px}
+.empty{font-size:12px;color:#7f93bd;padding:18px 4px;text-align:center}
+.sec{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}.sec span{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:4px;color:#4cc9ff}.sec b{font-size:18px;font-weight:600;color:#fff}
+.crow{display:flex;gap:12px;margin-bottom:12px}
+.card{flex:1;min-width:0;padding:12px 14px 10px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(140,180,255,.16)}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}.card-h b{font-size:13px;font-weight:600;color:#fff}.card-h span{font-size:9.5px;color:#7f93bd;text-align:right}
+.chart{color:#cfe0ff;height:215px;overflow:visible;padding:10px 0 0}.chart svg{display:block;max-width:100%}.chart svg text{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;font-weight:500}
+.tb{width:100%;border-collapse:collapse;font-size:11.5px}.tb th{text-align:left;font-size:9.5px;letter-spacing:2px;color:#8ea2cc;font-weight:600;padding:8px 8px;border-bottom:1px solid rgba(140,180,255,.3)}
+.tb td{padding:0 8px;height:30px;border-bottom:1px solid rgba(140,180,255,.09)}.tb tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+.tb .v{text-align:right;font-weight:600;white-space:nowrap}.tb .d{color:#9db0d8;white-space:nowrap}
+.st{display:inline-block;font-size:9.5px;padding:2px 9px;border-radius:99px;letter-spacing:.5px}.st.ok{color:#34f5c5;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35)}.st.pe{color:#ffd75e;border:1px dashed rgba(255,215,94,.6)}
+.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.tot div{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(140,180,255,.2)}.tot small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#8ea2cc}.tot b{font-size:19px}
+@media print{.bar{display:none}.page{margin:0;border-radius:0;box-shadow:none}html,body{background:#070b16}}`;
+
+    function buildReport(scope, auto) {
+      const boards = scope === 'all' ? finBoards() : [finTarget()];
+      const list = boards.filter(Boolean).map(statsOf);
+      const pages = [];
+      if (scope === 'all') pages.push(generalPage(list));
+      list.forEach(s => { pages.push(summaryPage(s)); chartPages(s).forEach(p => pages.push(p)); tablePages(s).forEach(p => pages.push(p)); });
+      const dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt(), N = pages.length;
+      const body = pages.map((p, i) => `<section class="page"><header class="hd"><div class="brand"><span class="logo"></span>LOUSA DIGITAL</div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${p.html}</div><footer class="ft"><span>${esc(p.label)} · gerado em ${stamp}</span><span>${i + 1} / ${N}</span></footer></section>`).join('');
+      const title = scope === 'all' ? 'Relatório geral de finanças' : 'Relatório — ' + (list[0] && list[0].b.name || 'Finanças');
+      const tail = auto ? `<script>window.addEventListener('load',function(){var go=function(){setTimeout(function(){window.print()},350)};try{Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,2500)})]).then(go)}catch(e){go()}})<\/script>` : '';
+      return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>${CSS}</style></head><body>` +
+        (auto ? `<div class="bar"><span>Na janela de impressão escolha <b>Salvar como PDF</b> (margens: nenhuma).</span><button onclick="window.print()">⬇ Salvar PDF</button></div>` : '') +
+        `<main>${body}</main>${tail}</body></html>`;
+    }
+
+    /* ---------- janela de escolha + saída ---------- */
+    function finTarget() { const a = getActiveBoard(); return a && a.kind === 'finance' ? a : (finBoards()[0] || null); }
+    let scope = 'one';
+    const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    window.finOpenReport = function () {
+      const bs = finBoards(); if (!bs.length) return;
+      const t = finTarget(), one = statsOf(t), all = bs.map(statsOf);
+      byId('finRepOne').innerHTML = `<b>Só esta lousa</b><span>${esc(t.name || 'Finanças')} · ${pl(one.rows.length, 'lançamento', 'lançamentos')} · ${pl(one.charts.length, 'gráfico', 'gráficos')}</span>`;
+      byId('finRepAll').innerHTML = `<b>Todas as lousas de finanças</b><span>${bs.length} lousa${bs.length === 1 ? '' : 's'} · ${pl(all.reduce((a, s) => a + s.rows.length, 0), 'lançamento', 'lançamentos')} · ${pl(all.reduce((a, s) => a + s.charts.length, 0), 'gráfico', 'gráficos')} · inclui um resumo geral</span>`;
+      finRepScope(bs.length > 1 ? scope : 'one');
+      byId('finRepAll').classList.toggle('dis', bs.length < 2);
+      openOv('finRepModal');
+    };
+    window.finRepScope = function (s) {
+      if (s === 'all' && finBoards().length < 2) return;
+      scope = s;
+      byId('finRepOne').classList.toggle('on', s === 'one'); byId('finRepAll').classList.toggle('on', s === 'all');
+    };
+    window.finRunReport = function () {
+      const w = window.open('', '_blank');   // abre já no clique, para o navegador não bloquear
+      let doc;
+      try { doc = buildReport(scope, true); } catch (e) { console.error(e); if (w) w.close(); showCustomDialog({ title: 'Relatório', message: 'Não foi possível montar o relatório agora.' }); return; }
+      closeOv('finRepModal');
+      if (w) { w.document.open(); w.document.write(doc); w.document.close(); return; }
+      try {   // sem permissão para nova aba: imprime por um quadro escondido
+        const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+        document.body.appendChild(f); f.contentDocument.open(); f.contentDocument.write(buildReport(scope, false)); f.contentDocument.close();
+        setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 1500); setTimeout(() => f.remove(), 120000);
+      } catch (e) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buildReport(scope, true)], { type: 'text/html' })); a.download = 'relatorio-financas.html'; a.click();
+      }
+    };
+    window.__finBuildReport = buildReport;   // usado nos testes
   })();
   </script>
 </body>
