@@ -755,6 +755,70 @@
     #finDock.open .fin-dock-sack { display: none; }
     .fin-dock-body { display: none; align-items: center; gap: 6px; }
     #finDock.open .fin-dock-body { display: flex; }
+
+    /* =========================================================================
+       CELULAR EM PÉ: dock inferior + gavetas (bottom sheets) estilo Canva
+       (celular deitado e computador NÃO mudam)
+       ========================================================================= */
+    .pt-only, #createSheet, #sheetBackdrop { display: none; }
+    @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes sheetFade { from { opacity: 0; } to { opacity: 1; } }
+    .cs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; color: #fde68a; font-weight: 800; font-size: 15px; letter-spacing: .2px; }
+    .cs-x { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.1); color: inherit; display: inline-flex; align-items: center; justify-content: center; }
+    .cs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .cs-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 84px; border-radius: 16px; background: var(--c); color: var(--t); font-weight: 700; font-size: 12px; border: 1px solid rgba(0,0,0,.08); box-shadow: 0 2px 6px rgba(0,0,0,.3); touch-action: manipulation; transition: transform .12s ease; }
+    .cs-item i { font-size: 23px; }
+    .cs-item:active { transform: scale(.94); }
+    .theme-marker .cs-head { color: #0f172a; }
+    .theme-marker .cs-x { background: rgba(15,23,42,.08); }
+
+    @media (max-width: 899px) and (orientation: portrait) {
+      /* ---- dock: 5 abas com ícone + nome ---- */
+      #topbar { padding: 5px 6px calc(5px + env(safe-area-inset-bottom, 0px)) !important; }
+      body.sheet-open #topbar { z-index: 9995 !important; }
+      #toolGroup { justify-content: space-between !important; gap: 2px !important; }
+      #toolGroup > .tb:not(.pt-only):not(#moreBtn) { display: none !important; }
+      #topbar #toolGroup .pt-only, #topbar #moreBtn {
+        display: flex !important; flex: 1 1 0; min-width: 0; width: auto !important; height: auto !important;
+        flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 7px 0 5px;
+        border-radius: 14px; background: transparent !important; border: 0 !important; box-shadow: none !important;
+        color: #fde68a !important; font-size: 20px !important; position: relative;
+      }
+      #topbar .tb-label { display: block !important; font-size: 10.5px; font-weight: 700; line-height: 1; letter-spacing: .2px; }
+      #topbar #toolGroup .pt-only.on, #topbar #moreBtn.on { background: rgba(251,191,36,.2) !important; color: #fbbf24 !important; }
+      #topbar #toolGroup .pt-only[data-dock="create"] i { color: #34d399; }
+      .theme-marker #topbar #toolGroup .pt-only, .theme-marker #topbar #moreBtn { color: #334155 !important; }
+      .theme-marker #topbar #toolGroup .pt-only.on, .theme-marker #topbar #moreBtn.on { background: rgba(29,78,216,.12) !important; color: #1d4ed8 !important; }
+      #moreDot { top: 4px; right: calc(50% - 18px); }
+
+      /* ---- fundo escurecido atrás da gaveta ---- */
+      body.sheet-open #sheetBackdrop { display: block; position: fixed; left: 0; right: 0; top: 0; bottom: var(--bar-h, 0px); z-index: 9980; background: rgba(0,0,0,.4); animation: sheetFade .2s ease-out; }
+
+      /* ---- gavetas: Criar, Formas, Adesivos, Widgets e Mais ---- */
+      #createSheet.open { display: block; }
+      #createSheet, #shapeMenu, #stickerMenu, #widgetMenu, #moreGroup {
+        position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: var(--bar-h, 0px) !important;
+        width: 100% !important; max-width: none !important; margin: 0 !important;
+        border-radius: 22px 22px 0 0 !important; max-height: min(56dvh, calc(100dvh - var(--bar-h, 0px) - 80px)) !important;
+        overflow-y: auto; overscroll-behavior: contain; z-index: 9990 !important;
+        padding: 8px 14px 16px !important; box-shadow: 0 -10px 30px rgba(0,0,0,.5) !important;
+        animation: sheetUp .22s ease-out;
+      }
+      #createSheet { background: rgba(28,16,7,.97); border: 1px solid rgba(251,191,36,.25); border-bottom: 0; }
+      .theme-marker #createSheet { background: rgba(255,255,255,.98); border-color: #94a3b8; }
+      /* alça para arrastar a gaveta para baixo */
+      #createSheet::before, #shapeMenu::before, #stickerMenu::before, #widgetMenu::before, #moreGroup::before {
+        content: ''; display: block; grid-column: 1 / -1; width: 44px; height: 5px; border-radius: 5px; margin: 0 auto 12px; background: rgba(255,255,255,.3);
+      }
+      .theme-marker #createSheet::before, .theme-marker #shapeMenu::before, .theme-marker #stickerMenu::before, .theme-marker #widgetMenu::before, .theme-marker #moreGroup::before { background: rgba(15,23,42,.25); }
+      #shapeMenu { grid-template-columns: repeat(6, 1fr) !important; gap: 8px !important; }
+      #moreGroup { gap: 10px !important; }
+      #moreGroup .tb { min-height: 66px; }
+      #moreGroup .tb-label { font-size: 10px; letter-spacing: -.1px; }
+
+      /* botão "Painel de controle" (admin) não cobre mais o dock */
+      #goPainel { bottom: calc(var(--bar-h, 0px) + 10px) !important; }
+    }
   </style>
 </head>
 <body class="bg-stone-900 font-sans-ui text-stone-100 flex flex-col overflow-hidden select-none" style="height:100vh;height:100dvh;">
@@ -802,6 +866,10 @@
     </div>
 
     <div id="toolGroup" class="tb-group">
+      <button data-dock="create" onclick="toggleCreateSheet(event)" class="tb pt-only" title="Adicionar à lousa"><i class="fa-solid fa-circle-plus"></i><span class="tb-label">Criar</span></button>
+      <button data-dock="shape" onclick="toggleShapeMenu(event)" class="tb pt-only" title="Setas e formas"><i class="fa-solid fa-shapes"></i><span class="tb-label">Formas</span></button>
+      <button data-dock="sticker" onclick="toggleStickerMenu(event)" class="tb pt-only" title="Adesivos"><i class="fa-solid fa-face-smile-beam"></i><span class="tb-label">Adesivos</span></button>
+      <button data-dock="widget" onclick="toggleWidgetMenu(event)" class="tb pt-only" title="Widgets"><i class="fa-solid fa-puzzle-piece"></i><span class="tb-label">Widgets</span></button>
       <button onclick="createNewNote('text')" class="tb bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 " title="Post-it"><i class="fa-solid fa-note-sticky"></i><span class="tb-label"></span></button>
       <button onclick="createNewNote('checklist')" class="tb bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-300 " title="Lista de tarefas"><i class="fa-solid fa-list-check"></i><span class="tb-label"></span></button>
       <button onclick="createNewNote('chalktext')" class="tb bg-stone-100 hover:bg-white text-stone-700 border border-stone-300 " title="Texto livre (giz / canetão)"><i class="fa-solid fa-pen-nib"></i><span class="tb-label"></span></button>
@@ -813,7 +881,7 @@
       <button onclick="toggleWidgetMenu(event)" class="tb bg-teal-100 hover:bg-teal-200 text-teal-700 border border-teal-300 " title="Widgets (relógio, calendário, jogos)"><i class="fa-solid fa-puzzle-piece"></i><span class="tb-label"></span></button>
       <button onclick="openFinanceBoard()" class="tb fin-toggle-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 desk-only" title="Finanças: ligado = navega só nas lousas de finanças; desligado = lousas normais"><i class="fa-solid fa-sack-dollar"></i><span class="tb-label"></span></button>
       <button onclick="toggleSharedBoards()" data-f="shared" class="tb nav-filter-btn bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 desk-only" title="Compartilhadas: ligado = navega só nas lousas compartilhadas; desligado = lousas normais"><i class="fa-solid fa-user-group"></i><span class="tb-label"></span></button>
-      <button id="moreBtn" onclick="toggleMore(event)" class="tb bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-600" title="Mais opções"><i class="fa-solid fa-ellipsis"></i><span id="moreDot" class="hidden"></span></button>
+      <button id="moreBtn" data-dock="more" onclick="toggleMore(event)" class="tb bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-600" title="Mais opções"><i class="fa-solid fa-ellipsis"></i><span class="tb-label">Mais</span><span id="moreDot" class="hidden"></span></button>
     </div>
 
     <div class="tb-spacer"></div>
@@ -852,6 +920,20 @@
   </header>
 
   <button id="showHeaderBtn" onclick="toggleHeader()" class="tb" title="Mostrar barra"><i class="fa-solid fa-bars"></i></button>
+
+  <!-- CELULAR EM PÉ: fundo escuro + gaveta "Criar" -->
+  <div id="sheetBackdrop" onclick="closeSheets()"></div>
+  <div id="createSheet" class="wood-frame">
+    <div class="cs-head"><span>Adicionar à lousa</span><button class="cs-x" onclick="closeSheets()" title="Fechar"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="cs-grid">
+      <button class="cs-item" style="--c:#fef3c7;--t:#b45309" onclick="closeSheets();createNewNote('text')"><i class="fa-solid fa-note-sticky"></i><span>Post-it</span></button>
+      <button class="cs-item" style="--c:#d1fae5;--t:#047857" onclick="closeSheets();createNewNote('checklist')"><i class="fa-solid fa-list-check"></i><span>Tarefas</span></button>
+      <button class="cs-item" style="--c:#f5f5f4;--t:#44403c" onclick="closeSheets();createNewNote('chalktext')"><i class="fa-solid fa-pen-nib"></i><span>Texto livre</span></button>
+      <button class="cs-item" style="--c:#ffe4e6;--t:#be123c" onclick="closeSheets();pickImage()"><i class="fa-solid fa-image"></i><span>Imagem</span></button>
+      <button class="cs-item" style="--c:#e0f2fe;--t:#0369a1" onclick="closeSheets();openCalendarModal()"><i class="fa-solid fa-calendar-days"></i><span>Calendário</span></button>
+      <button class="cs-item" style="--c:#f3e8ff;--t:#7e22ce" onclick="closeSheets();openPlannerModal()"><i class="fa-solid fa-calendar-week"></i><span>Planner</span></button>
+    </div>
+  </div>
 
   <!-- NOVO: Painel flutuante de formas (posicionado via JS) -->
   <div id="widgetMenu" class="hidden fixed z-50 wood-frame rounded-xl p-3 shadow-2xl" style="width:min(320px, calc(100vw - 16px)); max-height:calc(100vh - 90px); overflow-y:auto; top:70px; left:8px;"></div>
@@ -9673,6 +9755,85 @@
         }
       });
     })();
+  </script>
+
+  <script>
+  /* ===== Celular em pé: controle das gavetas (Criar / Formas / Adesivos / Widgets / Mais) ===== */
+  (function () {
+    const mq = window.matchMedia('(max-width: 899px) and (orientation: portrait)');
+    const $ = (id) => document.getElementById(id);
+    const defs = {
+      create:  { id: 'createSheet',  open: (e) => e.classList.contains('open'),  close: (e) => e.classList.remove('open') },
+      shape:   { id: 'shapeMenu',    open: (e) => !e.classList.contains('hidden'), close: (e) => e.classList.add('hidden') },
+      sticker: { id: 'stickerMenu',  open: (e) => !e.classList.contains('hidden'), close: (e) => e.classList.add('hidden') },
+      widget:  { id: 'widgetMenu',   open: (e) => !e.classList.contains('hidden'), close: (e) => e.classList.add('hidden') },
+      more:    { id: 'moreGroup',    open: (e) => e.classList.contains('open'),  close: (e) => e.classList.remove('open') }
+    };
+    function sync() {
+      let any = false;
+      Object.keys(defs).forEach((k) => {
+        const el = $(defs[k].id); if (!el) return;
+        const o = defs[k].open(el); any = any || o;
+        const b = document.querySelector('[data-dock="' + k + '"]'); if (b) b.classList.toggle('on', o && mq.matches);
+      });
+      document.body.classList.toggle('sheet-open', any && mq.matches);
+    }
+    function closeSheets(except) {
+      Object.keys(defs).forEach((k) => {
+        if (k === except) return;
+        const el = $(defs[k].id); if (!el) return;
+        defs[k].close(el); el.style.transform = ''; el.style.transition = ''; el.style.animation = '';
+      });
+      sync();
+    }
+    window.closeSheets = function () { closeSheets(); };
+    window.toggleCreateSheet = function (e) {
+      if (e) e.stopPropagation();
+      const el = $('createSheet'), was = el.classList.contains('open');
+      closeSheets('create');
+      el.classList.toggle('open', !was);
+      sync();
+    };
+    /* ao tocar numa aba, fecha as outras gavetas (as funções antigas só alternam a própria) */
+    const bar = $('topbar');
+    if (bar) bar.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dock]');
+      if (b && mq.matches) closeSheets(b.dataset.dock);
+    }, true);
+
+    const obs = new MutationObserver(sync);
+    Object.keys(defs).forEach((k) => { const el = $(defs[k].id); if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] }); });
+
+    /* arrastar a alça para baixo fecha a gaveta */
+    let drag = null;
+    const SEL = '#createSheet,#shapeMenu,#stickerMenu,#widgetMenu,#moreGroup';
+    document.addEventListener('touchstart', (e) => {
+      if (!mq.matches) return;
+      const el = e.target.closest(SEL); if (!el) return;
+      const t = e.touches[0];
+      if (t.clientY - el.getBoundingClientRect().top > 36) return;
+      drag = { el, y0: t.clientY, dy: 0 };
+      el.style.animation = 'none'; el.style.transition = 'none';
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!drag) return;
+      drag.dy = Math.max(0, e.touches[0].clientY - drag.y0);
+      drag.el.style.transform = 'translateY(' + drag.dy + 'px)';
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      if (!drag) return;
+      const { el, dy } = drag; drag = null;
+      el.style.transition = 'transform .18s ease';
+      if (dy > 70) { el.style.transform = 'translateY(100%)'; setTimeout(() => closeSheets(), 170); }
+      else { el.style.transform = ''; setTimeout(() => { el.style.transition = ''; el.style.animation = ''; }, 200); }
+    });
+    document.addEventListener('touchcancel', () => { if (drag) { drag.el.style.transform = ''; drag = null; } });
+
+    /* girou o celular: fecha tudo e recalcula a altura da barra */
+    const onRotate = () => { closeSheets(); try { updateBarH(); } catch (e) {} };
+    if (mq.addEventListener) mq.addEventListener('change', onRotate); else if (mq.addListener) mq.addListener(onRotate);
+    window.addEventListener('load', () => { try { updateBarH(); } catch (e) {} setTimeout(() => { try { updateBarH(); } catch (e) {} }, 400); });
+  })();
   </script>
 </body>
 </html>
