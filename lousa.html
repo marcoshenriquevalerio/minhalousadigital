@@ -840,7 +840,7 @@
       <button onclick="toggleFullscreen()" id="fullscreenBtn" data-close class="tb bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-600" title="Tela cheia"><i class="fa-solid fa-expand"></i><span class="tb-label">Tela cheia</span></button>
       <button onclick="toggleQuoteEdit()" id="quoteBtn" data-close class="tb bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-600" title="Ajustes: frase e apagador"><i class="fa-solid fa-gear"></i><span class="tb-label">Ajustes</span></button>
       <button onclick="toggleHeader()" data-close class="tb bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-600" title="Ocultar barra"><i class="fa-solid fa-eye-slash"></i><span class="tb-label">Ocultar</span></button>
-      <div class="nav-pill"><button id="bellBtn" onclick="toggleNotif(event)" class="nav-btn" title="Notificações"><i class="fa-solid fa-bell text-xs"></i><span id="bellBadge" class="hidden">0</span></button></div>
+      <div class="nav-pill"><button id="friendsBtn" onclick="openFriends()" class="nav-btn" style="position:relative" title="Amigos"><i class="fa-solid fa-user-group text-xs"></i><span id="frBadge" class="hidden" style="position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;min-width:15px;height:15px;line-height:15px;text-align:center"></span></button><button id="bellBtn" onclick="toggleNotif(event)" class="nav-btn" title="Notificações"><i class="fa-solid fa-bell text-xs"></i><span id="bellBadge" class="hidden">0</span></button></div>
       <div id="userChip" class="hidden nav-pill">
         <span id="syncStatus" class="px-1 text-sm text-emerald-400" title="Salvo na nuvem"><i class="fa-solid fa-cloud"></i></span>
         <img id="userPhoto" onclick="openProfile()" class="w-7 h-7 rounded-full object-cover cursor-pointer border border-amber-400/40 hidden" alt="" referrerpolicy="no-referrer">
@@ -1293,6 +1293,16 @@
     </div>
   </div>
 
+  <div id="friendsModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('friendsModal')">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+        <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-user-group mr-2"></i>Amigos</h3>
+        <button onclick="closeOv('friendsModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="frBody" class="flex-1 overflow-y-auto p-5"></div>
+    </div>
+  </div>
+
   <div id="shareModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('shareModal')">
     <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
@@ -1301,11 +1311,9 @@
       </div>
       <div class="flex-1 overflow-y-auto p-5">
         <div id="shareInviteBox">
-          <div class="fin-lbl">Convidar por e-mail (conta Google)</div>
-          <div class="flex gap-2">
-            <input id="shareEmail" type="email" placeholder="email@exemplo.com" onkeydown="if(event.key==='Enter') shSendInvite()" class="fin-modal-in">
-            <button id="shareSendBtn" onclick="shSendInvite()" class="px-3 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-sm font-bold transition whitespace-nowrap">Enviar pedido</button>
-          </div>
+          <div class="fin-lbl">Convidar amigos</div>
+          <div id="shareFriends"></div>
+          <button onclick="closeOv('shareModal'); openFriends('search')" class="sh-btn w-full mt-1"><i class="fa-solid fa-magnifying-glass mr-1"></i>Encontrar pessoas para seguir</button>
           <p id="shareMsg" class="text-xs mt-2"></p>
         </div>
         <div class="fin-lbl mt-4">Participantes</div>
@@ -8757,15 +8765,15 @@
     }
 
     /* ----- enviar / aceitar / recusar / cancelar ----- */
-    async function shSendInvite() {
-      const inp = byId('shareEmail'), msg = byId('shareMsg'), email = inp.value.trim().toLowerCase();
+    async function shSendInvite(emailArg) {
+      const inp = { value: '' }, msg = byId('shareMsg'), email = String(emailArg || '').trim().toLowerCase();
       const say = (t, ok) => { msg.textContent = t; msg.className = 'text-xs mt-2 ' + (ok ? 'text-emerald-300' : 'text-red-300'); };
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return say('Digite um e-mail válido.');
+      if (!frFriends().some(f => String(f.email).toLowerCase() === email)) return say('Só é possível convidar pessoas da sua lista de amigos.');
       if (email === shMe().email) return say('Esse é o seu próprio e-mail.');
       const b = getActiveBoard(), sid = b.shared && b.shared.sid, info = sid && SH.info[sid];
       if (info && info.memberEmails.indexOf(email) >= 0) return say('Essa pessoa já participa desta lousa.');
       if (sid && SH.out.some(i => i.sid === sid && i.toEmail === email && i.status === 'pending')) return say('Já existe um pedido pendente para esse e-mail.');
-      const btn = byId('shareSendBtn'); btn.disabled = true; say('Enviando...', true);
+      const btn = {}; say('Enviando...', true);
       try {
         if (!sid) await shMakeShared(b, email); else await FB.addInvited(sid, email);
         await FB.sendInvite({ toEmail: email, sid: b.shared.sid, boardName: b.name, kind: b.kind === 'finance' ? 'finance' : 'board' });
@@ -8864,6 +8872,7 @@
       byId('shareList').innerHTML = h;
       byId('shareNote').textContent = sid && !iAmOwner ? 'Você pode sair quando quiser; só quem é dona(o) convida novas pessoas.' : 'Todos que aceitarem editam esta mesma lousa ao vivo. Qualquer lado pode cancelar quando quiser.';
       byId('shareInviteBox').classList.toggle('hidden', !iAmOwner);
+      try { frRenderShareFriends(sid, info); } catch (e) { console.warn(e); }
     }
 
     /* ----- notificações (sino) ----- */
@@ -9202,7 +9211,136 @@
     })();
   </script>
 
+  <script>
+    /* =========================================================================
+       AMIGOS: buscar pessoas (só nome) · seguir (com aceite) · bloquear · compartilhar pela lista
+       ========================================================================= */
+    const FR = { tab: 'friends', dir: null, data: { follows: [], blocks: [], noReq: false }, q: '', pick: null, msg: '', un: null, wrapped: false };
+    const frNorm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    function frMe() { const m = shMe(); return { uid: m.uid, email: m.email, name: (MYPROF.username || (currentUser && currentUser.name) || String(m.email).split('@')[0]).slice(0, 24), photo: MYPROF.photo || '' }; }
+    const frOther = (f) => { const me = FB.me().uid; return f.fromUid === me ? { uid: f.toUid, email: f.toEmail, name: f.toName, photo: f.toPhoto } : { uid: f.fromUid, email: f.fromEmail, name: f.fromName, photo: f.fromPhoto }; };
+    function frFriends() {
+      if (!window.FB || !FB.me()) return [];
+      const seen = {}, out = [];
+      FR.data.follows.filter(f => f.status === 'accepted').forEach(f => { const o = frOther(f); if (!seen[o.uid]) { seen[o.uid] = 1; out.push(Object.assign({ fid: f.id }, o)); } });
+      return out.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    }
+    const frIncoming = () => { const me = FB.me().uid; return FR.data.follows.filter(f => f.toUid === me && f.status === 'pending'); };
+    const frOutgoing = () => { const me = FB.me().uid; return FR.data.follows.filter(f => f.fromUid === me && f.status !== 'accepted'); };
+
+    function frStart() {
+      if (!window.SOCIAL) { FR.tries = (FR.tries || 0) + 1; if (FR.tries < 40) setTimeout(frStart, 500); return; }
+      if (FR.un) FR.un();
+      if (!FR.wrapped) { FR.wrapped = true; const o = window.shPublishAllMine; window.shPublishAllMine = function () { try { if (o) o.apply(this, arguments); } catch (e) {} frPublish(); }; }
+      frPublish();
+      FR.un = SOCIAL.watch(frMe(), (d) => { FR.data = d; frChanged(); });
+    }
+    function frStop() { if (FR.un) { FR.un(); FR.un = null; } FR.data = { follows: [], blocks: [], noReq: false }; FR.dir = null; closeOv('friendsModal'); frBadge(); }
+    function frPublish() { try { if (window.SOCIAL && window.FB && FB.me()) SOCIAL.publish(frMe()).catch(e => console.warn('diretório:', e)); } catch (e) {} }
+    function frBadge() { const n = (window.FB && FB.me() && FR.un) ? frIncoming().length : 0, b = byId('frBadge'); if (b) { b.textContent = n > 9 ? '9+' : n; b.classList.toggle('hidden', !n); } }
+    function frChanged() {
+      frBadge();
+      if (!byId('friendsModal').classList.contains('hidden') && !FR.pick) frRender(true);
+      if (!byId('shareModal').classList.contains('hidden')) renderShareModal(true);
+    }
+
+    function openFriends(tab) { FR.tab = tab || 'friends'; FR.pick = null; FR.msg = ''; openOv('friendsModal'); if (FR.tab === 'search') frLoadDir(); frRender(); }
+    function frTab(t) { FR.tab = t; FR.pick = null; FR.msg = ''; if (t === 'search') frLoadDir(); frRender(); }
+    function frLoadDir() { if (!window.SOCIAL) return; SOCIAL.list().then(d => { FR.dir = d; frSearchList(); }).catch(e => { console.warn(e); FR.dir = []; FR.msg = 'Não foi possível carregar as pessoas (veja as regras do Firestore).'; frSearchList(); }); }
+
+    const frRow = (o, right, sub) => `<div class="sh-row">${ntAvatar(o.photo, o.name, 34)}<span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(o.name || 'Sem nome')}</b>${sub ? '<br><small>' + sub + '</small>' : ''}</span>${right || ''}</div>`;
+    function frRender(keepSearch) {
+      const body = byId('frBody'); if (!body) return;
+      if (!window.SOCIAL) { body.innerHTML = '<p class="text-sm text-stone-300">O módulo de amigos ainda está carregando… se não aparecer, confira se o arquivo <b>social.js</b> está junto da lousa.</p>'; return; }
+      const inc = frIncoming(), tabs = [['friends', 'Amigos'], ['search', 'Buscar'], ['req', 'Pedidos' + (inc.length ? ' (' + inc.length + ')' : '')]];
+      let h = `<div class="flex gap-1 mb-3">${tabs.map(t => `<button class="sh-btn flex-1 ${FR.tab === t[0] ? 'ok' : ''}" onclick="frTab('${t[0]}')">${t[1]}</button>`).join('')}</div>`;
+      if (FR.tab === 'friends') {
+        const fl = frFriends();
+        h += `<div class="fin-lbl">Meus amigos</div>` + (fl.length ? fl.map(f => frRow(f, `<button class="sh-btn" onclick="frAskBlock('${f.uid}')" title="Bloquear"><i class="fa-solid fa-ban"></i></button><button class="sh-btn danger" onclick="frAskUnfriend('${f.fid}')">Remover</button>`)).join('') : '<p class="text-xs text-stone-400 mb-2">Você ainda não tem amigos. Use a aba Buscar para seguir alguém.</p>');
+        h += `<div class="fin-lbl mt-4">Privacidade</div><label class="sh-row" style="cursor:pointer"><input type="checkbox" ${FR.data.noReq ? 'checked' : ''} onchange="frNoReq(this.checked)" style="width:18px;height:18px;accent-color:#f59e0b"><span class="flex-1"><b>Não receber nenhum pedido</b><br><small>Ninguém consegue te mandar pedido para seguir.</small></span></label>`;
+        if (FR.data.blocks.length) h += `<div class="fin-lbl mt-4">Bloqueados</div>` + FR.data.blocks.map(b => `<div class="sh-row"><i class="fa-solid fa-ban"></i><span class="flex-1">${html(frNameOf(b.blocked))}</span><button class="sh-btn" onclick="frUnblock('${b.id}')">Desbloquear</button></div>`).join('');
+      } else if (FR.tab === 'req') {
+        h += `<div class="fin-lbl">Quem quer te seguir</div>` + (inc.length ? inc.map(f => frRow({ name: f.fromName, photo: f.fromPhoto }, `<span class="flex gap-1"><button class="sh-btn ok" onclick="frRespond('${f.id}','accepted')">Aceitar</button><button class="sh-btn" onclick="frRespond('${f.id}','rejected')">Recusar</button><button class="sh-btn danger" onclick="frAskBlock('${f.fromUid}')" title="Bloquear"><i class="fa-solid fa-ban"></i></button></span>`, 'quer te seguir')).join('') : '<p class="text-xs text-stone-400 mb-2">Nenhum pedido.</p>');
+        const out = frOutgoing();
+        if (out.length) h += `<div class="fin-lbl mt-4">Pedidos que enviei</div>` + out.map(f => frRow({ name: f.toName, photo: f.toPhoto }, f.status === 'pending' ? `<button class="sh-btn" onclick="frCancel('${f.id}')">Cancelar</button>` : '', f.status === 'pending' ? 'aguardando resposta' : 'não aceitou seu pedido')).join('');
+      } else if (FR.pick) {
+        const p = FR.pick;
+        h += `<div class="flex flex-col items-center text-center py-3">${ntAvatar(p.photo, p.name, 110)}<div class="font-chalk text-2xl text-amber-200 mt-3">${html(p.name)}</div><p class="text-xs text-stone-400 mt-1">Só vira amigo se a pessoa aceitar o seu pedido.</p><p class="text-xs text-red-300 mt-2">${html(FR.msg)}</p><div class="flex gap-2 mt-4"><button class="sh-btn" onclick="FR.pick=null;FR.msg='';frRender()">Voltar</button><button class="sh-btn ok" onclick="frSend()"><i class="fa-solid fa-user-plus mr-1"></i>Enviar pedido</button></div></div>`;
+      } else {
+        h += `<input id="frQ" class="fin-modal-in" placeholder="Pesquisar pelo nome…" value="${html(FR.q)}" oninput="FR.q=this.value;frSearchList()" autocomplete="off"><p class="text-xs text-red-300 mt-1">${html(FR.msg)}</p><div id="frList" class="mt-3"></div>`;
+      }
+      body.innerHTML = h;
+      if (FR.tab === 'search' && !FR.pick) { frSearchList(); if (!keepSearch) { const i = byId('frQ'); if (i) i.focus(); } }
+    }
+    function frNameOf(uid) { const d = (FR.dir || []).find(x => x.uid === uid); return d ? d.username : 'Pessoa bloqueada'; }
+
+    /* busca inteligente: ignora acento/maiúscula, aceita pedaços e letras fora de ordem próximas */
+    function frScore(name, q) {
+      const n = frNorm(name); if (!q) return 1;
+      if (n === q) return 100; if (n.indexOf(q) === 0) return 80;
+      if (n.split(/\s+/).some(w => w.indexOf(q) === 0)) return 60; if (n.indexOf(q) >= 0) return 40;
+      const toks = q.split(/\s+/); if (toks.length > 1 && toks.every(t => n.indexOf(t) >= 0)) return 35;
+      let i = 0; for (const c of n) { if (c === q[i]) i++; } if (i === q.length && q.length >= 3) return 15;
+      return 0;
+    }
+    function frSearchList() {
+      const box = byId('frList'); if (!box) return;
+      if (FR.dir === null) { box.innerHTML = '<p class="text-xs text-stone-400">Carregando…</p>'; return; }
+      const me = FB.me().uid, q = frNorm(FR.q), fr = {}, blk = {};
+      FR.data.follows.forEach(f => { const o = frOther(f).uid; fr[o] = (f.status === 'accepted') ? 'friend' : (f.fromUid === me ? (f.status === 'pending' ? 'sent' : 'rej') : (fr[o] || 'inc')); });
+      FR.data.blocks.forEach(b => blk[b.blocked] = 1);
+      const list = FR.dir.filter(d => d.uid !== me && d.username).map(d => ({ d, s: frScore(d.username, q) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s || a.d.username.localeCompare(b.d.username)).slice(0, 40);
+      box.innerHTML = list.length ? list.map(({ d }) => {
+        const st = blk[d.uid] ? '<small>bloqueado</small>' : fr[d.uid] === 'friend' ? '<small>amigo</small>' : fr[d.uid] === 'sent' ? '<small>pedido enviado</small>' : fr[d.uid] === 'rej' ? '<small>não aceitou</small>' : fr[d.uid] === 'inc' ? '<button class="sh-btn ok" onclick="frTab(\'req\')">Ver pedido</button>' : d.noRequests ? '<small>não recebe pedidos</small>' : `<button class="sh-btn ok" onclick="frFollow('${d.uid}')">Seguir</button>`;
+        return `<div class="sh-row"><i class="fa-solid fa-user"></i><b class="flex-1" style="color:#fef3c7">${html(d.username)}</b>${st}</div>`;
+      }).join('') : `<p class="text-xs text-stone-400">${q ? 'Ninguém encontrado com esse nome.' : 'Nenhuma pessoa cadastrada ainda.'}</p>`;
+    }
+
+    async function frFollow(uid) {
+      const d = (FR.dir || []).find(x => x.uid === uid); if (!d) return;
+      FR.pick = { uid, name: d.username, photo: '' }; FR.msg = ''; frRender();
+      try { const ph = await SOCIAL.photo(uid); if (FR.pick && FR.pick.uid === uid) { FR.pick.photo = ph; frRender(); } } catch (e) {}
+    }
+    async function frSend() {
+      const p = FR.pick; if (!p) return;
+      try { await SOCIAL.request(frMe(), p); FR.pick = null; FR.msg = ''; frTab('req'); }
+      catch (e) { console.error(e); FR.msg = 'Essa pessoa não está recebendo pedidos agora.'; frRender(); }
+    }
+    const frTry = (p) => p.catch(e => { console.error(e); showCustomDialog({ title: 'Erro', message: 'Não foi possível concluir agora. Tente de novo.' }); });
+    function frRespond(id, st) { frTry(SOCIAL.respond(id, st, frMe())); }
+    function frCancel(id) { frTry(SOCIAL.remove(id)); }
+    function frNoReq(v) { frTry(SOCIAL.setNoReq(FB.me().uid, v)); }
+    function frUnblock(id) { frTry(SOCIAL.unblock(id)); }
+    function frAskUnfriend(fid) {
+      const f = frFriends().find(x => x.fid === fid); if (!f) return;
+      showCustomDialog({ title: 'Remover amigo', message: f.name + ' sai da sua lista de amigos. Para voltar, será preciso um novo pedido e ele(a) aceitar.', onConfirm: () => frTry(SOCIAL.remove(fid)) });
+    }
+    function frAskBlock(uid) {
+      const all = frFriends().concat(frIncoming().map(f => ({ uid: f.fromUid, name: f.fromName }))), o = all.find(x => x.uid === uid) || { name: 'Esta pessoa' };
+      showCustomDialog({ title: 'Bloquear', message: o.name + ' não poderá mais te mandar pedidos, e a amizade (se houver) será desfeita. Você pode desbloquear depois.', onConfirm: () => { FR.dir = FR.dir || []; if (!FR.dir.some(x => x.uid === uid)) FR.dir.push({ uid, username: o.name }); frTry(SOCIAL.block(frMe(), uid)); } });
+    }
+
+    /* lista de amigos dentro da janela de compartilhar */
+    function frRenderShareFriends(sid, info) {
+      const box = byId('shareFriends'); if (!box) return;
+      const fl = frFriends();
+      if (!fl.length) { box.innerHTML = '<p class="text-xs text-stone-400 mb-2">Você ainda não tem amigos. Siga alguém e, quando aceitar, a pessoa aparece aqui.</p>'; return; }
+      box.innerHTML = fl.map(f => {
+        const em = String(f.email || '').toLowerCase();
+        const isMem = info && info.memberEmails.indexOf(em) >= 0, isPend = sid && SH.out.some(i => i.sid === sid && i.toEmail === em && i.status === 'pending');
+        return frRow(f, isMem ? '<small>já está na lousa</small>' : isPend ? '<small>aguardando</small>' : `<button class="sh-btn ok" onclick="shSendInvite('${html(em)}')">Convidar</button>`);
+      }).join('');
+    }
+
+    (function () {
+      const hi = window.handleSignedIn, ho = window.handleSignedOut;
+      window.handleSignedIn = async function (u) { await hi(u); if (appReady && currentUser) { try { frStart(); } catch (e) { console.error(e); } } };
+      window.handleSignedOut = function () { try { frStop(); } catch (e) {} return ho(); };
+    })();
+  </script>
+
   <script type="module" src="firebase.js"></script>
+  <script type="module" src="social.js"></script>
 
   <script>
     /* =========================================================================
