@@ -10,6 +10,7 @@
 <style>
 *{box-sizing:border-box;margin:0}
 :root{--q:#0c1f17;--g:#f2efe4;--v:#9be3c0;--a:#f7d56b;--r:#f4a6c0;--b:#8ec9f5;--m:#a3b8ac}
+[hidden]{display:none!important}
 body{background:var(--q);color:var(--g);font:17px/1.6 'Bricolage Grotesque',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1}
 .gl{position:fixed;z-index:-2;width:62vmax;height:62vmax;border-radius:50%;filter:blur(100px);opacity:.3;background:hsl(150 70% 40%);left:-14vmax;top:-14vmax;animation:fl 20s ease-in-out infinite alternate}
@@ -18,10 +19,11 @@ body{background:var(--q);color:var(--g);font:17px/1.6 'Bricolage Grotesque',syst
 a{color:inherit}
 .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 5vw;background:#0c1f17aa;backdrop-filter:blur(14px);border-bottom:1px solid #ffffff14}
 .logo{font:600 30px Caveat,cursive;color:var(--v);text-decoration:none}
-.btn{display:inline-block;padding:12px 24px;border-radius:99px;font-weight:700;text-decoration:none;color:#0c1f17;background:var(--v);box-shadow:0 0 34px #9be3c055;transition:.3s}
+.btn{display:inline-block;padding:12px 24px;border-radius:99px;font:inherit;font-weight:700;text-decoration:none;color:#0c1f17;background:var(--v);border:0;cursor:pointer;box-shadow:0 0 34px #9be3c055;transition:.3s}
 .btn.o{background:none;color:var(--g);border:1px solid #ffffff44;box-shadow:none}.btn:hover{transform:scale(1.04)}
 main{flex:1;display:grid;place-items:center;padding:50px 5vw}
-.cd{width:min(440px,100%);padding:40px 34px 34px;border-radius:30px;text-align:center;background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c044;box-shadow:0 40px 100px #000b,inset 0 0 90px #9be3c014;animation:up .8s cubic-bezier(.2,.7,.2,1) backwards}
+.w{text-align:center;width:100%}
+.cd{width:min(440px,100%);margin-inline:auto;padding:40px 34px 34px;border-radius:30px;text-align:center;background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c044;box-shadow:0 40px 100px #000b,inset 0 0 90px #9be3c014;animation:up .8s cubic-bezier(.2,.7,.2,1) backwards}
 @keyframes up{from{opacity:0;translate:0 30px}}
 .ch{font:600 30px Caveat,cursive;color:var(--a)}
 h1{font-size:clamp(34px,6vw,46px);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:4px 0 0}
@@ -31,10 +33,17 @@ h1{font-size:clamp(34px,6vw,46px);line-height:1.05;letter-spacing:-.03em;font-we
 p.s{color:var(--m);margin-bottom:26px}
 .gb{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;border:0;border-radius:99px;background:#fff;color:#1f1f1f;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 10px 30px #0006;transition:.3s}
 .gb:hover{transform:translateY(-2px);box-shadow:0 16px 40px #0008}.gb svg{width:22px;height:22px;flex:none}
-.msg{min-height:24px;margin-top:14px;color:var(--a);font-size:14px}
+.msg{min-height:24px;margin-top:14px;color:var(--r);font-size:14px}
 .hint{margin-top:10px;color:var(--m);font-size:14px}.hint a{color:var(--v)}
 .back{display:inline-block;margin-top:22px;color:var(--m);text-decoration:none;font-size:15px}.back:hover{color:var(--g)}
-.w{text-align:center;width:100%}.cd{margin-inline:auto}
+.spin{width:52px;height:52px;margin:10px auto 16px;border-radius:50%;border:4px solid #ffffff22;border-top-color:var(--v);animation:sp 1s linear infinite}@keyframes sp{to{rotate:360deg}}
+.pl{display:block;width:100%;text-align:left;margin-bottom:12px;padding:18px 20px;border-radius:20px;border:1px solid #ffffff2e;background:#ffffff0a;color:var(--g);font:inherit;cursor:pointer;transition:.3s}
+.pl:hover{transform:translateY(-2px);border-color:var(--v)}
+.pl.p{background:linear-gradient(160deg,#9be3c026,#f7d56b14);border-color:#9be3c066}
+.pl b{display:flex;justify-content:space-between;font-size:20px}.pl small{display:block;color:var(--m);font-size:14px;margin-top:2px}
+.demo{display:inline-block;margin-bottom:14px;padding:5px 12px;border-radius:99px;background:var(--a);color:#3a2a0a;font-size:13px;font-weight:700}
+.sum{display:flex;justify-content:space-between;padding:14px 16px;margin:6px 0 18px;border-radius:14px;background:#ffffff0d}
+.lk{background:none;border:0;color:var(--m);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;margin-top:14px}.lk:hover{color:var(--g)}
 footer{text-align:center;color:var(--m);font-size:14px;padding:30px 5vw;border-top:1px solid #ffffff14}
 a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-delay:0s!important}}
@@ -45,30 +54,84 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
 <header class="nav"><a class="logo" href="index.html">Lousa Digital</a><a class="btn o" href="index.html">Voltar ao site</a></header>
 <main><div class="w">
  <div class="cd">
-  <span class="ch">bem-vindo de volta</span>
-  <h1>Entrar na lousa</h1>
-  <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
-  <p class="s">Use sua conta Google para abrir suas lousas, o calendário e o planner.</p>
-  <button class="gb" id="gl" type="button">
-   <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-   Continuar com Google</button>
-  <p class="msg" id="msg" role="status"></p>
-  <p class="hint">Ainda não tem conta? <a href="index.html#planos">Conheça os planos</a></p>
+  <!-- 1. entrar -->
+  <div id="vLogin">
+   <span class="ch">bem-vindo de volta</span>
+   <h1>Entrar na lousa</h1>
+   <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
+   <p class="s">Use sua conta Google para abrir suas lousas, o calendário e o planner.</p>
+   <button class="gb" id="gl" type="button">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+    Continuar com Google</button>
+   <p class="msg" id="msg" role="status"></p>
+   <p class="hint">Já tem conta? É só entrar. Novo por aqui? Entre e escolha seu plano.</p>
+  </div>
+  <!-- 2. verificando -->
+  <div id="vLoad" hidden><div class="spin"></div><p class="s" style="margin:0">Verificando sua conta...</p></div>
+  <!-- 3. escolher plano (conta nova) -->
+  <div id="vPlans" hidden>
+   <span class="ch" id="hello">olá!</span>
+   <h1 style="font-size:clamp(28px,5vw,36px)">Escolha como começar</h1>
+   <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
+   <button class="pl" id="pFree" type="button"><b>Grátis <span>R$ 0</span></b><small>2 quadros, listas, setas e post-its</small></button>
+   <button class="pl p" id="pPro" type="button"><b>Pro <span>R$ 19,90/mês</span></b><small>Quadros ilimitados, equipe ao vivo, finanças e calendário</small></button>
+   <p class="msg" id="msg2" role="status"></p>
+   <button class="lk" data-out type="button">Entrar com outra conta</button>
+  </div>
+  <!-- 4. pagamento do Pro (simulado) -->
+  <div id="vPay" hidden>
+   <span class="demo">Demonstração: nenhum pagamento real é feito</span>
+   <h1 style="font-size:clamp(28px,5vw,36px)">Assinar o Pro</h1>
+   <div class="sum"><span>Plano Pro, mensal</span><b>R$ 19,90</b></div>
+   <button class="btn" id="pay" type="button" style="width:100%">Pagar R$ 19,90</button>
+   <p class="msg" id="msg3" role="status"></p>
+   <button class="lk" id="payBack" type="button">Voltar aos planos</button>
+  </div>
  </div>
  <a class="back" href="index.html">&larr; Voltar ao site</a>
 </div></main>
 <footer>&copy; <span id="yr">2026</span> Lousa Digital. Todos os direitos reservados.</footer>
 <script>
-document.getElementById('yr').textContent=new Date().getFullYear();
-/* LOGIN GOOGLE: por enquanto só a tela. Quando for ligar ao sistema, troque o conteúdo do clique
-   pelo signInWithPopup do seu firebase.js e, no sucesso, redirecione para a lousa. */
-document.getElementById('gl').onclick=()=>{document.getElementById('msg').textContent='Em breve: o login com Google será ligado à sua lousa.'};
-const c=document.getElementById('bg'),x=c.getContext('2d');let W,H,P=[];
+const $=id=>document.getElementById(id),APP='lousa.html',V=['vLogin','vLoad','vPlans','vPay'];
+const want=new URLSearchParams(location.search).get('plano');
+const show=v=>V.forEach(i=>$(i).hidden=i!==v);
+const say=(id,t)=>$(id).textContent=t||'';
+$('yr').textContent=new Date().getFullYear();
+function authMsg(e){const c=(e&&e.code)||'';
+ if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request')return '';
+ if(c==='auth/popup-blocked')return 'O navegador bloqueou a janela de login. Libere pop-ups para este site e tente de novo.';
+ if(c==='auth/unauthorized-domain')return 'Este domínio não está autorizado no Firebase (Authentication > Settings > Authorized domains).';
+ if(c==='auth/network-request-failed')return 'Sem conexão. Verifique sua internet.';
+ return 'Não foi possível entrar. '+(c||(e&&e.message)||'')}
+$('gl').onclick=async()=>{
+ if(!window.FB){say('msg','Aguarde um instante e tente de novo.');return}
+ say('msg','');
+ try{await FB.login()}catch(e){say('msg',authMsg(e))}};
+addEventListener('fb-auth',async e=>{
+ const u=e.detail&&e.detail.user;
+ if(!u){show('vLogin');return}
+ show('vLoad');
+ try{if(await FB.hasAccess()){location.replace(APP);return}}
+ catch(err){console.error(err);show('vLogin');say('msg','Não foi possível verificar sua conta. Tente de novo.');return}
+ $('hello').textContent='olá, '+String(u.name||'').split(' ')[0]+'!';
+ show(want==='pro'?'vPay':'vPlans')});
+async function activate(plan,msgId){
+ try{await FB.setPlan({status:'active',plan,source:plan==='pro'?'demo':'free'});location.replace(APP)}
+ catch(err){console.error(err);show(plan==='pro'?'vPay':'vPlans');say(msgId,'Não foi possível concluir. Tente de novo.')}}
+$('pFree').onclick=()=>activate('free','msg2');
+$('pPro').onclick=()=>{say('msg3','');show('vPay')};
+$('payBack').onclick=()=>show('vPlans');
+$('pay').onclick=()=>{show('vLoad');setTimeout(()=>activate('pro','msg3'),1500)};
+document.querySelector('[data-out]').onclick=()=>{if(window.FB)FB.logout()};
+setTimeout(()=>{if(!window.FB&&!$('vLogin').hidden)say('msg','Não foi possível carregar o login. Confira sua conexão.')},8000);
+/* fundo de estrelas */
+const c=$('bg'),x=c.getContext('2d');let W,H,P=[];
 function rs(){W=c.width=innerWidth;H=c.height=innerHeight;P=Array.from({length:Math.min(100,W/12|0)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.9+.4,v:Math.random()*.35+.08,a:Math.random()*.45+.12,p:Math.random()*6}))}
 rs();addEventListener('resize',rs);
 function dw(){x.clearRect(0,0,W,H);P.forEach(p=>{p.y-=p.v;p.p+=.01;if(p.y<-5)p.y=H+5;x.beginPath();x.arc(p.x+Math.sin(p.p)*14,p.y,p.r,0,6.3);x.fillStyle='rgba(242,239,228,'+p.a+')';x.fill()});if(!matchMedia('(prefers-reduced-motion:reduce)').matches)requestAnimationFrame(dw)}
 dw();
 </script>
+<script type="module" src="firebase.js"></script>
 <script src="giz.js" defer></script>
 </body>
 </html>

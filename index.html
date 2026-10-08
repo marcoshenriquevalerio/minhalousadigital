@@ -232,11 +232,11 @@ footer p+p{margin-top:6px}
 
 <section data-h="330">
  <h2>Comece em 3 passos</h2><p class="lead">Do pagamento à primeira lista em poucos minutos.</p>
- <div class="how"><div><b>1</b><h3>Assine na loja</h3><p>Escolha o plano e pague em poucos cliques, com Pix ou cartão.</p></div><div><b>2</b><h3>Siga o passo a passo</h3><p>Configure seu perfil sozinho, com um guia simples que chega no seu e-mail.</p></div><div><b>3</b><h3>Crie seu primeiro quadro</h3><p>Adicione uma lista, uma seta e um post-it. Depois convide quem quiser.</p></div></div>
+ <div class="how"><div><b>1</b><h3>Entre com o Google</h3><p>Escolha o plano e entre com a sua conta Google. Sem criar senha.</p></div><div><b>2</b><h3>Siga o passo a passo</h3><p>Escolha seu nome e sua foto em poucos cliques, direto na lousa.</p></div><div><b>3</b><h3>Crie seu primeiro quadro</h3><p>Adicione uma lista, uma seta e um post-it. Depois convide quem quiser.</p></div></div>
 </section>
 
 <section id="planos" data-h="205">
- <h2>Planos simples</h2><p class="lead">Comece grátis. Assine quando quiser mais.</p>
+ <h2>Planos simples</h2><p class="lead">Comece grátis. Assine quando quiser mais. <a href="login.html" style="color:var(--v)">Já tem conta? Entrar</a>, sem pagar de novo.</p>
  <div class="pr">
   <div class="pl"><h3>Grátis</h3><div class="v">R$ 0</div><ul><li>2 quadros</li><li>Listas, setas e post-its</li><li>Giz ou canetão</li></ul><a class="btn o" href="#planos" data-buy="free">Começar grátis</a></div>
   <div class="pl p"><span class="fd">Vagas de fundador: R$ 12,90/mês</span><h3>Pro</h3><div class="v">R$ 19,90<small> /mês</small></div><ul><li>Quadros ilimitados</li><li>Equipe ao vivo e compartilhamento</li><li>Finanças e calendário</li><li>Imagens, adesivos e minijogos</li><li>Cancele quando quiser</li></ul><a class="btn" href="#planos" data-buy="pro">Assinar o Pro</a></div>
@@ -249,7 +249,7 @@ footer p+p{margin-top:6px}
  <details><summary>Posso usar com a minha equipe?</summary><p>Sim. Compartilhe um quadro e veja quem está online, com nome e foto.</p></details>
  <details><summary>Posso trocar o giz por um quadro de canetão?</summary><p>Posso sim. Você escolhe entre a lousa verde de giz e o quadro branco de canetão e troca quando quiser, com um toque.</p></details>
  <details><summary>Posso cancelar quando quiser?</summary><p>Sim. Sem fidelidade. Você cancela quando não quiser mais.</p></details>
- <details><summary>Como começo?</summary><p>Assine pelo botão da página, siga o passo a passo que enviamos por e-mail e configure seu perfil em poucos minutos.</p></details><details><summary>E se eu precisar de ajuda?</summary><p>Chame o suporte no WhatsApp, (11) 93466-4498.</p></details>
+ <details><summary>Como começo?</summary><p>Clique em Assinar agora, entre com sua conta Google e siga o passo a passo na própria lousa. Quem já tem conta é só clicar em Entrar.</p></details><details><summary>E se eu precisar de ajuda?</summary><p>Chame o suporte no WhatsApp, (11) 93466-4498.</p></details>
 </section>
 
 <section class="cta" data-h="150"><h2>Organize sua vida em uma lousa só.</h2><p class="lead">Assine agora e crie seu primeiro quadro hoje.</p><a class="btn" href="#planos" data-buy="pro">Assinar agora</a></section>
@@ -289,7 +289,7 @@ $('.cd,.tq').forEach(e=>{io.observe(e);e.addEventListener('pointermove',v=>{cons
 const mo=document.getElementById('ck'),gi=i=>document.getElementById(i),PL={pro:['Plano Pro, mensal','R$ 19,90'],free:['Plano Grátis','R$ 0']};let plan='pro',mode='pix';
 function openCk(p){plan=p;gi('pt').textContent=PL[p][0];gi('pp').textContent=PL[p][1];gi('pay').textContent=p=='free'?'Criar conta grátis':'Pagar '+PL[p][1];gi('pm').hidden=p=='free';gi('v1').hidden=false;gi('v2').hidden=true;gi('err').textContent='';mo.classList.add('on');setTimeout(()=>gi('em').focus(),350)}
 const closeCk=()=>mo.classList.remove('on');
-$('[data-buy]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openCk(b.dataset.buy)}));
+$('[data-buy]').forEach(b=>b.href='login.html?plano='+b.dataset.buy);
 gi('cx').onclick=closeCk;mo.addEventListener('click',e=>{if(e.target===mo)closeCk()});addEventListener('keydown',e=>{if(e.key==='Escape')closeCk()});
 $('.tb button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;$('.tb button').forEach(x=>x.classList.toggle('on',x===b));gi('m-card').hidden=mode!='card';gi('m-pix').hidden=mode!='pix'});
 gi('pay').onclick=()=>{const em=gi('em').value.trim(),er=gi('err');
@@ -299,7 +299,10 @@ gi('pay').onclick=()=>{const em=gi('em').value.trim(),er=gi('err');
  er.textContent='';gi('v1').hidden=true;gi('v2').hidden=false;gi('ld').hidden=false;gi('ok').hidden=true;
  gi('ls').textContent=plan=='free'?'Criando sua conta...':mode=='pix'?'Aguardando confirmação do Pix...':'Processando pagamento...';
  setTimeout(()=>{gi('ld').hidden=true;gi('ok').hidden=false;gi('okt').textContent=plan=='free'?'Conta criada!':'Pagamento aprovado!';gi('oks').textContent='Enviamos o passo a passo para '+em+'. Siga os passos e configure seu perfil em poucos minutos.'},2200)};
-const mb=gi('mb');$('.tg button').forEach(b=>b.onclick=()=>{mb.dataset.t=b.dataset.t;$('.tg button').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-pressed',x===b)})});
+const mb=gi('mb');
+function setEstilo(t,save){mb.dataset.t=t;$('.tg button').forEach(x=>{const on=x.dataset.t===t;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});if(save){try{localStorage.setItem('lousa.estilo',t)}catch(e){}dispatchEvent(new CustomEvent('gz-mode',{detail:t}))}}
+$('.tg button').forEach(b=>b.onclick=()=>setEstilo(b.dataset.t,true));
+try{if(localStorage.getItem('lousa.estilo')==='m')setEstilo('m',false)}catch(e){}
 gi('yr').textContent=new Date().getFullYear();
 </script>
 <script src="giz.js" defer></script>
