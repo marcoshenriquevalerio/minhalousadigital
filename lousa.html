@@ -9419,36 +9419,115 @@
   </script>
   <script>
     /* =========================================================================
-       ACESSO E PLANO: só entra quem tem conta ativa; plano grátis tem limite de 2 quadros;
-       administradores ganham um atalho para o painel.
+       ACESSO E PLANO: só entra quem tem conta ativa. O que cada plano libera vem do painel
+       (/api/public). Recurso bloqueado só mostra um aviso com "OK"; nada leva a outra página.
+       Administradores têm tudo liberado e um atalho para o painel.
        ========================================================================= */
     (function () {
-      let tier = null;
+      let tier = null, plans = null, labels = {};
+      const FALLBACK = { free: { maxBoards: 2, features: { wg_clock: true, wg_calendar: true, agenda: true } }, pro: { maxBoards: 0, features: null } };
+      const WG_FEAT = { clock: 'wg_clock', calendar: 'wg_calendar', timer: 'wg_timer' };   // o resto dos widgets são minijogos
+      const featOfWidget = (k) => WG_FEAT[k] || 'wg_games';
+      const plan = () => (plans && plans[tier === 'pro' ? 'pro' : 'free']) || FALLBACK[tier === 'pro' ? 'pro' : 'free'];
+      const can = (f) => {
+        if (tier === 'admin') return true;
+        const p = plan();
+        return p.features ? !!p.features[f] : true;
+      };
+
+      /* aviso simples, só com OK */
+      function aviso(title, message) {
+        showCustomDialog({ title, message });
+        const c = byId('dialogCancelBtn'), k = byId('dialogConfirmBtn');
+        if (c) c.style.display = 'none';
+        if (k) k.textContent = 'OK';
+      }
+      const ccd = window.closeCustomDialog;
+      window.closeCustomDialog = function () {
+        const c = byId('dialogCancelBtn'), k = byId('dialogConfirmBtn');
+        if (c) c.style.display = '';
+        if (k) k.textContent = 'Confirmar';
+        return ccd.apply(this, arguments);
+      };
+      function bloqueado(f) {
+        const nome = labels[f] || 'Este recurso';
+        aviso('Recurso do plano Pro', nome + ' faz parte do plano Pro. Quando quiser, é só assinar pelo site. Tudo o que você já criou continua na sua conta, sem perder nada.');
+      }
+      function guard(name, feat) {
+        const f = window[name];
+        if (typeof f !== 'function') return;
+        window[name] = function () { if (!can(feat)) { bloqueado(feat); return; } return f.apply(this, arguments); };
+      }
+      guard('pickImage', 'images');
+      guard('toggleStickerMenu', 'stickers');
+      guard('openFinanceBoard', 'finance');
+      guard('createFinanceBoard', 'finance');
+      guard('openCalendarModal', 'agenda');
+      guard('openPlannerModal', 'agenda');
+      guard('openShareModal', 'sharing');
+
+      const wa = window.wgAdd;
+      if (typeof wa === 'function') window.wgAdd = function (kind) {
+        const f = featOfWidget(kind);
+        if (!can(f)) { try { byId('widgetMenu').classList.add('hidden'); } catch (e) {} bloqueado(f); return; }
+        return wa.apply(this, arguments);
+      };
+      const tw = window.toggleWidgetMenu;
+      if (typeof tw === 'function') window.toggleWidgetMenu = function (e) {
+        const r = tw.apply(this, arguments);
+        document.querySelectorAll('#widgetMenu .wg-tile').forEach((b) => {
+          const m = /wgAdd\('([a-z]+)'/.exec(b.getAttribute('onclick') || '');
+          if (m && !can(featOfWidget(m[1])) && !b.querySelector('.lk')) {
+            b.style.opacity = '.5'; b.style.position = 'relative';
+            b.insertAdjacentHTML('beforeend', '<i class="fa-solid fa-lock lk" style="position:absolute;top:5px;right:6px;font-size:10px"></i>');
+          }
+        });
+        return r;
+      };
+
+      const cb = window.createNewBoard;
+      if (typeof cb === 'function') window.createNewBoard = function () {
+        const max = tier === 'admin' ? 0 : plan().maxBoards;
+        const own = ((typeof appData !== 'undefined' && appData.boards) || []).filter((b) => !b.shared).length;
+        if (max > 0 && own >= max) {
+          aviso('Limite de quadros', 'O seu plano tem até ' + max + ' quadros. Quando quiser criar mais, é só assinar o Pro pelo site. Tudo o que você já fez continua na sua conta.');
+          return;
+        }
+        return cb.apply(this, arguments);
+      };
+
+      /* cadeado nos botões da barra que o plano não libera */
+      const BTN = { 'pickImage': 'images', 'toggleStickerMenu': 'stickers', 'openFinanceBoard': 'finance', 'openCalendarModal': 'agenda', 'openPlannerModal': 'agenda' };
+      function marcar() {
+        document.querySelectorAll('#topbar .tb[onclick]').forEach((b) => {
+          const m = /^(\w+)\(/.exec(b.getAttribute('onclick') || '');
+          const f = m && BTN[m[1]];
+          if (!f || b.dataset.lk) return;
+          if (!can(f)) {
+            b.dataset.lk = '1'; b.style.position = 'relative'; b.style.opacity = '.6';
+            b.insertAdjacentHTML('beforeend', '<i class="fa-solid fa-lock" style="position:absolute;right:2px;top:1px;font-size:8px"></i>');
+          }
+        });
+      }
+
+      fetch('/api/public').then((r) => r.json()).then((j) => {
+        if (j && j.plans) plans = j.plans;
+        (j && j.catalog || []).forEach((c) => { labels[c.id] = c.label; });
+        if (tier) marcar();
+      }).catch(() => {});
+
       window.addEventListener('fb-auth', async (e) => {
         const u = e.detail && e.detail.user;
         if (!u) { location.replace('login.html'); return; }
         try { tier = await FB.tier(); } catch (err) { console.warn('plano:', err); return; }
         if (tier === null) { location.replace('login.html'); return; }
+        marcar();
         if (tier === 'admin' && !document.getElementById('goPainel')) {
           const a = document.createElement('a');
           a.id = 'goPainel'; a.href = 'painel.html'; a.textContent = 'Painel de controle';
           a.style.cssText = 'position:fixed;left:14px;bottom:14px;z-index:90;padding:9px 16px;border-radius:99px;background:#9be3c0;color:#0c1f17;font:700 13px system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px #0007';
           document.body.appendChild(a);
         }
-      });
-      function limite() {
-        if (tier !== 'free') return false;
-        const own = ((typeof appData !== 'undefined' && appData.boards) || []).filter((b) => !b.shared).length;
-        if (own < 2) return false;
-        const go = () => { location.href = 'login.html?plano=pro'; };
-        try {
-          showCustomDialog({ title: 'Limite do plano Grátis', message: 'O plano Grátis tem até 2 quadros. Assine o Pro para criar quadros ilimitados.', onConfirm: go });
-        } catch (err) { if (confirm('O plano Grátis tem até 2 quadros. Ver o plano Pro?')) go(); }
-        return true;
-      }
-      ['createNewBoard', 'createFinanceBoard'].forEach((n) => {
-        const f = window[n];
-        if (typeof f === 'function') window[n] = function () { if (limite()) return; return f.apply(this, arguments); };
       });
     })();
   </script>

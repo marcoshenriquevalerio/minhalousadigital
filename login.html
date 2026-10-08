@@ -74,8 +74,8 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <span class="ch" id="hello">olá!</span>
    <h1 style="font-size:clamp(28px,5vw,36px)">Escolha como começar</h1>
    <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
-   <button class="pl" id="pFree" type="button"><b>Grátis <span>R$ 0</span></b><small>2 quadros, listas, setas e post-its</small></button>
-   <button class="pl p" id="pPro" type="button"><b>Pro <span id="pPrice">R$ 19,90/mês</span></b><small>Quadros ilimitados, equipe ao vivo, finanças e calendário</small></button>
+   <button class="pl" id="pFree" type="button"><b>Grátis <span>R$ 0</span></b><small id="fSub">2 quadros, listas, setas e post-its</small></button>
+   <button class="pl p" id="pPro" type="button"><b>Pro <span id="pPrice">R$ 19,90/mês</span></b><small id="pSub">Quadros ilimitados, equipe ao vivo, finanças e calendário</small></button>
    <p class="msg" id="msg2" role="status"></p>
    <button class="lk" data-out type="button">Entrar com outra conta</button>
   </div>
@@ -122,7 +122,9 @@ $('gl').onclick=async()=>{
  try{await FB.login()}catch(e){say('msg',authMsg(e))}};
 const RETORNO=new URLSearchParams(location.search).get('retorno')==='1';
 const money=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
-fetch('/api/public').then(r=>r.json()).then(j=>{if(j&&j.price){document.querySelectorAll('[data-price]').forEach(e=>e.textContent=money(j.price));$('pPrice').textContent=money(j.price)+'/mês'}}).catch(()=>{});
+fetch('/api/public').then(r=>r.json()).then(j=>{
+ if(j&&j.price){document.querySelectorAll('[data-price]').forEach(e=>e.textContent=money(j.price));$('pPrice').textContent=money(j.price)+'/mês'}
+ if(j&&j.cards){$('fSub').textContent=j.cards.free.join(', ');$('pSub').textContent=j.cards.pro.filter(t=>!/^Cancele/.test(t)).join(', ')}}).catch(()=>{});
 function sair(url){ // navega a página inteira (o endereço do site fica fixo)
  if(top!==self)parent.postMessage({type:'lousa-ext',url},location.origin);else location.href=url}
 let who=null;
