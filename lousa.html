@@ -2205,6 +2205,7 @@
        CRIAÇÃO E RENDERIZAÇÃO DE POST-ITS
        ========================================================================= */
     function createNewNote(type = 'text') {
+      if (!window.__spawnPre) { const ww = type === 'chalktext' ? 360 : 320; return spawnAsk(ww, type === 'checklist' ? 260 : 220, () => createNewNote(type)); }
       const board = getActiveBoard();
       const id = 'note_' + Date.now();
       const colors = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'];
@@ -2225,7 +2226,7 @@
         chalk: 'white',
         x: posX,
         y: posY,
-        width: type === 'chalktext' ? 360 : 320,
+        width: sp ? sp.w : (type === 'chalktext' ? 360 : 320),
         zIndex: board.nextZIndex,
         content: (type === 'text' || type === 'chalktext') ? '' : undefined,
         title: type === 'checklist' ? 'Lista de Tarefas' : undefined,
@@ -2798,6 +2799,7 @@
 
     function createNewShape(kind, head) {
       closeShapeMenu();
+      if (!window.__spawnPre) { const d0 = SHAPE_DEFAULTS[kind] || { w: 160, h: 100 }; return spawnAsk(d0.w, d0.h, () => createNewShape(kind, head)); }
       const board = getActiveBoard();
       const id = 'note_' + Date.now();
       const def = SHAPE_DEFAULTS[kind] || { w: 160, h: 100 };
@@ -2819,8 +2821,8 @@
         chalk: 'white',
         x: posX,
         y: posY,
-        width: def.w,
-        height: def.h,
+        width: sp ? sp.w : def.w,
+        height: sp ? Math.round(def.h * sp.w / def.w) : def.h,
         rotation: 0,
         zIndex: board.nextZIndex
       });
@@ -4118,6 +4120,7 @@
 
     async function confirmAddImage(withCaption) {
       if (!pendingImage || !currentUser) return;
+      if (!window.__spawnPre) { const ar = pendingImage.width / pendingImage.height || 1; return spawnAsk(300, 300 / ar + 30, () => confirmAddImage(withCaption)); }
       const btnA = byId('btnImgOnly'), btnB = byId('btnImgCaption'), errEl = byId('imageModalError');
       btnA.disabled = true; btnB.disabled = true;
       errEl.classList.add('hidden');
@@ -4129,7 +4132,7 @@
         console.error('Erro ao enviar imagem:', err);
         errEl.innerText = 'Não foi possível enviar a imagem. ' + ((err && (err.code || err.message)) || '');
         errEl.classList.remove('hidden');
-        btnA.disabled = false; btnB.disabled = false;
+        btnA.disabled = false; btnB.disabled = false; window.__spawnPre = null;
         return;
       }
 
@@ -4138,8 +4141,8 @@
       const board = getActiveBoard();
       const boardEl = byId('boardCanvas');
       const boardWidth = boardEl ? boardEl.offsetWidth : 800;
-      const width = 300;
-      const sp = spawnPos(width);
+      const sp = spawnPos(300);
+      const width = sp ? sp.w : 300;
       const id = 'note_' + Date.now();
       board.nextZIndex += 1;
 
@@ -4486,15 +4489,47 @@
     window.addEventListener('resize', relayoutAll);
 
     /* Celular em pé: peça nova nasce dentro da área que está na tela (antes nascia no meio da lousa inteira, fora da vista) */
-    function spawnPos(w) {
-      if (!isMobileBar()) return null;
-      const vp = byId('boardViewport'), mn = byId('boardCanvas');
-      if (!vp || !mn) return null;
-      if (vp.scrollWidth <= vp.clientWidth + 2 && vp.scrollHeight <= vp.clientHeight + 2) return null;   // deitado: lousa inteira, comportamento normal
-      const sc = boardScale || 1;
-      const vl = vp.scrollLeft / sc, vt = vp.scrollTop / sc, vw = vp.clientWidth / sc;
-      const x = vl + Math.max(10, (vw - w) / 2 + (Math.random() * 30 - 15));
-      return { x: Math.max(10, Math.min(x, mn.offsetWidth - w - 10)), y: vt + 40 + Math.random() * 50 };
+    /* Acha lugar livre: tela 1 de cima p/ baixo; se não couber, começa a tela 2, 3, 4...; se tudo cheio devolve {full:true} */
+    function spawnPlan(w, h) {
+      const mn = byId('boardCanvas'), vp = byId('boardViewport');
+      if (!mn) return null;
+      let W = 1366, H = 700;
+      const b = appData.boards && appData.boards[appData.activeBoardIndex];
+      if (b && b.notes) b.notes.forEach(n => {
+        W = Math.max(W, (n.x || 0) + (n.width || 0) + 60);
+        H = Math.max(H, (n.y || 0) + (n.height ? n.height + 40 : 200));
+      });
+      const fw = H * PHONE_ASPECT, mx = 12, gap = 10;
+      const nw = Math.max(140, Math.min(w, fw - mx * 2)), nh = Math.max(60, h || 220);
+      const cw = isMobileBar() ? W : (mn.offsetWidth || W);
+      const rects = ((b && b.notes) || []).map(n => {
+        const el = byId(n.id);
+        const eh = (el && el.offsetHeight) || n.height || 200;
+        return { x: n.x || 0, y: n.y || 0, w: n.width || (el && el.offsetWidth) || 200, h: eh };
+      });
+      const free = (x, y) => !rects.some(r => x < r.x + r.w + gap && x + nw + gap > r.x && y < r.y + r.h + gap && y + nh + gap > r.y);
+      for (let x = 0, k = 0; x < cw - 4; x += fw, k++) {
+        const px = Math.round(x + mx);
+        for (let y = 40; y + nh <= H - 10; y += 20) if (free(px, y)) return { x: px, y, w: nw, k };
+      }
+      const k = ((b && b.notes ? b.notes.length : 0) % 6);
+      return { x: mx + k * 6, y: 40 + k * 22, w: nw, k: 0, full: true };
+    }
+    function spawnPos(w, h) {
+      if (window.__spawnPre) { const p = window.__spawnPre; window.__spawnPre = null; return p; }
+      return spawnPlan(w, h);
+    }
+    function spawnAsk(w, h, go) {
+      window.__spawnPre = null;
+      const sp = spawnPlan(w, h);
+      const run = () => {
+        window.__spawnPre = sp;
+        const vp = byId('boardViewport');
+        if (sp && isMobileBar() && vp) vp.scrollLeft = Math.max(0, (sp.x - 12) * (boardScale || 1));   // leva a vista até a tela onde a peça nasceu
+        go();
+      };
+      if (sp && sp.full) showCustomDialog({ title: 'Lousa cheia', message: 'Todos os espaços foram preenchidos. Deseja continuar adicionando mesmo assim?', onConfirm: run });
+      else run();
     }
 
     function visibleCenter() {
@@ -7156,12 +7191,14 @@
     document.addEventListener('click', (e) => { const m = byId('widgetMenu'); if (m && !e.target.closest('#widgetMenu')) m.classList.add('hidden'); });
 
     window.wgAdd = function (kind, style) {
-      const board = getActiveBoard(), d = WG_KINDS[kind], id = 'note_' + Date.now();
+      const d = WG_KINDS[kind];
+      byId('widgetMenu').classList.add('hidden');
+      if (!window.__spawnPre) { const eh = kind === 'pool' ? Math.min(d.w, 400) * 0.66 + 110 : d.w * 0.8 + 60; return spawnAsk(d.w, eh, () => window.wgAdd(kind, style)); }
+      const board = getActiveBoard(), id = 'note_' + Date.now();
       const bw = (byId('boardCanvas') || {}).offsetWidth || 800;
       board.nextZIndex += 1; selectedNoteId = id;
       const sp = spawnPos(d.w);
-      board.notes.push({ id, type: 'widget', wk: kind, ws: style, snd: !!d.nomusic, x: sp ? sp.x : Math.max(20, Math.min(bw / 2 - d.w / 2 + (Math.random() * 80 - 40), bw - d.w - 20)), y: sp ? sp.y : 80 + Math.random() * 80, width: d.w, zIndex: board.nextZIndex });
-      byId('widgetMenu').classList.add('hidden');
+      board.notes.push({ id, type: 'widget', wk: kind, ws: style, snd: !!d.nomusic, x: sp ? sp.x : Math.max(20, Math.min(bw / 2 - d.w / 2 + (Math.random() * 80 - 40), bw - d.w - 20)), y: sp ? sp.y : 80 + Math.random() * 80, width: sp ? sp.w : d.w, zIndex: board.nextZIndex });
       saveData(); renderNotes();
     };
     window.wgCycle = function (id) {
