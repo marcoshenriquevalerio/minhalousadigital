@@ -9495,11 +9495,29 @@
       if (!byId('shareModal').classList.contains('hidden')) renderShareModal(true);
     }
 
-    function openFriends(tab) { FR.tab = tab || 'friends'; FR.pick = null; FR.msg = ''; openOv('friendsModal'); if (FR.tab === 'search') frLoadDir(); frRender(); }
+    function openFriends(tab) { FR.ph = {}; FR.phLoad = {}; FR.tab = tab || 'friends'; FR.pick = null; FR.msg = ''; openOv('friendsModal'); if (FR.tab === 'search') frLoadDir(); frRender(); }
     function frTab(t) { FR.tab = t; FR.pick = null; FR.msg = ''; if (t === 'search') frLoadDir(); frRender(); }
     function frLoadDir() { if (!window.SOCIAL) return; SOCIAL.list().then(d => { FR.dir = d; frSearchList(); }).catch(e => { console.warn(e); FR.dir = []; frSearchList(); }); }
 
-    const frRow = (o, right, sub) => `<div class="sh-row">${ntAvatar(o.photo, o.name, 34)}<span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(o.name || 'Sem nome')}</b>${sub ? '<br><small>' + sub + '</small>' : ''}</span>${right || ''}</div>`;
+    /* foto de perfil de quem aparece nas listas: lê do diretório (dirPhotos) sob demanda e guarda em cache */
+    FR.ph = {}; FR.phLoad = {};
+    function frPh(uid, fb) {
+      if (!uid) return fb || '';
+      if (FR.ph[uid] !== undefined) return FR.ph[uid] || fb || '';
+      if (!FR.phLoad[uid] && window.SOCIAL) {
+        FR.phLoad[uid] = 1;
+        SOCIAL.photo(uid).then(p => { FR.ph[uid] = p || ''; }, () => { FR.ph[uid] = ''; }).then(frPhRefresh);
+      }
+      return fb || '';
+    }
+    function frPhRefresh() {
+      clearTimeout(FR.phT);
+      FR.phT = setTimeout(() => {
+        const m = byId('friendsModal'); if (!m || m.classList.contains('hidden') || FR.pick) return;
+        if (FR.tab === 'search') frSearchList(); else frRender(true);
+      }, 150);
+    }
+    const frRow = (o, right, sub) => `<div class="sh-row">${ntAvatar(frPh(o.uid, o.photo), o.name, 34)}<span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(o.name || 'Sem nome')}</b>${sub ? '<br><small>' + sub + '</small>' : ''}</span>${right || ''}</div>`;
     function frRender(keepSearch) {
       const body = byId('frBody'); if (!body) return;
       if (!window.SOCIAL) { body.innerHTML = '<p class="text-sm text-stone-300">O módulo de amigos ainda está carregando… se não aparecer, confira se o arquivo <b>social.js</b> está junto da lousa.</p>'; return; }
@@ -9509,11 +9527,11 @@
         const fl = frFriends();
         h += `<div class="fin-lbl">Meus amigos</div>` + (fl.length ? fl.map(f => frRow(f, `<button class="sh-btn" onclick="frAskBlock('${f.uid}')" title="Bloquear"><i class="fa-solid fa-ban"></i></button><button class="sh-btn danger" onclick="frAskUnfriend('${f.fid}')">Remover</button>`)).join('') : '<p class="text-xs text-stone-400 mb-2">Você ainda não tem amigos. Use a aba Buscar para seguir alguém.</p>');
         h += `<div class="fin-lbl mt-4">Privacidade</div><label class="sh-row" style="cursor:pointer"><input type="checkbox" ${FR.data.noReq ? 'checked' : ''} onchange="frNoReq(this.checked)" style="width:18px;height:18px;accent-color:#f59e0b"><span class="flex-1"><b>Não receber nenhum pedido</b><br><small>Ninguém consegue te mandar pedido para seguir.</small></span></label>`;
-        if (FR.data.blocks.length) h += `<div class="fin-lbl mt-4">Bloqueados</div>` + FR.data.blocks.map(b => `<div class="sh-row"><i class="fa-solid fa-ban"></i><span class="flex-1">${html(frNameOf(b.blocked))}</span><button class="sh-btn" onclick="frUnblock('${b.id}')">Desbloquear</button></div>`).join('');
+        if (FR.data.blocks.length) h += `<div class="fin-lbl mt-4">Bloqueados</div>` + FR.data.blocks.map(b => `<div class="sh-row">${ntAvatar(frPh(b.blocked, ''), frNameOf(b.blocked), 34)}<span class="flex-1">${html(frNameOf(b.blocked))}</span><button class="sh-btn" onclick="frUnblock('${b.id}')">Desbloquear</button></div>`).join('');
       } else if (FR.tab === 'req') {
-        h += `<div class="fin-lbl">Quem quer te seguir</div>` + (inc.length ? inc.map(f => frRow({ name: f.fromName, photo: f.fromPhoto }, `<span class="flex gap-1"><button class="sh-btn ok" onclick="frRespond('${f.id}','accepted')">Aceitar</button><button class="sh-btn" onclick="frRespond('${f.id}','rejected')">Recusar</button><button class="sh-btn danger" onclick="frAskBlock('${f.fromUid}')" title="Bloquear"><i class="fa-solid fa-ban"></i></button></span>`, 'quer te seguir')).join('') : '<p class="text-xs text-stone-400 mb-2">Nenhum pedido.</p>');
+        h += `<div class="fin-lbl">Quem quer te seguir</div>` + (inc.length ? inc.map(f => frRow({ uid: f.fromUid, name: f.fromName, photo: f.fromPhoto }, `<span class="flex gap-1"><button class="sh-btn ok" onclick="frRespond('${f.id}','accepted')">Aceitar</button><button class="sh-btn" onclick="frRespond('${f.id}','rejected')">Recusar</button><button class="sh-btn danger" onclick="frAskBlock('${f.fromUid}')" title="Bloquear"><i class="fa-solid fa-ban"></i></button></span>`, 'quer te seguir')).join('') : '<p class="text-xs text-stone-400 mb-2">Nenhum pedido.</p>');
         const out = frOutgoing();
-        if (out.length) h += `<div class="fin-lbl mt-4">Pedidos que enviei</div>` + out.map(f => frRow({ name: f.toName, photo: f.toPhoto }, f.status === 'pending' ? `<button class="sh-btn" onclick="frCancel('${f.id}')">Cancelar</button>` : '', f.status === 'pending' ? 'aguardando resposta' : 'não aceitou seu pedido')).join('');
+        if (out.length) h += `<div class="fin-lbl mt-4">Pedidos que enviei</div>` + out.map(f => frRow({ uid: f.toUid, name: f.toName, photo: f.toPhoto }, f.status === 'pending' ? `<button class="sh-btn" onclick="frCancel('${f.id}')">Cancelar</button>` : '', f.status === 'pending' ? 'aguardando resposta' : 'não aceitou seu pedido')).join('');
       } else if (FR.pick) {
         const p = FR.pick;
         h += `<div class="flex flex-col items-center text-center py-3">${ntAvatar(p.photo, p.name, 110)}<div class="font-chalk text-2xl text-amber-200 mt-3">${html(p.name)}</div><p class="text-xs text-stone-400 mt-1">Só vira amigo se a pessoa aceitar o seu pedido.</p><p class="text-xs text-red-300 mt-2">${html(FR.msg)}</p><div class="flex gap-2 mt-4"><button class="sh-btn" onclick="FR.pick=null;FR.msg='';frRender()">Voltar</button><button class="sh-btn ok" onclick="frSend()"><i class="fa-solid fa-user-plus mr-1"></i>Enviar pedido</button></div></div>`;
@@ -9544,14 +9562,14 @@
       box.innerHTML = list.length ? list.map(({ d }) => {
         const st = blk[d.uid] ? '<small>bloqueado</small>' : fr[d.uid] === 'friend' ? '<small>amigo</small>' : fr[d.uid] === 'sent' ? '<small>pedido enviado</small>' : fr[d.uid] === 'rej' ? '<small>não aceitou</small>' : fr[d.uid] === 'inc' ? '<button class="sh-btn ok" onclick="frTab(\'req\')">Ver pedido</button>' : d.noRequests ? '<small>não recebe pedidos</small>' : `<button class="sh-btn ok" onclick="frFollow('${d.uid}')">Seguir</button>`;
         const on = d.lastSeen && Date.now() - d.lastSeen < 150000;
-        return `<div class="sh-row"><span style="width:10px;height:10px;min-width:10px;border-radius:50%;background:${on ? '#22c55e' : '#78716c'}"></span><span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(d.username)}</b><br><small style="color:${on ? '#4ade80' : '#a8a29e'}">${on ? 'online' : 'offline'}</small></span>${st}</div>`;
+        return `<div class="sh-row"><span style="position:relative;display:inline-block;line-height:0">${ntAvatar(frPh(d.uid, ''), d.username, 38)}<span title="${on ? 'online' : 'offline'}" style="position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;border:2px solid #2a1d12;background:${on ? '#22c55e' : '#78716c'}"></span></span><span class="flex-1" style="min-width:0"><b style="color:#fef3c7">${html(d.username)}</b><br><small style="color:${on ? '#4ade80' : '#a8a29e'}">${on ? 'online' : 'offline'}</small></span>${st}</div>`;
       }).join('') : `<p class="text-xs text-stone-400">${q ? 'Ninguém encontrado com esse nome.' : 'Nenhuma pessoa cadastrada ainda.'}</p><button class="sh-btn mt-2" onclick="FR.dir=null;frSearchList();frLoadDir()"><i class="fa-solid fa-rotate mr-1"></i>Atualizar lista</button>`;
     }
 
     async function frFollow(uid) {
       const d = (FR.dir || []).find(x => x.uid === uid); if (!d) return;
-      FR.pick = { uid, name: d.username, photo: '' }; FR.msg = ''; frRender();
-      try { const ph = await SOCIAL.photo(uid); if (FR.pick && FR.pick.uid === uid) { FR.pick.photo = ph; frRender(); } } catch (e) {}
+      FR.pick = { uid, name: d.username, photo: FR.ph[uid] || '' }; FR.msg = ''; frRender();
+      try { const ph = await SOCIAL.photo(uid); FR.ph[uid] = ph || ''; if (FR.pick && FR.pick.uid === uid) { FR.pick.photo = ph; frRender(); } } catch (e) {}
     }
     async function frSend() {
       const p = FR.pick; if (!p) return;
