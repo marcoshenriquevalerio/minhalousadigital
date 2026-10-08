@@ -1,6 +1,6 @@
 // POST /api/admin  { action, ... }  -> tudo do painel de controle. Só dono e administradores autorizados.
 const S = require("../lib/server");
-const { admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, proActive, wrap, body } = S;
+const { CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, proActive, wrap, body } = S;
 
 const mask = (t) => (t ? "••••••••" + String(t).slice(-4) : "");
 const bad = (m, st = 400) => { const e = new Error(m); e.status = st; throw e; };
@@ -33,7 +33,7 @@ async function listAll() {
 
 const actions = {
   async overview(u) {
-    const [users, billing, m, admins] = await Promise.all([listAll(), getBilling(), getMp(), getAdmins()]);
+    const [users, billing, m, admins, plans] = await Promise.all([listAll(), getBilling(), getMp(), getAdmins(), getPlans()]);
     const active = users.filter((x) => x.sub && x.sub.status === "authorized");
     const mrr = active.reduce((a, x) => a + (x.sub.amount || 0), 0);
     return {
@@ -49,6 +49,8 @@ const actions = {
       },
       users,
       billing: { price: billing.price, reason: billing.reason },
+      plans,
+      catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
       mp: { hasToken: !!m.accessToken, tokenMask: mask(m.accessToken), hasSecret: !!m.webhookSecret, live: /^APP_USR-/.test(m.accessToken), webhookUrl: SITE + "/api/webhook" },
       admins: [OWNER].concat(admins.filter((e) => e !== OWNER))
     };
@@ -93,6 +95,13 @@ const actions = {
       }
     }
     return { ok: true, price, updated, failed };
+  },
+
+  async savePlans(u, b) {
+    if (!b.plans || typeof b.plans !== "object") bad("Dados inválidos.");
+    const plans = cleanPlans(b.plans);
+    await cfgRef("plans").set(Object.assign({}, plans, { updatedAt: Date.now(), updatedBy: u.email }));
+    return { ok: true, plans };
   },
 
   async syncAll() {
