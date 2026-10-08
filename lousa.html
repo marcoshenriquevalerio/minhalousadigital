@@ -761,6 +761,7 @@
        (celular deitado e computador NÃO mudam)
        ========================================================================= */
     .pt-only, #createSheet, #sheetBackdrop { display: none; }
+    .mg-title { display: none; }
     @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes sheetFade { from { opacity: 0; } to { opacity: 1; } }
     .cs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; color: #fde68a; font-weight: 800; font-size: 15px; letter-spacing: .2px; }
@@ -812,9 +813,27 @@
       }
       .theme-marker #createSheet::before, .theme-marker #shapeMenu::before, .theme-marker #stickerMenu::before, .theme-marker #widgetMenu::before, .theme-marker #moreGroup::before { background: rgba(15,23,42,.25); }
       #shapeMenu { grid-template-columns: repeat(6, 1fr) !important; gap: 8px !important; }
-      #moreGroup { gap: 10px !important; }
-      #moreGroup .tb { min-height: 66px; }
-      #moreGroup .tb-label { font-size: 10px; letter-spacing: -.1px; }
+      /* ---- gaveta "Mais": mesmo visual elegante da gaveta de Widgets ---- */
+      #moreGroup { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important;
+        background: linear-gradient(135deg, #5a3219 0%, #3b1d0b 25%, #6e3f21 50%, #2e1506 75%, #4a2711 100%) !important;
+        border: 3px solid #231105 !important; border-bottom: 0 !important; }
+      #moreGroup .mg-title { display: block; grid-column: 1 / -1; margin: 0 0 2px 2px; font-weight: 800; font-size: 17px; color: #fde68a; }
+      #moreGroup .tb { min-height: 86px; gap: 8px; padding: 10px 4px; border-radius: 12px;
+        background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.2) !important; color: #f5f5f4 !important; box-shadow: none !important; }
+      #moreGroup .tb:active { background: rgba(255,255,255,.18) !important; transform: scale(.96); }
+      #moreGroup .tb i { font-size: 24px !important; color: #fcd34d !important; }
+      #moreGroup .tb .tb-label { font-size: 12px; font-weight: 500; letter-spacing: 0; }
+      #moreGroup .nav-pill { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 6px 8px; }
+      #moreGroup .nav-btn { border-radius: 12px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fcd34d; }
+      #moreGroup .nav-btn.nav-add { background: rgba(5,150,105,.55); border-color: rgba(52,211,153,.6); color: #fff; }
+      #moreGroup .nav-btn.nav-del { background: rgba(127,29,29,.45); border-color: rgba(248,113,113,.4); color: #fca5a5; }
+      /* modo canetão (claro) */
+      .theme-marker #moreGroup { background: rgba(255,255,255,.98) !important; border-color: #94a3b8 !important; }
+      .theme-marker #moreGroup .mg-title { color: #0f172a; }
+      .theme-marker #moreGroup .tb { background: rgba(15,23,42,.05) !important; border-color: rgba(15,23,42,.15) !important; color: #0f172a !important; }
+      .theme-marker #moreGroup .tb i { color: #1d4ed8 !important; }
+      .theme-marker #moreGroup .nav-pill { background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.15); }
+      .theme-marker #moreGroup .nav-btn { background: #fff; border-color: #cbd5e1; color: #334155; }
 
       /* botão "Painel de controle" (admin) não cobre mais o dock */
       #goPainel { bottom: calc(var(--bar-h, 0px) + 10px) !important; }
@@ -889,6 +908,7 @@
     <button id="btnSharedInfo" onclick="openShareModal()" class="shared-badge hidden" title="Lousa compartilhada — ver quem está usando e quem criou"><i class="fa-solid fa-user-group"></i><span id="sharedBadgeText">Compartilhada</span></button>
 
     <div id="moreGroup" class="tb-group">
+      <div class="mg-title">Mais opções</div>
       <div class="nav-pill">
         <button id="btnPrevBoard" onclick="navigateBoard(-1)" class="nav-btn" title="Lousa anterior"><i class="fa-solid fa-chevron-left text-xs"></i></button>
         <div class="flex flex-col items-center px-1 min-w-[64px]">
