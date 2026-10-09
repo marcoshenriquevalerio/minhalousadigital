@@ -416,6 +416,11 @@
     .tb:active { transform: scale(.92); }
     .tb-label { display: none; }
     /* ---- botões do cabeçalho: mini-lousas redondas com giz ---- */
+    /* arrastar linhas (segurar 1s) */
+    .drag-lift { position:relative; z-index:60; background:rgba(33,72,53,.97) !important; border-radius:10px; box-shadow:0 8px 22px rgba(0,0,0,.6), 0 0 0 1.5px rgba(253,230,138,.65); cursor:grabbing; transition:none !important; opacity:1 !important; }
+    .drag-active { overflow-y:auto; }
+    body.drag-reordering, body.drag-reordering * { user-select:none !important; -webkit-user-select:none !important; cursor:grabbing !important; }
+    .fin-row, .chalk-items > div { -webkit-touch-callout:none; }
     /* larguras fixas: o nome da lousa não empurra os botões */
     #topbar .brand-text { width: 140px; flex: 0 0 140px; }
     #topbar .brand-text h1 { width: 100%; max-width: 100%; }
@@ -5830,6 +5835,90 @@
       const isL = el => el && el.tagName === 'INPUT' && (el.dataset.l || el.getAttribute('list') || '').indexOf('fin') === 0 && /^fin(Dest|Desc)List$/.test(el.dataset.l || el.getAttribute('list') || '');
       document.addEventListener('focusin', e => { const el = e.target; if (!isL(el)) return; if (!el.dataset.l) el.dataset.l = el.getAttribute('list'); if (el.value.trim()) el.removeAttribute('list'); else el.setAttribute('list', el.dataset.l); }, true);
       document.addEventListener('input', e => { const el = e.target; if (isL(el) && el.dataset.l) el.setAttribute('list', el.dataset.l); }, true);
+    })();
+    /* ---- segurar ~1s uma linha (tabela ou lista de tarefas) e arrastar para reposicionar ---- */
+    (function () {
+      const HOLD = 1000, MOVE_TOL = 8;
+      let timer = null, pend = null, st = null;
+      const find = t => {
+        if (!t || !t.closest) return null;
+        const fr = t.closest('.fin-row[data-row]');
+        if (fr && fr.parentElement && fr.parentElement.classList.contains('fin-scroll')) return { row: fr, box: fr.parentElement, kind: 'fin' };
+        const it = t.closest('.chalk-items > div');
+        if (it) return { row: it, box: it.parentElement, kind: 'chk' };
+        return null;
+      };
+      const kids = (box, kind) => Array.from(box.children).filter(c => kind === 'fin' ? c.hasAttribute('data-row') : c.tagName === 'DIV');
+      function place(y) {
+        const r = st.row; r.style.transform = 'none';
+        const sibs = kids(st.box, st.kind).filter(c => c !== r);
+        let before = null;
+        for (const c of sibs) { const b = c.getBoundingClientRect(); if (y < b.top + b.height / 2) { before = c; break; } }
+        if (before) { if (r.nextSibling !== before) st.box.insertBefore(r, before); }
+        else if (sibs.length && r.nextSibling) st.box.appendChild(r);
+        const nat = r.getBoundingClientRect().top;
+        r.style.transform = `translateY(${y - st.grab - nat}px) scale(1.02)`;
+      }
+      function activate() {
+        if (!pend) return;
+        const { f, x, y } = pend; pend = null;
+        const ae = document.activeElement; if (ae && ae.blur) ae.blur();
+        try { window.getSelection().removeAllRanges(); } catch (e) {}
+        kids(f.box, f.kind).forEach((c, i) => { c.dataset.oi = i; });
+        const rect = f.row.getBoundingClientRect();
+        st = { row: f.row, box: f.box, kind: f.kind, grab: y - rect.top, y };
+        f.row.classList.add('drag-lift'); f.box.classList.add('drag-active'); document.body.classList.add('drag-reordering');
+        if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+        place(y);
+      }
+      function cancelPend() { clearTimeout(timer); timer = null; pend = null; }
+      document.addEventListener('pointerdown', e => {
+        if (e.button > 0 || st) return;
+        if (e.target.closest && e.target.closest('button, .chalk-check, .item-remove')) return;
+        const f = find(e.target); if (!f) return;
+        pend = { f, x: e.clientX, y: e.clientY };
+        clearTimeout(timer); timer = setTimeout(activate, HOLD);
+      }, true);
+      document.addEventListener('pointermove', e => {
+        if (pend && Math.hypot(e.clientX - pend.x, e.clientY - pend.y) > MOVE_TOL) cancelPend();
+        if (!st) return;
+        e.preventDefault(); e.stopPropagation();
+        st.y = e.clientY;
+        const bb = st.box.getBoundingClientRect();
+        if (e.clientY < bb.top + 24) st.box.scrollTop -= 10; else if (e.clientY > bb.bottom - 24) st.box.scrollTop += 10;
+        place(e.clientY);
+      }, true);
+      function finish(commit) {
+        cancelPend();
+        if (!st) return;
+        const s0 = st; st = null;
+        s0.row.classList.remove('drag-lift'); s0.row.style.transform = ''; s0.box.classList.remove('drag-active'); document.body.classList.remove('drag-reordering');
+        window.__noClickUntil = Date.now() + 350;
+        if (!commit) { renderNotes(); return; }
+        try {
+          const order = kids(s0.box, s0.kind);
+          if (s0.kind === 'fin') {
+            const f = finData(), map = {}; f.rows.forEach(r => { map[r.id] = r; });
+            const ids = order.map(c => c.getAttribute('data-row'));
+            const re = ids.map(id => map[id]).filter(Boolean);
+            if (re.length === f.rows.length) { f.rows.splice(0, f.rows.length, ...re); saveData(); finRefreshViews && finRefreshViews(); }
+          } else {
+            const wr = s0.box.closest('[id]'); let note = null;
+            for (let el = s0.box; el && !note; el = el.parentElement) { if (el.id) note = getActiveBoard().notes.find(n => n.id === el.id && n.items); }
+            if (note) {
+              const old = note.items.slice(), re = order.map(c => old[+c.dataset.oi]).filter(Boolean);
+              if (re.length === old.length) { note.items = re; saveData(); }
+            }
+            renderNotes();
+          }
+        } catch (err) { console.warn('reordenar', err); renderNotes(); }
+      }
+      document.addEventListener('pointerup', () => finish(true), true);
+      document.addEventListener('pointercancel', () => finish(false), true);
+      document.addEventListener('click', e => { if (window.__noClickUntil && Date.now() < window.__noClickUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+      document.addEventListener('touchmove', e => { if (st) e.preventDefault(); }, { passive: false, capture: true });
+      document.addEventListener('contextmenu', e => { if (st || pend) e.preventDefault(); }, true);
+      document.addEventListener('selectstart', e => { if (st) e.preventDefault(); }, true);
     })();
     function finUpdateDatalist() {
       const dd = byId('finDescList') || (function () { const e = document.createElement('datalist'); e.id = 'finDescList'; document.body.appendChild(e); return e; })();
