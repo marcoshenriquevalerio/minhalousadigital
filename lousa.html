@@ -416,6 +416,12 @@
     .tb:active { transform: scale(.92); }
     .tb-label { display: none; }
     /* ---- botões do cabeçalho: mini-lousas redondas com giz ---- */
+    /* larguras fixas: o nome da lousa não empurra os botões */
+    #topbar .brand-text { width: 140px; flex: 0 0 140px; }
+    #topbar .brand-text h1 { width: 100%; max-width: 100%; }
+    #topbar #widgetBoardName { display:block; width: 112px; max-width:112px; overflow:hidden; text-overflow:ellipsis; text-align:center; }
+    #topbar #widgetBoardName, #topbar #widgetBoardCount { }
+    #topbar .nav-pill > .flex-col { width: 120px; min-width:120px; flex:0 0 120px; }
     #topbar #toolGroup .tb { --k:#fde68a; position:relative; color:var(--k); opacity:1;
       background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.14), transparent 46%), radial-gradient(circle at 50% 55%, #234a37 0%, #17332a 70%, #10241b 100%);
       border: 2px solid color-mix(in srgb, var(--k) 62%, #14261d);
