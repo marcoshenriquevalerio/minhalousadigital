@@ -629,7 +629,7 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: 1.45em 7.4em 5.8em minmax(3.2em, 1fr) minmax(5.6em, 7.4em) 1em; gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: 1.45em 7.4em 5.8em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em; gap: 6px; align-items: center; }
     .fin-head { padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
     .fin-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
     .fin-row { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.14); }
@@ -1152,6 +1152,7 @@
         <button class="q-btn px-3" data-qtab="apagador" onclick="setSettingsTab('apagador')"><i class="fa-solid fa-eraser mr-1"></i>Apagador</button>
         <button class="q-btn px-3" data-qtab="giz" onclick="setSettingsTab('giz')"><i class="fa-solid fa-pen mr-1"></i><span id="gizTabLbl">Giz</span></button>
         <button class="q-btn px-3" data-qtab="tela" onclick="setSettingsTab('tela')" title="Guia da tela do celular"><i class="fa-solid fa-mobile-screen-button mr-1"></i>Tela</button>
+        <button class="q-btn px-3" data-qtab="fin" onclick="setSettingsTab('fin')" title="Como gráficos e cards calculam"><i class="fa-solid fa-sack-dollar mr-1"></i>Finanças</button>
       </div>
       <span id="qeHint" class="text-[10px] text-amber-100/60 text-right">arraste a frase para mover</span>
     </div>
@@ -1184,6 +1185,15 @@
         <span class="pg-track"></span>
       </label>
       <p class="text-[10px] text-amber-100/55 mt-2 leading-snug">Mostra linhas suaves na lousa marcando o que cabe numa tela de celular em pé. Use como referência para organizar suas peças dentro de cada faixa. As linhas só aparecem para você e não atrapalham em nada.</p>
+    </div>
+
+    <div id="qeFin" class="hidden">
+      <div class="text-[11px] text-amber-100/80 mb-1.5">Gráficos e cards calculam por</div>
+      <div class="flex gap-1.5">
+        <button class="q-btn flex-1" data-fgb="dest" onclick="setFinGroupBy('dest')"><i class="fa-solid fa-tag mr-1"></i>Destino</button>
+        <button class="q-btn flex-1" data-fgb="desc" onclick="setFinGroupBy('desc')"><i class="fa-solid fa-align-left mr-1"></i>Descrição</button>
+      </div>
+      <p class="text-[10px] text-amber-100/55 mt-2 leading-snug">Vale só para você. Em <b>Descrição</b>, os gráficos “por destino” e a seção “Por destino” dos cards passam a somar pelo texto da coluna Descrição (e o relatório em PDF também). Cards individuais já criados continuam mostrando o que foram criados para mostrar.</p>
     </div>
 
     <div id="qeGiz" class="hidden">
@@ -1248,19 +1258,51 @@
 
   <!-- FINANÇAS: relatório em PDF -->
   <div id="finRepModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:9600">
-    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden" style="max-height:94vh">
       <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
         <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-file-pdf mr-2" style="color:#7dd3fc"></i>Relatório em PDF</h3>
         <button onclick="closeOv('finRepModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div class="p-5 space-y-3">
-        <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
-        <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
-        <p class="text-[11px] text-stone-400 leading-snug">Traz resumo, os gráficos que você montou e a tabela de lançamentos. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
+      <div class="p-5 space-y-4 overflow-y-auto" style="min-height:0">
+        <div class="grid sm:grid-cols-2 gap-2">
+          <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
+          <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
+        </div>
+        <div>
+          <div class="fin-lbl flex items-center justify-between"><span>Cards do resumo</span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('kpis',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('kpis',false)">nenhum</button></span></div>
+          <div id="finRepKpis" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="fin-lbl flex items-center justify-between"><span>Cards da lousa <span class="normal-case font-normal opacity-70">(🔗 = ligado a outra lousa, já somado)</span></span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('cards',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('cards',false)">nenhum</button></span></div>
+          <div id="finRepCards" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="fin-lbl flex items-center justify-between"><span>Painéis</span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('panels',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('panels',false)">nenhum</button></span></div>
+          <div id="finRepPanels" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="fin-lbl flex items-center justify-between"><span>Gráficos <span class="normal-case font-normal opacity-70">(só os da lousa · 🔗 = ligado a outra lousa)</span></span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('charts',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('charts',false)">nenhum</button></span></div>
+          <div id="finRepCharts" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="fin-lbl">Tabela</div>
+          <div id="finRepTable" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div class="border-t border-stone-600 pt-3 space-y-3">
+          <div class="fin-lbl flex items-center justify-between"><span><i class="fa-solid fa-filter mr-1"></i>Filtros <span class="normal-case font-normal opacity-70">(nada marcado = tudo)</span></span><button class="normal-case font-normal text-[11px] underline text-sky-300" onclick="finRepClear()">limpar filtros</button></div>
+          <div><div class="text-[11px] text-stone-400 mb-1">Mês</div><div id="finRepFMonths" class="flex flex-wrap gap-1.5"></div></div>
+          <div><div class="text-[11px] text-stone-400 mb-1">Categoria</div><div id="finRepFCats" class="flex flex-wrap gap-1.5"></div></div>
+          <div><div class="text-[11px] text-stone-400 mb-1">Descrição</div><div id="finRepFDescs" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
+          <div><div class="text-[11px] text-stone-400 mb-1">Destino</div><div id="finRepFDests" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
+          <p class="text-[11px] text-stone-400 leading-snug">Os filtros valem para cards, painéis, gráficos e tabela. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
+        </div>
       </div>
-      <div class="flex justify-end gap-2.5 px-5 py-3 border-t border-stone-600">
-        <button onclick="closeOv('finRepModal')" class="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg text-sm transition">Cancelar</button>
-        <button onclick="finRunReport()" class="px-4 py-2 bg-sky-400 hover:bg-sky-300 text-stone-950 font-bold rounded-lg text-sm transition"><i class="fa-solid fa-file-pdf mr-1"></i>Gerar PDF</button>
+      <div class="flex items-center justify-between gap-2.5 px-5 py-3 border-t border-stone-600">
+        <span id="finRepCount" class="text-[12px] text-stone-300"></span>
+        <div class="flex gap-2.5">
+          <button onclick="closeOv('finRepModal')" class="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg text-sm transition">Cancelar</button>
+          <button onclick="finRunReport()" class="px-4 py-2 bg-sky-400 hover:bg-sky-300 text-stone-950 font-bold rounded-lg text-sm transition"><i class="fa-solid fa-file-pdf mr-1"></i>Gerar PDF</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1274,7 +1316,7 @@
       </div>
       <div class="flex-1 overflow-y-auto p-5 space-y-4">
         <div><div class="fin-lbl">Resumo</div><div id="finCardOptsSummary" class="flex flex-wrap gap-1.5"></div></div>
-        <div><div class="fin-lbl">Por destino</div><div id="finCardOptsDest" class="flex flex-wrap gap-1.5"></div></div>
+        <div><div class="fin-lbl" id="finCardDestLbl">Por destino</div><div id="finCardOptsDest" class="flex flex-wrap gap-1.5"></div></div>
         <div><div class="fin-lbl">Período</div><select id="finCardPeriod" class="fin-modal-in"></select></div>
         <p class="text-[11px] text-stone-400 leading-snug">Marque os cards que quiser. Cada um vira uma peça separada na lousa, que você move e redimensiona sozinha.</p>
       </div>
@@ -4874,8 +4916,16 @@
       setSettingsTab(tab || 'frase');
     }
 
+    function syncFinPrefsUI() { document.querySelectorAll('#qeFin [data-fgb]').forEach(b => b.classList.toggle('active', b.dataset.fgb === finGroupBy())); }
+    function setFinGroupBy(v) {
+      if (!appData.finPrefs) appData.finPrefs = {};
+      appData.finPrefs.groupBy = v === 'desc' ? 'desc' : 'dest';
+      try { finDropMasks(['fincards', 'finchart']); } catch (e) {}
+      saveData(); syncFinPrefsUI();
+      try { finRefreshAll(); } catch (e) { console.warn(e); }
+    }
     function setSettingsTab(tab) {
-      settingsTab = (tab === 'apagador' || tab === 'giz' || tab === 'tela') ? tab : 'frase';
+      settingsTab = (tab === 'apagador' || tab === 'giz' || tab === 'tela' || tab === 'fin') ? tab : 'frase';
       const isF = settingsTab === 'frase';
       quoteEditing = isF;                       // a frase só fica movível na aba Frase
       if (!isF) { setEraserPlace(false); setChalkPlace(false); }
@@ -4883,6 +4933,7 @@
       byId('qeApagador').classList.toggle('hidden', settingsTab !== 'apagador');
       byId('qeGiz').classList.toggle('hidden', settingsTab !== 'giz');
       byId('qeTela').classList.toggle('hidden', settingsTab !== 'tela');
+      byId('qeFin').classList.toggle('hidden', settingsTab !== 'fin');
       byId('qeHint').classList.toggle('hidden', !isF);
       document.querySelectorAll('#quoteEditor [data-qtab]').forEach(b => b.classList.toggle('active', b.dataset.qtab === settingsTab));
       if (isF) {
@@ -4891,6 +4942,8 @@
         ta.rows = window.innerHeight < 500 ? 2 : 3;
         updateLinesButtons();
         setTimeout(() => ta.focus(), 50);
+      } else if (settingsTab === 'fin') {
+        syncFinPrefsUI();
       } else if (settingsTab === 'tela') {
         byId('phoneGuideChk').checked = document.body.classList.contains('phone-guide-on');
       } else if (settingsTab === 'giz') {
@@ -5511,7 +5564,7 @@
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? 400 : 260, 170];
+      return [note.type === 'fintable' ? 520 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -5608,7 +5661,15 @@
     function finDM(d) { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[2] + '/' + m[1] : 'Sem data'; }
 
     /* lançamentos "em branco" (linha nova ainda sem nada) nunca entram nas contas */
-    function finIsBlank(r) { return !r.value && !r.dest; }
+    function finIsBlank(r) { return !r.value && !r.dest && !r.desc; }
+    /* Agrupamento dos gráficos e cards: por Destino (padrão) ou por Descrição — escolha pessoal em Ajustes > Finanças */
+    function finGroupBy() { return appData && appData.finPrefs && appData.finPrefs.groupBy === 'desc' ? 'desc' : 'dest'; }
+    function finGroupLabel(mode) { return (mode || finGroupBy()) === 'desc' ? 'descrição' : 'destino'; }
+    function finRowKey(r, mode) { return finNorm((mode || finGroupBy()) === 'desc' ? r.desc : r.dest); }
+    function finRowLabel(r, mode) { return (mode || finGroupBy()) === 'desc' ? (finCleanDest(r.desc) || 'Sem descrição') : (finCleanDest(r.dest) || 'Sem destino'); }
+    function finKeyMode(key) { return String(key).indexOf('x:') === 0 ? 'desc' : 'dest'; }
+    function finRowsByKey(rows, key) { const m = finKeyMode(key), k = String(key).slice(2); return rows.filter(r => finRowKey(r, m) === k); }
+    function finXLabel(x) { return x === 'dest' ? (finGroupBy() === 'desc' ? 'Descrição' : 'Destino') : FIN_X[x]; }
     function finRowsFor(period) {
       let rows = finData().rows.filter(r => !finIsBlank(r));
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
@@ -5641,20 +5702,21 @@
     }
     function finRowsOfBoard(b, period) {
       let rows = finData(b).rows.filter(r => !finIsBlank(r));
+      if (window.finRepFilter) rows = rows.filter(window.finRepFilter);
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
       return rows;
     }
     function finKeyVal(rows, key) {   // valor (centavos) de um card, a partir dos lançamentos
-      if (String(key).indexOf('d:') === 0) { const k = key.slice(2), t = finTotals(rows.filter(r => finNorm(r.dest) === k)); return t.in - t.out; }
+      if (/^[dx]:/.test(String(key))) { const t = finTotals(finRowsByKey(rows, key)); return t.in - t.out; }
       const t = finTotals(rows);
       return key === 'bal' ? t.in - t.out : (t[key] || 0);
     }
 
-    function finDestGroups(rows) {
-      const map = {};
+    function finDestGroups(rows, mode) {
+      const map = {}; mode = mode || finGroupBy();
       rows.forEach(r => {
-        const key = finNorm(r.dest);
-        const g = map[key] || (map[key] = { key: 'd:' + key, label: finCleanDest(r.dest) || 'Sem destino', rows: [] });
+        const key = finRowKey(r, mode);
+        const g = map[key] || (map[key] = { key: (mode === 'desc' ? 'x:' : 'd:') + key, label: finRowLabel(r, mode), rows: [] });
         g.rows.push(r);
       });
       return Object.keys(map).map(k => {
@@ -5672,7 +5734,7 @@
         if (cfg.x === 'date') { key = r.date || '—'; label = finDM(r.date); sort = key; }
         else if (cfg.x === 'month') { key = (r.date || '').slice(0, 7) || '—'; label = finMonthShort(key); sort = key; }
         else if (cfg.x === 'cat') { key = r.cat === 'in' ? 'in' : 'out'; label = r.cat === 'in' ? 'Entrada' : 'Saída'; sort = r.cat === 'in' ? '0' : '1'; }
-        else { key = finNorm(r.dest); label = finCleanDest(r.dest) || 'Sem destino'; sort = label; }
+        else { key = finRowKey(r); label = finRowLabel(r); sort = label; }
         const g = map[key] || (map[key] = { key, label, sort, in: 0, out: 0, pin: 0, pout: 0 });
         const c = Math.round((r.value || 0) * 100);
         if (r.cat === 'in') { if (r.done) g.in += c; else g.pin += c; } else { if (r.done) g.out += c; else g.pout += c; }
@@ -5699,7 +5761,7 @@
 
     function finDefaultTitle(cfg) {
       const ms = (cfg.metrics || []).map(k => FIN_METRICS[k] && FIN_METRICS[k].label).filter(Boolean);
-      return '📊 ' + (ms.join(' × ') || 'Gráfico') + ' por ' + (FIN_X[cfg.x] || 'data').toLowerCase().replace(' (dia)', '');
+      return '📊 ' + (ms.join(' × ') || 'Gráfico') + ' por ' + (finXLabel(cfg.x) || 'data').toLowerCase().replace(' (dia)', '');
     }
 
     /* ---------- persistência / atualização ---------- */
@@ -5719,6 +5781,10 @@
     }
 
     function finUpdateDatalist() {
+      const dd = byId('finDescList') || (function () { const e = document.createElement('datalist'); e.id = 'finDescList'; document.body.appendChild(e); return e; })();
+      const seenD = {}, outD = [];
+      finData().rows.forEach(r => { const d = finCleanDest(r.desc), k = finNorm(d); if (k && !seenD[k]) { seenD[k] = 1; outD.push(d); } });
+      dd.innerHTML = outD.map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
       const dl = byId('finDestList'); if (!dl) return;
       const seen = {}, out = [];
       finDests().concat(finData().rows.map(r => finCleanDest(r.dest))).forEach(d => {
@@ -5779,6 +5845,7 @@
         <div data-cell="date" data-ink><input type="date" class="fin-in" value="${escapeHtml(r.date || '')}" onchange="finSetField('${r.id}','date',this)"></div>
         <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar Entrada / Saída">${isIn ? '↑ Entrada' : '↓ Saída'}</button></div>
         <div data-cell="dest" data-ink><input type="text" list="finDestList" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="finSetField('${r.id}','dest',this)"></div>
+        <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
              onfocus="this.select()" oninput="finLiveValue('${r.id}', this)" onchange="finCommitValue('${r.id}', this)" onkeydown="finValKey(event,'${r.id}')"></div>
         <button class="item-remove chalk-del" onclick="finDeleteRow('${r.id}')" title="Excluir lançamento"><i class="fa-solid fa-xmark text-xs"></i></button>
@@ -5792,7 +5859,7 @@
         ${finTitleInput(note, '💰 Controle financeiro')}
         <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          <span data-ink>Data</span><span data-ink>Categoria</span><span data-ink>Destino</span><span data-ink>Valor</span><span></span>
+          <span data-ink>Data</span><span data-ink>Categoria</span><span data-ink>Destino</span><span data-ink>Descrição</span><span data-ink>Valor</span><span></span>
         </div>
         <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px">
           ${rows.length ? rows.map(finRowHtml).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
@@ -5813,7 +5880,7 @@
         { key: 'pin',  emoji: '⏳', title: 'A receber', val: finBRL(t.pin / 100),  color: 'yellow', sub: plural(t.nPin, 'pendente', 'pendentes') },
         { key: 'pout', emoji: '🧾', title: 'A pagar',   val: finBRL(t.pout / 100), color: 'yellow', sub: plural(t.nPout, 'pendente', 'pendentes') }
       ];
-      const dests = finDestGroups(rows).map(g => {
+      const destCard = (g) => {
         const net = (g.t.in - g.t.out) / 100;
         let val, color;
         if (g.t.out && !g.t.in) { val = '− ' + finBRL(g.t.out / 100); color = 'pink'; }
@@ -5822,7 +5889,8 @@
         else { val = finBRL(0); color = 'yellow'; }
         const pend = [g.t.pout ? 'a pagar ' + finBRL(g.t.pout / 100) : '', g.t.pin ? 'a receber ' + finBRL(g.t.pin / 100) : ''].filter(Boolean).join(' · ');
         return { key: g.key, emoji: finEmoji(g.label), title: g.label, val, color, sub: plural(g.n, 'lançamento', 'lançamentos'), pend };
-      });
+      };
+      const dests = finDestGroups(rows).map(destCard);
       const terms = finTerms(note);
       if (terms.length) {   // este card combinado com os itens ligados, cada um com a sua operação
         const comb = (key) => {
@@ -5837,7 +5905,7 @@
         summary.forEach(c => { const v = comb(c.key); c.val = finBRL(v / 100); if (c.key === 'bal') c.color = v < 0 ? 'pink' : 'blue'; c.sub = txt; });
         dests.forEach(c => { const v = comb(c.key); c.val = (v < 0 ? '− ' : '+ ') + finBRL(Math.abs(v) / 100); c.color = v < 0 ? 'pink' : (v > 0 ? 'green' : 'yellow'); c.sub = txt; c.pend = ''; });
       }
-      return { summary, dests, hasRows: rows.length > 0 };
+      return { summary, dests, destCard, hasRows: rows.length > 0 };
     }
     function finCardHtml(c) {
       return `<div class="fin-card" data-card="${escapeHtml(c.key)}" data-ink style="--c:${finHex(c.color)}">
@@ -5850,8 +5918,9 @@
     function finCardForKey(note, d) {
       d = d || finCardsData(note);
       let c = d.summary.find(x => x.key === note.only) || d.dests.find(x => x.key === note.only);
-      if (!c && String(note.only).indexOf('d:') === 0) {
-        c = { key: note.only, title: note.onlyLabel || 'Destino', val: finBRL(0), color: 'yellow', sub: '0 lançamentos', pend: '' };
+      if (!c && /^[dx]:/.test(String(note.only))) {   // card criado no outro modo (destino x descrição): continua mostrando o dele
+        const g = finDestGroups(finRowsFor(note.period), finKeyMode(note.only)).find(x => x.key === note.only);
+        c = g && d.destCard ? d.destCard(g) : { key: note.only, title: note.onlyLabel || 'Destino', val: finBRL(0), color: 'yellow', sub: '0 lançamentos', pend: '' };
       }
       return c || null;
     }
@@ -5865,7 +5934,7 @@
       const sum = d.summary.filter(c => hidden.indexOf(c.key) < 0), dst = d.dests.filter(c => hidden.indexOf(c.key) < 0);
       if (!sum.length && !dst.length) return `<div class="fin-empty" data-ink>Todos os cards foram apagados. Use o botão ⟲ da barra para trazê-los de volta.</div>`;
       return `<div class="fin-cards-grid">${sum.map(finCardHtml).join('')}</div>` +
-        (dst.length ? `<div class="fin-sec chalk-ink font-chalk" data-ink>Por destino</div><div class="fin-cards-grid">${dst.map(finCardHtml).join('')}</div>` :
+        (dst.length ? `<div class="fin-sec chalk-ink font-chalk" data-ink>${finGroupBy() === 'desc' ? 'Por descrição' : 'Por destino'}</div><div class="fin-cards-grid">${dst.map(finCardHtml).join('')}</div>` :
           (d.hasRows ? '' : `<div class="fin-empty" data-ink>Preencha a tabela: um card aparece aqui para cada destino.</div>`));
     }
     function finCardsInner(note) {
@@ -5922,7 +5991,7 @@
     function finAddRow(noteId) {
       const fin = finData(), last = fin.rows[fin.rows.length - 1];
       const row = { id: 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), seq: ++fin.seq,
-        date: finToday(), cat: last ? last.cat : 'out', dest: '', value: null, done: false };
+        date: finToday(), cat: last ? last.cat : 'out', dest: '', desc: '', value: null, done: false };
       fin.rows.push(row);
       finDropMasks(['fintable', 'fincards']);
       saveData(); finRefreshAll();
@@ -5955,6 +6024,12 @@
         r.dest = known ? known.dest : v; el.value = r.dest;
         finDropMasks(['fincards']);
         finUpdateDatalist();
+      } else if (field === 'desc') {
+        const v = finCleanDest(el.value);
+        const known = finData().rows.find(x => x.id !== id && finNorm(x.desc) === finNorm(v));
+        r.desc = known ? known.desc : v; el.value = r.desc;
+        finDropMasks(['fincards']);
+        finUpdateDatalist();
       } else r[field] = el.value;
       saveData(); finRefreshViews(); finSyncRowViews(id, el);
     }
@@ -5969,6 +6044,7 @@
         };
         set('[data-cell="date"] input', r.date || '');
         set('[data-cell="dest"] input', r.dest || '');
+        set('[data-cell="desc"] input', r.desc || '');
         set('[data-cell="val"] input', r.value ? 'R$ ' + finFmtNum(r.value) : '');
       });
     }
@@ -6036,7 +6112,7 @@
     function finCardOptions() {
       const d = finCardsData({ period: 'all' }), seen = {}, dests = [];
       d.dests.forEach(c => { seen[c.key] = 1; dests.push({ key: c.key, title: c.title }); });
-      finDests().forEach(name => {
+      (finGroupBy() === 'desc' ? [] : finDests()).forEach(name => {
         const k = 'd:' + finNorm(name);
         if (!seen[k]) { seen[k] = 1; dests.push({ key: k, title: finCleanDest(name) }); }
       });
@@ -6051,8 +6127,9 @@
     function finRenderCardOpts() {
       const o = finCardOptions();
       const btn = c => `<button class="fsb ${finCardSel.some(s => s.key === c.key) ? 'on' : ''}" data-key="${escapeHtml(c.key)}" data-label="${escapeHtml(c.title)}" onclick="finToggleCardSel(this)">${escapeHtml(c.title)}</button>`;
+      byId('finCardDestLbl').innerText = finGroupBy() === 'desc' ? 'Por descrição' : 'Por destino';
       byId('finCardOptsSummary').innerHTML = o.summary.map(btn).join('');
-      byId('finCardOptsDest').innerHTML = o.dests.length ? o.dests.map(btn).join('') : '<span class="text-xs text-stone-500">Nenhum destino ainda. Preencha a tabela ou crie categorias.</span>';
+      byId('finCardOptsDest').innerHTML = o.dests.length ? o.dests.map(btn).join('') : '<span class="text-xs text-stone-500">Nenhum item ainda. Preencha a tabela ou crie categorias.</span>';
       finSyncCardOk();
     }
     function finToggleCardSel(el) {
@@ -6141,7 +6218,7 @@
       } else {
         const fin = finData();
         if (!fin.rows.length) {
-          fin.rows.push({ id: 'r' + Date.now().toString(36), seq: ++fin.seq, date: finToday(), cat: 'out', dest: '', value: null, done: false });
+          fin.rows.push({ id: 'r' + Date.now().toString(36), seq: ++fin.seq, date: finToday(), cat: 'out', dest: '', desc: '', value: null, done: false });
         }
         finCreatePiece('fintable', { title: name || ('Tabela ' + (finNotes('fintable').length + 1)), hideFoot: d.hideFoot, noTitle: d.hideTitle });
         finUpdateDatalist();
@@ -6669,6 +6746,7 @@
       if (finDraft.period !== 'all' && months.indexOf(finDraft.period) < 0) months.push(finDraft.period);
       byId('finPeriodSel').innerHTML = '<option value="all">Todo o período</option>' + months.map(m => `<option value="${m}">${finMonthLong(m)}</option>`).join('');
       byId('finChartTitleIn').value = finDraft.title;
+      { const lb = document.querySelector('#finChartModal [data-fin-x][data-v="dest"]'); if (lb) lb.textContent = finXLabel('dest'); }
       byId('finGoalIn').value = finDraft.goal ? finFmtNum(finDraft.goal) : '';
       byId('finChartModalTitle').innerText = n ? 'Configurar gráfico' : 'Montar gráfico';
       byId('finChartOkBtn').innerText = n ? 'Aplicar' : 'Adicionar à lousa';
@@ -6959,6 +7037,7 @@
     };
     window.finRowsFor = function (period) {
       let rows = finEffRows().filter(r => !finIsBlank(r));
+      if (window.finRepFilter) rows = rows.filter(window.finRepFilter);
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
       return rows;
     };
@@ -10065,16 +10144,89 @@
     const nowTxt = () => { const d = new Date(); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
 
     /* ---------- dados ---------- */
+    /* ---------- opções escolhidas na janela do relatório ---------- */
+    const KPI_DEFS = [['in', 'Entradas'], ['out', 'Saídas'], ['bal', 'Saldo'], ['pin', 'A receber'], ['pout', 'A pagar'], ['fc', 'Previsto']];
+    const PANEL_DEFS = [['dest', 'Para onde vai o dinheiro'], ['flow', 'Fluxo mensal'], ['prog', 'Andamento'], ['boards', 'Comparativo por lousa']];
+    let OPT = null;
+    function defOpts() {
+      return { kpis: KPI_DEFS.map(d => d[0]), panels: PANEL_DEFS.map(d => d[0]), charts: null, cards: [], table: true, f: { months: [], cats: [], descs: [], dests: [] } };
+    }
+    function mkFilter(f) {
+      const has = a => a && a.length;
+      if (!f || (!has(f.months) && !has(f.cats) && !has(f.descs) && !has(f.dests))) return null;
+      return r => (!has(f.months) || f.months.indexOf((r.date || '').slice(0, 7)) >= 0) &&
+        (!has(f.cats) || f.cats.indexOf(r.cat === 'in' ? 'in' : 'out') >= 0) &&
+        (!has(f.descs) || f.descs.indexOf(finNorm(r.desc)) >= 0) &&
+        (!has(f.dests) || f.dests.indexOf(finNorm(r.dest)) >= 0);
+    }
+    function labelFor(field, k) {
+      if (!k) return field === 'desc' ? 'Sem descrição' : 'Sem destino';
+      for (const b of finBoards()) { const r = finData(b).rows.find(x => finNorm(x[field]) === k); if (r) return finCleanDest(r[field]); }
+      return k;
+    }
+    function filtersTxt() {
+      if (!OPT || !OPT.pred) return '';
+      const f = OPT.f, out = [];
+      if (f.months.length) out.push('Mês: ' + f.months.map(finMonthShort).join(', '));
+      if (f.cats.length) out.push('Categoria: ' + f.cats.map(k => k === 'in' ? 'Entradas' : 'Saídas').join(', '));
+      if (f.descs.length) out.push('Descrição: ' + f.descs.map(k => labelFor('desc', k)).join(', '));
+      if (f.dests.length) out.push('Destino: ' + f.dests.map(k => labelFor('dest', k)).join(', '));
+      return out.join(' · ');
+    }
     function statsOf(b) {
-      const rows = finData(b).rows.filter(r => !finIsBlank(r));
+      const o = OPT || defOpts();
+      let rows = finData(b).rows.filter(r => !finIsBlank(r));
+      let linked = [];
+      if (OPT && OPT.scope === 'one') {   // relatório de uma lousa: soma também as lousas ligadas a ela (igual aos cards da lousa)
+        try { linked = finLinkedBoards(b, null); } catch (e) {}
+        linked.forEach(x => { rows = rows.concat(finData(x).rows.filter(r => !finIsBlank(r))); });
+      }
+      if (OPT && OPT.pred) rows = rows.filter(OPT.pred);
       const t = finTotals(rows);
-      return { b, rows, t, bal: t.in - t.out, fc: t.in - t.out + t.pin - t.pout, charts: chartsOf(b) };
+      const charts = chartsOf(b).filter(n => !o.charts || o.charts.indexOf(n.id) >= 0);
+      const cards = cardsOf(b).filter(n => o.cards.indexOf(n.id) >= 0);
+      return { b, rows, t, bal: t.in - t.out, fc: t.in - t.out + t.pin - t.pout, charts, cards, linked };
     }
     function chartsOf(b) {
       const out = [];
       appData.boards.forEach(bd => (bd.notes || []).forEach(n => { if (n.type === 'finchart' && finSrcOf(n) === b) out.push(n); }));
       out.sort((a, c) => (Math.round((a.y || 0) / 60) - Math.round((c.y || 0) / 60)) || ((a.x || 0) - (c.x || 0)));
       return out;
+    }
+    function cardsOf(b) {
+      const out = [];
+      appData.boards.forEach(bd => (bd.notes || []).forEach(n => { if (n.type === 'fincards' && finSrcOf(n) === b) out.push(n); }));
+      out.sort((a, c) => (Math.round((a.y || 0) / 60) - Math.round((c.y || 0) / 60)) || ((a.x || 0) - (c.x || 0)));
+      return out;
+    }
+    function linkTxt(n) {   // ex.: "🔗 + Saídas · − Mercado": o que está ligado a este card/gráfico
+      try {
+        const t = finTerms(n); if (!t.length) return '';
+        return ' 🔗 ' + t.map(tm => FIN_OPS[tm.op].sym + ' ' + pieceLabel(tm.piece).replace(/^[^\p{L}\p{N}]+/u, '')).join(' ');
+      } catch (e) { return ''; }
+    }
+    function cardTitle(n) {
+      let t = n.only ? (n.onlyLabel || (function () { try { const c = finCardForKey(n); return c && c.title; } catch (e) { return ''; } })() || 'Card') : (n.title || 'Resumo financeiro');
+      return String(t).replace(/^[^\p{L}\p{N}]+/u, '').trim() || 'Card';
+    }
+    const CCOL = { green: C.in, pink: C.out, blue: C.bal, yellow: C.warn, white: '#e8f0ff' };
+    function cardPages(s) {
+      const items = [];
+      s.cards.forEach(n => {
+        let list = [];
+        try {
+          if (n.only) { const c = finCardForKey(n); if (c && (n.hiddenCards || []).indexOf(c.key) < 0) list = [c]; }
+          else { const d = finCardsData(n), h = n.hiddenCards || []; list = d.summary.filter(c => h.indexOf(c.key) < 0).concat(d.dests.filter(c => h.indexOf(c.key) < 0)); }
+        } catch (e) { console.warn('relatório: card', e); }
+        const per = n.period && n.period !== 'all' ? finMonthLong(n.period) : '';
+        list.forEach(c => items.push({ c, per, link: linkTxt(n) }));
+      });
+      const pages = [];
+      for (let i = 0; i < items.length; i += 12) {
+        const html = items.slice(i, i + 12).map(x => `<div class="mc" style="--c:${CCOL[x.c.color] || C.bal}"><i></i><small>${esc(String(x.c.title).toUpperCase())}${x.per ? ' · ' + esc(x.per) : ''}</small><b>${esc(x.c.val)}</b><em>${esc(x.c.sub || '')}${x.c.pend ? ' · ' + esc(x.c.pend) : ''}</em>${x.link ? `<u>${esc(x.link.trim())}</u>` : ''}</div>`).join('');
+        pages.push({ label: s.b.name || 'Finanças', html: `<div class="sec"><span>${i ? 'CARDS · continuação' : 'CARDS'}</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="cg">${html}</div>` });
+      }
+      return pages;
     }
     function chartSvg(n, W, H) {
       const pb = finCtxBoard, pn = finCtxNote, th = appData.theme;
@@ -10096,13 +10248,16 @@
     const kpi = (label, val, sub, col) => `<div class="kpi" style="--c:${col}"><i></i><small>${label}</small><b>${val}</b><em>${sub}</em></div>`;
     function kpis(t, nRows) {
       const bal = t.in - t.out, fc = bal + t.pin - t.pout, pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
-      return `<div class="kpis">` +
-        kpi('ENTRADAS', money(t.in), pl(t.nIn, 'lançamento', 'lançamentos'), C.in) +
-        kpi('SAÍDAS', money(t.out), pl(t.nOut, 'lançamento', 'lançamentos'), C.out) +
-        kpi('SALDO', money(bal), bal < 0 ? 'no vermelho' : 'no azul', bal < 0 ? C.out : C.bal) +
-        kpi('A RECEBER', money(t.pin), pl(t.nPin, 'pendente', 'pendentes'), C.warn) +
-        kpi('A PAGAR', money(t.pout), pl(t.nPout, 'pendente', 'pendentes'), '#ff9d5c') +
-        kpi('PREVISTO', money(fc), 'saldo + pendências', C.vio) + `</div>`;
+      const all = {
+        in: kpi('ENTRADAS', money(t.in), pl(t.nIn, 'lançamento', 'lançamentos'), C.in),
+        out: kpi('SAÍDAS', money(t.out), pl(t.nOut, 'lançamento', 'lançamentos'), C.out),
+        bal: kpi('SALDO', money(bal), bal < 0 ? 'no vermelho' : 'no azul', bal < 0 ? C.out : C.bal),
+        pin: kpi('A RECEBER', money(t.pin), pl(t.nPin, 'pendente', 'pendentes'), C.warn),
+        pout: kpi('A PAGAR', money(t.pout), pl(t.nPout, 'pendente', 'pendentes'), '#ff9d5c'),
+        fc: kpi('PREVISTO', money(fc), 'saldo + pendências', C.vio)
+      };
+      const keys = (OPT || defOpts()).kpis.filter(k => all[k]);
+      return keys.length ? `<div class="kpis">` + keys.map(k => all[k]).join('') + `</div>` : '';
     }
     function panelDest(rows) {
       const groups = finDestGroups(rows).map(g => ({ g, out: g.t.out + g.t.pout, inn: g.t.in + g.t.pin }));
@@ -10110,7 +10265,7 @@
       const list = groups.filter(x => x[key] > 0).sort((a, b) => b[key] - a[key]);
       const total = list.reduce((s, x) => s + x[key], 0), top = list.slice(0, 6), max = top.length ? top[0][key] : 1;
       const col = useOut ? C.out : C.in;
-      let h = `<div class="panel"><h3>${useOut ? 'Para onde vai o dinheiro' : 'De onde vem o dinheiro'}</h3>`;
+      let h = `<div class="panel"><h3>${useOut ? 'Para onde vai o dinheiro' : 'De onde vem o dinheiro'}${finGroupBy() === 'desc' ? ' <span>(por descrição)</span>' : ''}</h3>`;
       if (!top.length) h += `<div class="empty">Sem lançamentos ainda.</div>`;
       top.forEach(x => {
         h += `<div class="hb"><div class="hb-t"><span>${finEmoji(x.g.label)} ${esc(x.g.label)}</span><b>${money(x[key])}</b></div><div class="hb-bar"><u style="width:${Math.max(3, Math.round(x[key] * 100 / max))}%;--c:${col}"></u></div><small>${pct(x[key], total)}% do total</small></div>`;
@@ -10158,19 +10313,30 @@
     }
 
     /* ---------- páginas ---------- */
+    function panelsHtml(rows, t, list) {
+      const P = (OPT || defOpts()).panels, h = [];
+      const row2 = (P.indexOf('dest') >= 0 ? panelDest(rows) : '') + (P.indexOf('flow') >= 0 ? panelFlow(rows) : '');
+      if (row2) h.push(`<div class="grid2"${P.indexOf('dest') >= 0 && P.indexOf('flow') >= 0 ? '' : ' style="grid-template-columns:1fr"'}>${row2}</div>`);
+      if (P.indexOf('prog') >= 0) h.push(panelProgress(t));
+      if (list && P.indexOf('boards') >= 0) h.push(panelBoards(list));
+      return h.join('');
+    }
+    function fltLine() { const f = filtersTxt(); return f ? `<div class="flt">Filtros: ${esc(f)}</div>` : ''; }
     function summaryPage(s) {
-      const nCh = s.charts.length;
+      const o = OPT || defOpts(), nCh = s.charts.length;
+      const k = kpis(s.t, s.rows.length), ph = panelsHtml(s.rows, s.t, null);
+      if (!k && !ph) return null;
       return { label: s.b.name || 'Finanças', html:
         `<div class="eyebrow">RELATÓRIO FINANCEIRO</div><h1>${esc(s.b.name || 'Finanças')}</h1>` +
-        `<div class="sub">${periodTxt(s.rows)} · ${s.rows.length} lançamento${s.rows.length === 1 ? '' : 's'} · ${nCh} gráfico${nCh === 1 ? '' : 's'}</div>` +
-        kpis(s.t, s.rows.length) + `<div class="grid2">${panelDest(s.rows)}${panelFlow(s.rows)}</div>` + panelProgress(s.t) };
+        `<div class="sub">${periodTxt(s.rows)} · ${s.rows.length} lançamento${s.rows.length === 1 ? '' : 's'} · ${nCh} gráfico${nCh === 1 ? '' : 's'}${s.linked && s.linked.length ? ' · soma as lousas ligadas: ' + s.linked.map(x => esc(x.name || 'Finanças')).join(', ') : ''}</div>` + fltLine() + k + ph };
     }
     function generalPage(list) {
       const all = [].concat(...list.map(s => s.rows)), t = finTotals(all), nCh = list.reduce((a, s) => a + s.charts.length, 0);
+      const k = kpis(t, all.length), ph = panelsHtml(all, t, list);
+      if (!k && !ph) return null;
       return { label: 'Relatório geral', html:
         `<div class="eyebrow">RELATÓRIO GERAL</div><h1>Todas as lousas de finanças</h1>` +
-        `<div class="sub">${list.length} lousa${list.length === 1 ? '' : 's'} · ${periodTxt(all)} · ${all.length} lançamentos · ${nCh} gráficos</div>` +
-        kpis(t, all.length) + `<div class="grid2">${panelDest(all)}${panelFlow(all)}</div>` + panelBoards(list) };
+        `<div class="sub">${list.length} lousa${list.length === 1 ? '' : 's'} · ${periodTxt(all)} · ${all.length} lançamentos · ${nCh} gráficos</div>` + fltLine() + k + ph };
     }
     function chartPages(s) {
       const list = s.charts, rows = [];
@@ -10186,8 +10352,8 @@
         chunk.forEach(r => {
           h += `<div class="crow">` + r.map(n => {
             const cfg = n.cfg || {}, W = r.length === 2 ? 318 : 686, H = 215;
-            const tags = [TYPE_NAME[cfg.type] || 'Barras', 'por ' + String(FIN_X[cfg.x] || 'Data').toLowerCase().replace(' (dia)', ''), cfg.period && cfg.period !== 'all' ? finMonthLong(cfg.period) : 'todo o período'];
-            return `<div class="card"><div class="card-h"><b>${esc(chartTitle(n))}</b><span>${tags.map(esc).join(' · ')}</span></div><div class="chart">${chartSvg(n, W, H)}</div></div>`;
+            const tags = [TYPE_NAME[cfg.type] || 'Barras', 'por ' + String(finXLabel(cfg.x) || 'Data').toLowerCase().replace(' (dia)', ''), cfg.period && cfg.period !== 'all' ? finMonthLong(cfg.period) : 'todo o período'].concat(OPT && OPT.pred ? ['filtrado'] : []);
+            return `<div class="card"><div class="card-h"><b>${esc(chartTitle(n))}${esc(linkTxt(n))}</b><span>${tags.map(esc).join(' · ')}</span></div><div class="chart">${chartSvg(n, W, H)}</div></div>`;
           }).join('') + `</div>`;
         });
         pages.push({ label: s.b.name || 'Finanças', html: h });
@@ -10200,10 +10366,10 @@
       let i = 0, pg = 0;
       const rowHtml = r => {
         const inn = r.cat === 'in', col = inn ? C.in : C.out;
-        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
+        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
       };
       const totals = `<div class="tot"><div><small>ENTRADAS</small><b style="color:${C.in}">${money(s.t.in)}</b></div><div><small>SAÍDAS</small><b style="color:${C.out}">${money(s.t.out)}</b></div><div><small>SALDO</small><b style="color:${s.bal < 0 ? C.out : C.bal}">${money(s.bal)}</b></div></div>`;
-      if (!rows.length) return [{ label: s.b.name || 'Finanças', html: `<div class="sec"><span>LANÇAMENTOS</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="empty">Nenhum lançamento nesta lousa ainda.</div>` }];
+      if (!rows.length) return [{ label: s.b.name || 'Finanças', html: `<div class="sec"><span>LANÇAMENTOS</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="empty">${OPT && OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento nesta lousa ainda.'}</div>` }];
       while (i < rows.length) {
         const size = sizes[pg === 0 ? 0 : 1];
         let n = Math.min(size, rows.length - i);
@@ -10213,7 +10379,7 @@
         const isLast = i >= rows.length;
         pages.push({ label: s.b.name || 'Finanças', html:
           `<div class="sec"><span>${pg === 0 ? 'LANÇAMENTOS' : 'LANÇAMENTOS · continuação'}</span><b>${esc(s.b.name || 'Finanças')}</b></div>` +
-          `<table class="tb"><thead><tr><th>Data</th><th>Situação</th><th>Tipo</th><th>Destino</th><th class="v">Valor</th></tr></thead><tbody>${chunk.map(rowHtml).join('')}</tbody></table>` + (isLast ? totals : '') });
+          `<table class="tb"><thead><tr><th>Data</th><th>Situação</th><th>Tipo</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${chunk.map(rowHtml).join('')}</tbody></table>` + (isLast ? totals : '') });
         pg++;
       }
       return pages;
@@ -10265,16 +10431,23 @@ h1{font-size:38px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
 .tb .v{text-align:right;font-weight:600;white-space:nowrap}.tb .d{color:#9db0d8;white-space:nowrap}
 .st{display:inline-block;font-size:9.5px;padding:2px 9px;border-radius:99px;letter-spacing:.5px}.st.ok{color:#34f5c5;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35)}.st.pe{color:#ffd75e;border:1px dashed rgba(255,215,94,.6)}
 .tot{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.tot div{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(140,180,255,.2)}.tot small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#8ea2cc}.tot b{font-size:19px}
+.tb .ds{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#b9c8ea}.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mc{position:relative;padding:14px 14px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(140,180,255,.18);overflow:hidden}.mc i{position:absolute;left:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,var(--c),transparent)}.mc small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#8ea2cc}.mc b{display:block;font-size:19px;margin:6px 0 2px;color:var(--c);white-space:nowrap}.mc em{display:block;font-style:normal;font-size:10px;color:#7f93bd}.mc u{display:block;text-decoration:none;font-size:9.5px;color:#fbbf24;margin-top:4px}.flt{font-size:10.5px;color:#a8bfe8;margin:-12px 0 16px;line-height:1.4}
 @media print{.bar{display:none}.page{margin:0;border-radius:0;box-shadow:none}html,body{background:#070b16}}`;
 
-    function buildReport(scope, auto) {
+    function buildReport(scope, auto, opt) {
+      OPT = Object.assign(defOpts(), opt || {});
+      OPT.pred = mkFilter(OPT.f); OPT.scope = scope;
+      window.finRepFilter = OPT.pred;   // gráficos (e lousas ligadas) respeitam os mesmos filtros
+      try { return buildReportInner(scope, auto); } finally { window.finRepFilter = null; OPT = null; }
+    }
+    function buildReportInner(scope, auto) {
       const boards = scope === 'all' ? finBoards() : [finTarget()];
       const list = boards.filter(Boolean).map(statsOf);
-      const pages = [];
-      if (scope === 'all') pages.push(generalPage(list));
-      list.forEach(s => { pages.push(summaryPage(s)); chartPages(s).forEach(p => pages.push(p)); tablePages(s).forEach(p => pages.push(p)); });
+      const pages = [], fl = filtersTxt().slice(0, 90);
+      if (scope === 'all') { const gp = generalPage(list); if (gp) pages.push(gp); }
+      list.forEach(s => { const sp = summaryPage(s); if (sp) pages.push(sp); cardPages(s).forEach(p => pages.push(p)); chartPages(s).forEach(p => pages.push(p)); if (OPT.table) tablePages(s).forEach(p => pages.push(p)); });
       const dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt(), N = pages.length;
-      const body = pages.map((p, i) => `<section class="page"><header class="hd"><div class="brand"><span class="logo"></span>LOUSA DIGITAL</div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${p.html}</div><footer class="ft"><span>${esc(p.label)} · gerado em ${stamp}</span><span>${i + 1} / ${N}</span></footer></section>`).join('');
+      const body = pages.map((p, i) => `<section class="page"><header class="hd"><div class="brand"><span class="logo"></span>LOUSA DIGITAL</div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${p.html}</div><footer class="ft"><span>${esc(p.label)}${fl ? ' · ' + esc(fl) : ''} · gerado em ${stamp}</span><span>${i + 1} / ${N}</span></footer></section>`).join('');
       const title = scope === 'all' ? 'Relatório geral de finanças' : 'Relatório — ' + (list[0] && list[0].b.name || 'Finanças');
       const tail = auto ? `<script>window.addEventListener('load',function(){var go=function(){setTimeout(function(){window.print()},350)};try{Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,2500)})]).then(go)}catch(e){go()}})<\/script>` : '';
       return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>${CSS}</style></head><body>` +
@@ -10286,32 +10459,108 @@ h1{font-size:38px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
     function finTarget() { const a = getActiveBoard(); return a && a.kind === 'finance' ? a : (finBoards()[0] || null); }
     let scope = 'one';
     const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    /* seleção feita na janela (cards, painéis, gráficos da lousa, tabela e filtros) */
+    const RS = { kpis: {}, panels: {}, charts: {}, cards: {}, table: true, f: { months: {}, cats: {}, descs: {}, dests: {} } };
+    KPI_DEFS.forEach(d => { RS.kpis[d[0]] = true; });
+    PANEL_DEFS.forEach(d => { RS.panels[d[0]] = true; });
+    let AV = { charts: [], cards: [], months: [], descs: [], dests: [], rows: [] };
+    const chip = (g, k, label, on) => `<button class="fsb ${on ? 'on' : ''}" data-g="${g}" data-k="${esc(k)}" onclick="finRepToggle(this)">${esc(label)}</button>`;
+    const scopeBoards = () => scope === 'all' ? finBoards() : [finTarget()].filter(Boolean);
+    function finRepRender() {
+      const bs = scopeBoards(), rows = [].concat(...bs.map(b => finData(b).rows.filter(r => !finIsBlank(r))));
+      const charts = [].concat(...bs.map(b => chartsOf(b).map(n => ({ n, b }))));
+      const cards = [].concat(...bs.map(b => cardsOf(b).map(n => ({ n, b }))));
+      const months = {}, descs = {}, dests = {};
+      rows.forEach(r => {
+        const m = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(m)) months[m] = 1;
+        const d = finNorm(r.desc); descs[d] = r.desc ? finCleanDest(r.desc) : 'Sem descrição';
+        const x = finNorm(r.dest); dests[x] = r.dest ? finCleanDest(r.dest) : 'Sem destino';
+      });
+      const byLabel = (a, b) => a.l.localeCompare(b.l, 'pt-BR');
+      AV = { rows, charts: charts.map(c => c.n), cards: cards.map(c => c.n), months: Object.keys(months).sort().reverse(),
+        descs: Object.keys(descs).map(k => ({ k, l: descs[k] })).sort(byLabel), dests: Object.keys(dests).map(k => ({ k, l: dests[k] })).sort(byLabel) };
+      charts.forEach(c => { if (RS.charts[c.n.id] === undefined) RS.charts[c.n.id] = true; });
+      cards.forEach(c => { if (RS.cards[c.n.id] === undefined) RS.cards[c.n.id] = true; });
+      byId('finRepCards').innerHTML = cards.length
+        ? cards.map(c => chip('cards', c.n.id, '💳 ' + cardTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.cards[c.n.id])).join('')
+        : '<span class="text-xs text-stone-500">Nenhum card adicionado à lousa ainda.</span>';
+      byId('finRepKpis').innerHTML = KPI_DEFS.map(d => chip('kpis', d[0], d[1], RS.kpis[d[0]])).join('');
+      byId('finRepPanels').innerHTML = PANEL_DEFS.filter(d => d[0] !== 'boards' || scope === 'all').map(d => chip('panels', d[0], d[1], RS.panels[d[0]])).join('');
+      byId('finRepCharts').innerHTML = charts.length
+        ? charts.map(c => chip('charts', c.n.id, '📊 ' + chartTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.charts[c.n.id])).join('')
+        : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado à lousa ainda. Monte um em “Gráficos”.</span>';
+      byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos (com Descrição)', RS.table);
+      byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
+      byId('finRepFCats').innerHTML = chip('cats', 'in', '↑ Entradas', RS.f.cats.in) + chip('cats', 'out', '↓ Saídas', RS.f.cats.out);
+      byId('finRepFDescs').innerHTML = AV.descs.map(x => chip('descs', x.k, x.l, RS.f.descs[x.k])).join('');
+      byId('finRepFDests').innerHTML = AV.dests.map(x => chip('dests', x.k, x.l, RS.f.dests[x.k])).join('');
+      finRepCount();
+    }
+    function collectOpts() {
+      const on = (map, list) => list.filter(k => map[k]);
+      return {
+        kpis: on(RS.kpis, KPI_DEFS.map(d => d[0])),
+        panels: on(RS.panels, PANEL_DEFS.map(d => d[0]).filter(k => k !== 'boards' || scope === 'all')),
+        charts: AV.charts.filter(n => RS.charts[n.id]).map(n => n.id),
+        cards: AV.cards.filter(n => RS.cards[n.id]).map(n => n.id),
+        table: !!RS.table,
+        f: { months: on(RS.f.months, AV.months), cats: on(RS.f.cats, ['in', 'out']), descs: on(RS.f.descs, AV.descs.map(x => x.k)), dests: on(RS.f.dests, AV.dests.map(x => x.k)) }
+      };
+    }
+    function finRepCount() {
+      const o = collectOpts(), pr = mkFilter(o.f), n = pr ? AV.rows.filter(pr).length : AV.rows.length, el = byId('finRepCount');
+      if (el) el.innerHTML = `<b>${pl(n, 'lançamento', 'lançamentos')}</b> ${pr ? 'depois dos filtros' : 'no relatório'} · ${pl(o.charts.length, 'gráfico', 'gráficos')} · ${pl(o.cards.length, 'card', 'cards')}`;
+    }
+    window.finRepToggle = function (el) {
+      const g = el.dataset.g, k = el.dataset.k;
+      if (g === 'table') RS.table = !RS.table;
+      else if (RS[g]) RS[g][k] = !RS[g][k];
+      else if (RS.f[g]) RS.f[g][k] = !RS.f[g][k];
+      el.classList.toggle('on');
+      finRepCount();
+    };
+    window.finRepClear = function () {
+      RS.f = { months: {}, cats: {}, descs: {}, dests: {} };
+      finRepRender();
+    };
+    window.finRepAllToggle = function (g, on) {   // "marcar todos / nenhum" de cards, painéis e gráficos
+      if (g === 'charts' || g === 'cards') AV[g].forEach(n => { RS[g][n.id] = on; });
+      else Object.keys(RS[g]).forEach(k => { RS[g][k] = on; });
+      finRepRender();
+    };
     window.finOpenReport = function () {
       const bs = finBoards(); if (!bs.length) return;
       const t = finTarget(), one = statsOf(t), all = bs.map(statsOf);
       byId('finRepOne').innerHTML = `<b>Só esta lousa</b><span>${esc(t.name || 'Finanças')} · ${pl(one.rows.length, 'lançamento', 'lançamentos')} · ${pl(one.charts.length, 'gráfico', 'gráficos')}</span>`;
       byId('finRepAll').innerHTML = `<b>Todas as lousas de finanças</b><span>${bs.length} lousa${bs.length === 1 ? '' : 's'} · ${pl(all.reduce((a, s) => a + s.rows.length, 0), 'lançamento', 'lançamentos')} · ${pl(all.reduce((a, s) => a + s.charts.length, 0), 'gráfico', 'gráficos')} · inclui um resumo geral</span>`;
-      finRepScope(bs.length > 1 ? scope : 'one');
+      if (bs.length < 2) scope = 'one';
+      byId('finRepOne').classList.toggle('on', scope === 'one'); byId('finRepAll').classList.toggle('on', scope === 'all');
       byId('finRepAll').classList.toggle('dis', bs.length < 2);
+      finRepRender();
       openOv('finRepModal');
     };
     window.finRepScope = function (s) {
       if (s === 'all' && finBoards().length < 2) return;
       scope = s;
       byId('finRepOne').classList.toggle('on', s === 'one'); byId('finRepAll').classList.toggle('on', s === 'all');
+      finRepRender();
     };
     window.finRunReport = function () {
+      const o = collectOpts();
+      if (!o.kpis.length && !o.panels.length && !o.charts.length && !o.cards.length && !o.table) {
+        showCustomDialog({ title: 'Relatório', message: 'Marque pelo menos um card, painel, gráfico ou a tabela para o relatório.' }); return;
+      }
       const w = window.open('', '_blank');   // abre já no clique, para o navegador não bloquear
       let doc;
-      try { doc = buildReport(scope, true); } catch (e) { console.error(e); if (w) w.close(); showCustomDialog({ title: 'Relatório', message: 'Não foi possível montar o relatório agora.' }); return; }
+      try { doc = buildReport(scope, true, o); } catch (e) { console.error(e); if (w) w.close(); showCustomDialog({ title: 'Relatório', message: 'Não foi possível montar o relatório agora.' }); return; }
       closeOv('finRepModal');
       if (w) { w.document.open(); w.document.write(doc); w.document.close(); return; }
       try {   // sem permissão para nova aba: imprime por um quadro escondido
         const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
-        document.body.appendChild(f); f.contentDocument.open(); f.contentDocument.write(buildReport(scope, false)); f.contentDocument.close();
+        document.body.appendChild(f); f.contentDocument.open(); f.contentDocument.write(buildReport(scope, false, o)); f.contentDocument.close();
         setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 1500); setTimeout(() => f.remove(), 120000);
       } catch (e) {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buildReport(scope, true)], { type: 'text/html' })); a.download = 'relatorio-financas.html'; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buildReport(scope, true, o)], { type: 'text/html' })); a.download = 'relatorio-financas.html'; a.click();
       }
     };
     window.__finBuildReport = buildReport;   // usado nos testes
