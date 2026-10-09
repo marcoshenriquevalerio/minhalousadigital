@@ -415,6 +415,40 @@
     @media (hover: hover) { .tb:hover { transform: translateY(-1px); } }
     .tb:active { transform: scale(.92); }
     .tb-label { display: none; }
+    /* ---- botões do cabeçalho: mini-lousas redondas com giz ---- */
+    #topbar #toolGroup .tb { --k:#fde68a; position:relative; color:var(--k);
+      background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.14), transparent 46%), radial-gradient(circle at 50% 55%, #2c5a43 0%, #1b3a2b 70%, #142a20 100%);
+      border: 2px solid color-mix(in srgb, var(--k) 62%, #14261d);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.28), inset 0 -3px 6px rgba(0,0,0,.35), 0 2px 5px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+      transition: transform .14s ease, box-shadow .2s ease, background .2s ease, color .2s ease; }
+    #topbar #toolGroup .tb::before { content:''; position:absolute; inset:3px; border-radius:50%; border:1px dashed color-mix(in srgb, var(--k) 38%, transparent); pointer-events:none; }
+    #topbar #toolGroup .tb i { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k) 55%, transparent)); transform: rotate(-4deg); }
+    #topbar #toolGroup .tb:hover { background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.2), transparent 46%), radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--k) 30%, #2c5a43) 0%, #1f4533 80%);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.6), 0 0 10px color-mix(in srgb, var(--k) 45%, transparent); }
+    #topbar #toolGroup .tb:active { transform: scale(.92); }
+    #topbar #toolGroup .tb[class*="amber-100"] { --k:#fde68a; }
+    #topbar #toolGroup .tb[class*="emerald-100"] { --k:#86efac; }
+    #topbar #toolGroup .tb[class*="stone-100"] { --k:#f3f4ee; }
+    #topbar #toolGroup .tb[class*="rose-100"] { --k:#fda4af; }
+    #topbar #toolGroup .tb[class*="yellow-100"] { --k:#fde047; }
+    #topbar #toolGroup .tb[class*="sky-100"] { --k:#7dd3fc; }
+    #topbar #toolGroup .tb[class*="purple-100"] { --k:#d8b4fe; }
+    #topbar #toolGroup .tb[class*="teal-100"] { --k:#5eead4; }
+    #topbar #toolGroup .tb[class*="stone-800"] { --k:#fcd9a0; }
+    #topbar #toolGroup .tb.pt-only { --k:#e9e3b0; }
+    #topbar #toolGroup .fin-toggle-btn.is-on, #topbar #toolGroup .nav-filter-btn.is-on { box-shadow: inset 0 0 0 2px rgba(0,0,0,.25), 0 0 0 2px #fbbf24, 0 0 12px rgba(251,191,36,.55); }
+    #topbar .nav-btn { background: radial-gradient(circle at 50% 55%, #2c5a43 0%, #1b3a2b 80%); color:#fde68a; border:1.5px solid rgba(253,230,138,.5); box-shadow: inset 0 -2px 4px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.5); }
+    #topbar .nav-btn:hover { background: radial-gradient(circle at 50% 55%, #3a7254 0%, #245039 80%); }
+    #topbar .nav-btn.nav-del { color:#fda4af; border-color: rgba(253,164,175,.5); }
+    #topbar .nav-btn.nav-add { color:#86efac; border-color: rgba(134,239,172,.5); }
+    #topbar .nav-pill { background: rgba(8,24,16,.5); border-color: rgba(253,230,138,.22); box-shadow: inset 0 1px 4px rgba(0,0,0,.5); }
+    /* lousa branca (canetão): discos brancos com aro colorido */
+    .theme-marker #topbar #toolGroup .tb { background: radial-gradient(circle at 32% 26%, #fff, #eef2f6 80%); color: color-mix(in srgb, var(--k) 38%, #1e293b);
+      border-color: color-mix(in srgb, var(--k) 55%, #94a3b8); box-shadow: inset 0 -3px 5px rgba(15,23,42,.1), 0 2px 5px rgba(15,23,42,.3); }
+    .theme-marker #topbar #toolGroup .tb::before { border-color: color-mix(in srgb, var(--k) 40%, transparent); }
+    .theme-marker #topbar #toolGroup .tb i { filter:none; }
+    .theme-marker #topbar #toolGroup .tb:hover { background: radial-gradient(circle at 32% 26%, #fff, color-mix(in srgb, var(--k) 25%, #fff) 85%); }
+    .theme-marker #topbar .nav-btn { background:#fff; color:#334155; border-color:#cbd5e1; box-shadow:0 1px 3px rgba(15,23,42,.2); }
     .mob-only, #moreBtn { display: none !important; }
     .brand-text { display: none; flex-direction: column; }
     @media (min-width: 1280px) { .brand-text { display: flex; } }
