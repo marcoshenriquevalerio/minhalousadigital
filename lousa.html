@@ -40,7 +40,7 @@
     .ck-tape{position:absolute;top:-17px;left:50%;width:56px;height:20px;margin-left:-28px;transform:rotate(-4deg);background:rgba(244,241,230,.3);border:1px dashed rgba(244,241,230,.55);z-index:2}
     .ck-dots span{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid #f4f1e6;margin:0 4px}.ck-dots span.on{background:#f4f1e6}
     .ck-err{color:#ffb4b4;min-height:22px;font-size:18px}
-    .ck-ledge{position:fixed;left:0;right:0;bottom:0;height:26px;background:linear-gradient(#6e3f21,#3b1d0b);box-shadow:0 -3px 10px rgba(0,0,0,.6);z-index:1}
+    .ck-ledge{position:fixed;left:0;right:0;bottom:0;height:26px;background:linear-gradient(#2b2b2f,#0d0d0f);box-shadow:0 -3px 10px rgba(0,0,0,.6);z-index:1}
     .ck-ledge i{position:absolute;top:-8px;height:9px;border-radius:5px;background:#f4f1e6}
     .font-sans-ui {
       font-family: 'Inter', sans-serif;
@@ -55,18 +55,23 @@
       box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.85);
     }
 
-    /* Moldura de Madeira Realista */
+    /* Moldura de madeira preta fosca (acabamento elegante) */
     .wood-frame {
-      background: linear-gradient(135deg, #5a3219 0%, #3b1d0b 25%, #6e3f21 50%, #2e1506 75%, #4a2711 100%);
-      box-shadow: 
-        inset 0 0 10px rgba(0,0,0,0.8),
-        0 10px 25px rgba(0,0,0,0.5);
-      border: 3px solid #231105;
+      background:
+        repeating-linear-gradient(92deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 6px),
+        linear-gradient(135deg, #232326 0%, #151517 30%, #1e1e21 55%, #111113 80%, #19191b 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.07),
+        inset 0 0 12px rgba(0,0,0,0.85),
+        0 10px 25px rgba(0,0,0,0.55);
+      border: 3px solid #0a0a0b;
     }
 
     .wood-shelf {
-      background: linear-gradient(to bottom, #7a4625 0%, #4a2711 50%, #2e1506 100%);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.2);
+      background:
+        repeating-linear-gradient(92deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 6px),
+        linear-gradient(to bottom, #2b2b2f 0%, #19191b 55%, #0d0d0f 100%);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.65), inset 0 1px 1px rgba(255,255,255,0.12);
     }
 
     /* Texto estilo Giz */
@@ -848,8 +853,8 @@
       #shapeMenu { grid-template-columns: repeat(6, 1fr) !important; gap: 8px !important; }
       /* ---- gaveta "Mais": mesmo visual elegante da gaveta de Widgets ---- */
       #moreGroup { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important;
-        background: linear-gradient(135deg, #5a3219 0%, #3b1d0b 25%, #6e3f21 50%, #2e1506 75%, #4a2711 100%) !important;
-        border: 3px solid #231105 !important; border-bottom: 0 !important; }
+        background: linear-gradient(135deg, #232326 0%, #151517 30%, #1e1e21 55%, #111113 80%, #19191b 100%) !important;
+        border: 3px solid #0a0a0b !important; border-bottom: 0 !important; }
       #moreGroup .mg-title { display: block; grid-column: 1 / -1; margin: 0 0 2px 2px; font-weight: 800; font-size: 17px; color: #fde68a; }
       #moreGroup .tb { min-height: 86px; gap: 8px; padding: 10px 4px; border-radius: 12px;
         background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.2) !important; color: #f5f5f4 !important; box-shadow: none !important; }
