@@ -10220,7 +10220,7 @@
     function chatIncoming(sid, b) { chIncoming(sid, b); }
     function chatSync() {
       const b = chBoard();
-      if (!b) { const bx = byId('chatBox'); if (bx) bx.style.display = 'none'; CH.open = false; if (bx) { bx.classList.remove('open'); bx.classList.add('closed'); } return; }
+      if (!b && !(window.voiceActive && window.voiceActive())) { const bx = byId('chatBox'); if (bx) bx.style.display = 'none'; CH.open = false; if (bx) { bx.classList.remove('open'); bx.classList.add('closed'); } return; }
       chBuild(); byId('chatBox').style.display = ''; chPlace(); chMuteUi(); chBadge(); if (CH.open) chRender();
     }
     function chatHide() { const bx = byId('chatBox'); if (bx) bx.remove(); CH.open = false; CH.known = {}; }
@@ -11505,25 +11505,24 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
     const curSid = () => { if (V.on) return V.sid; const b = chBoard(); return b ? b.shared.sid : ''; };
     const isMuted = (u) => V.all || !!V.muted[u];
 
-    /* ---------- interface ---------- */
-    function build() {
-      if (byId('vcBox')) return;
-      const st = document.createElement('style');
+    /* ---------- interface: aba "Voz" dentro do painel do chat ---------- */
+    const chatOpen = () => { const b = byId('chatBox'); return !!(b && b.classList.contains('open')); };
+    function css() {
+      if (byId('vcStyle')) return;
+      const st = document.createElement('style'); st.id = 'vcStyle';
       st.textContent = `
-      #vcBox{position:fixed;z-index:9001;touch-action:none;font-family:inherit}
-      #vcFab{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#475569,#334155);color:#fff;border:2px solid rgba(255,255,255,.25);box-shadow:0 6px 18px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;cursor:grab;position:relative;font-size:19px;user-select:none}
-      #vcBox.live #vcFab{background:linear-gradient(135deg,#16a34a,#15803d)}
-      #vcFab .dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#ef4444;border:2px solid #fff;display:none}
-      #vcBox.mic #vcFab .dot{display:block;animation:vcBlink 1.2s ease-in-out infinite}
-      #vcBox.any #vcFab::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:3px solid #22c55e;animation:vcRing .9s ease-out infinite;pointer-events:none}
-      #vcPanel{display:none;flex-direction:column;width:min(330px,calc(100vw - 16px));max-height:min(480px,calc(100vh - 24px));border-radius:16px;overflow:hidden;background:#0b141a;color:#e9edef;box-shadow:0 14px 40px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08)}
-      #vcBox.open #vcPanel{display:flex}#vcBox.open #vcFab{display:none}
-      #vcHead{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#202c33;cursor:grab;user-select:none}
-      #vcHead .t{flex:1;min-width:0;font-weight:600;font-size:14px}
-      #vcHead .t small{display:block;font-weight:400;font-size:11px;color:#8696a0}
-      #vcHead button{background:none;border:0;color:#aebac1;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px}
-      #vcHead button:hover{background:rgba(255,255,255,.1)}
-      #vcBody{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+      #chTabs{display:flex;background:#202c33;border-top:1px solid rgba(255,255,255,.06)}
+      #chTabs button{flex:1;padding:8px 6px;border:0;background:none;color:#8696a0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;justify-content:center;gap:6px}
+      #chTabs button.on{color:#e9edef;border-bottom-color:#00a884}
+      #chTabs button:hover{background:rgba(255,255,255,.05)}
+      #vcTabDot{width:9px;height:9px;border-radius:50%;background:#22c55e;display:none}
+      #vcTabDot.on{display:inline-block;animation:vcBlink .7s ease-in-out infinite}
+      #vcBody{display:none;overflow-y:auto;padding:12px;flex-direction:column;gap:10px;overscroll-behavior:contain;background:#0b141a;min-height:0}
+      #chatPanel.tabVoz #vcBody{display:flex;flex:1}
+      #chatPanel.tabVoz #chatMsgs,#chatPanel.tabVoz #chatPick,#chatPanel.tabVoz #chatPrev,#chatPanel.tabVoz #chatForm{display:none!important}
+      #chatBox.vcLive #chatFab::before{content:'';position:absolute;left:-3px;top:-3px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:2px solid #fff}
+      #chatBox.vcMic #chatFab::before{background:#ef4444;animation:vcBlink 1.2s ease-in-out infinite}
+      #chatBox.vcAny #chatFab::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:3px solid #22c55e;animation:vcRing .9s ease-out infinite;pointer-events:none}
       .vcInfo{font-size:12.5px;line-height:1.4;color:#8696a0}
       .vcBig{border:0;border-radius:12px;padding:11px 14px;font-weight:700;font-size:14px;color:#fff;background:#00a884;cursor:pointer}
       .vcBig:hover{background:#06cf9c}
@@ -11540,7 +11539,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       .vcAv::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:3px solid #22c55e;opacity:0;pointer-events:none}
       .vc-on .vcAv::after{animation:vcRing .9s ease-out infinite}
       .vc-on .vcAv{animation:vcBeat .45s ease-in-out infinite alternate}
-      .vcNm{flex:1;min-width:0}
+      .vcNm{flex:1;min-width:0;color:#e9edef}
       .vcNm b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .vcNm small{font-size:11px;color:#8696a0}
       .vcBars{display:inline-flex;gap:2px;align-items:flex-end;height:18px;width:16px;visibility:hidden}
@@ -11560,49 +11559,25 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       @keyframes vcBar{from{height:4px}to{height:18px}}
       @keyframes vcBlink{50%{opacity:.25}}`;
       document.head.appendChild(st);
-      const bx = document.createElement('div');
-      bx.id = 'vcBox'; bx.style.display = 'none';
-      bx.innerHTML = `<div id="vcFab" title="Voz da lousa (arraste para mover)"><i class="fa-solid fa-headset"></i><span class="dot"></span></div>
-        <div id="vcChips"></div>
-        <div id="vcPanel"><div id="vcHead"><div class="t">Voz da lousa<small id="vcSub"></small></div><button id="vcClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div><div id="vcBody"></div></div>`;
-      document.body.appendChild(bx);
-      let pos = null; try { pos = JSON.parse(ls('lousa_voice_pos')); } catch (e) {}
-      V.x = pos && isFinite(pos.x) ? pos.x : null; V.y = pos && isFinite(pos.y) ? pos.y : 134;
-      const drag = (el, onTap) => {
-        let d = null;
-        el.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button') && el.id !== 'vcFab') return; const r = bx.getBoundingClientRect(); d = { px: e.clientX, py: e.clientY, x: r.left, y: r.top, m: false }; try { el.setPointerCapture(e.pointerId); } catch (er) {} });
-        el.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.px, dy = e.clientY - d.py; if (!d.m && Math.abs(dx) + Math.abs(dy) < 6) return; d.m = true; if (V.open) { V.px = d.x + dx; V.py = d.y + dy; V.pm = true; } else { V.x = d.x + dx; V.y = d.y + dy; } place(); });
-        el.addEventListener('pointerup', () => { if (!d) return; const m = d.m; d = null; if (m) { if (!V.open) ls('lousa_voice_pos', JSON.stringify({ x: V.x, y: V.y })); } else if (onTap) onTap(); });
-        el.addEventListener('pointercancel', () => { d = null; });
-      };
-      drag(byId('vcFab'), () => toggle(true));
-      drag(byId('vcHead'), null);
-      byId('vcClose').onclick = () => toggle(false);
-      byId('vcBody').addEventListener('click', onClick);
-      window.addEventListener('resize', place);
-      const wake = () => { try { V.ctx && V.ctx.state === 'suspended' && V.ctx.resume(); } catch (e) {} Object.keys(V.peers).forEach(u => { const a = V.peers[u].audio; if (a && a.paused) a.play().catch(() => {}); }); };
-      document.addEventListener('pointerdown', wake, true);
     }
-    function place() {
-      const bx = byId('vcBox'); if (!bx) return;
-      const tb = byId('topbar'), tr = tb ? tb.getBoundingClientRect() : null;
-      const bottomBar = tr && tr.top > innerHeight / 2 ? innerHeight - tr.top : 0, cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-      if (V.x == null) V.x = innerWidth - 48 - 16;
-      V.x = cl(V.x, 8, innerWidth - 56); V.y = cl(V.y, 8, innerHeight - bottomBar - 56);
-      if (!V.open) { bx.style.left = V.x + 'px'; bx.style.top = V.y + 'px'; return; }
-      const w = Math.min(330, innerWidth - 16), h = Math.min(480, innerHeight - bottomBar - 16);
-      if (V.px == null) { V.px = V.x + 48 - w; V.py = V.y; }
-      V.px = cl(V.px, 8, innerWidth - w - 8); V.py = cl(V.py, 8, innerHeight - bottomBar - 120);
-      bx.style.left = V.px + 'px'; bx.style.top = V.py + 'px';
-      byId('vcPanel').style.maxHeight = Math.min(h, innerHeight - bottomBar - V.py - 8) + 'px';
+    function setTab(t) {
+      const p = byId('chatPanel'); if (!p) return;
+      p.classList.toggle('tabVoz', t === 'voz');
+      p.querySelectorAll('#chTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+      if (t === 'voz') render(); else { try { chRender(true); } catch (e) {} }
     }
-    function toggle(open) {
-      build();
-      if (open && !V.open) { V.px = null; V.pm = false; }
-      if (!open && V.open && V.pm) { V.x = V.px + Math.min(330, innerWidth - 16) - 48; V.y = V.py; ls('lousa_voice_pos', JSON.stringify({ x: V.x, y: V.y })); }
-      V.open = open;
-      const bx = byId('vcBox'); bx.classList.toggle('open', open);
-      place(); render();
+    function wire() {   // encaixa a aba "Voz" no painel do chat (uma vez)
+      const bx = byId('chatBox'), pn = byId('chatPanel'); if (!bx || !pn || pn.dataset.vw) return;
+      pn.dataset.vw = '1'; css();
+      const tabs = document.createElement('div'); tabs.id = 'chTabs';
+      tabs.innerHTML = '<button data-tab="chat" class="on"><i class="fa-regular fa-comments"></i> Chat</button><button data-tab="voz"><i class="fa-solid fa-headset"></i> Voz <span id="vcTabDot"></span></button>';
+      pn.insertBefore(tabs, byId('chatMsgs'));
+      const body = document.createElement('div'); body.id = 'vcBody'; pn.insertBefore(body, byId('chatMsgs'));
+      const ch = document.createElement('div'); ch.id = 'vcChips'; bx.appendChild(ch);
+      tabs.addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
+      body.addEventListener('click', onClick);
+      if (!V.wk) { V.wk = 1; document.addEventListener('pointerdown', () => { try { V.ctx && V.ctx.state === 'suspended' && V.ctx.resume(); } catch (e) {} Object.keys(V.peers).forEach(u => { const a = V.peers[u].audio; if (a && a.paused) a.play().catch(() => {}); }); }, true); }
+      render();
     }
     function personRow(u) {
       const w = chWho(V.sid, u), me = u === V.me, pr = V.pres[u] || {}, P = V.peers[u];
@@ -11614,23 +11589,23 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
         ${me ? '' : `<button class="vcMute${muted ? ' on' : ''}" data-vc="mute" data-u="${html(u)}" title="${muted ? 'Reativar o som desta pessoa' : 'Silenciar esta pessoa (só para você)'}"><i class="fa-solid ${muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i></button>`}</div>`;
     }
     function render() {
-      const bx = byId('vcBox'); if (!bx) return;
-      bx.classList.toggle('live', V.on); bx.classList.toggle('mic', V.on && V.mic);
-      if (!V.open) { paint(); return; }
-      const body = byId('vcBody'), sub = byId('vcSub');
+      const bx = byId('chatBox'); if (!bx) return;
+      bx.classList.toggle('vcLive', V.on); bx.classList.toggle('vcMic', V.on && V.mic);
+      const body = byId('vcBody'); if (!body) return;
+      let h;
       if (!V.on) {
-        sub.textContent = 'Você ainda não está na chamada';
-        body.innerHTML = `<div class="vcInfo">Entre para ouvir todos os participantes desta lousa. Seu microfone começa <b>desligado</b>: só falam com você se você ligar o seu.</div><button class="vcBig" data-vc="join"><i class="fa-solid fa-headset"></i> Entrar na voz</button>`;
-        return;
-      }
-      const ids = [V.me].concat(Object.keys(V.pres).filter(u => V.peers[u] || true));
-      sub.textContent = ids.length + (ids.length === 1 ? ' pessoa na chamada' : ' pessoas na chamada');
-      body.innerHTML = `<div class="vcCtls">
+        h = `<div class="vcInfo">Entre para ouvir todos os participantes desta lousa. Seu microfone começa <b>desligado</b>: só falam com você se você ligar o seu.</div><button class="vcBig" data-vc="join"><i class="fa-solid fa-headset"></i> Entrar na voz</button>`;
+      } else {
+        const ids = [V.me].concat(Object.keys(V.pres));
+        h = `<div class="vcInfo">${ids.length} ${ids.length === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}</div>
+          <div class="vcCtls">
           <button class="vcCtl ${V.mic ? 'micOn' : 'micOff'}" data-vc="mic"><i class="fa-solid ${V.mic ? 'fa-microphone' : 'fa-microphone-slash'}"></i>${V.mic ? 'Microfone ligado' : 'Microfone desligado'}</button>
           <button class="vcCtl ${V.all ? 'allOn' : ''}" data-vc="all"><i class="fa-solid ${V.all ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>${V.all ? 'Reativar todos' : 'Silenciar todos'}</button></div>
-        ${ids.map(personRow).join('')}
-        ${ids.length === 1 ? '<div class="vcInfo">Ninguém mais entrou na voz ainda. Quando alguém entrar, aparece aqui e você já ouve automaticamente.</div>' : ''}
-        <button class="vcLeave" data-vc="leave"><i class="fa-solid fa-phone-slash"></i> Sair da voz</button>`;
+          ${ids.map(personRow).join('')}
+          ${ids.length === 1 ? '<div class="vcInfo">Ninguém mais entrou na voz ainda. Quando alguém entrar, aparece aqui e você já ouve automaticamente.</div>' : ''}
+          <button class="vcLeave" data-vc="leave"><i class="fa-solid fa-phone-slash"></i> Sair da voz</button>`;
+      }
+      if (body._h !== h) { body.innerHTML = h; body._h = h; }   // só redesenha se mudou (não perde o clique)
       paint();
     }
     function onClick(e) {
@@ -11646,11 +11621,12 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
     /* animação de quem está falando */
     function speakers() { const now = Date.now(); return Object.keys(V.spk).filter(u => now - V.spk[u] < 350); }
     function paint() {
-      const sp = speakers(), box = byId('vcBox'); if (!box) return;
-      box.classList.toggle('any', sp.length > 0 && !V.open);
-      byId('vcBody').querySelectorAll('[data-vu]').forEach(el => el.classList.toggle('vc-on', sp.indexOf(el.dataset.vu) >= 0));
+      const sp = speakers(), box = byId('chatBox'); if (!box) return;
+      box.classList.toggle('vcAny', sp.length > 0 && !chatOpen());
+      const dot = byId('vcTabDot'); if (dot) dot.classList.toggle('on', V.on && sp.length > 0);
+      const body = byId('vcBody'); if (body) body.querySelectorAll('[data-vu]').forEach(el => el.classList.toggle('vc-on', sp.indexOf(el.dataset.vu) >= 0));
       const ch = byId('vcChips');
-      ch.innerHTML = V.open ? '' : sp.map(u => { const w = chWho(V.sid, u); return `<div class="vcChip vc-on" data-vu="${html(u)}"><span class="vcAv">${ntAvatar(w.photo, w.name, 26)}</span><span class="n">${html(w.name)}</span><span class="vcBars" style="height:14px"><i></i><i></i><i></i></span></div>`; }).join('');
+      if (ch) ch.innerHTML = chatOpen() ? '' : sp.map(u => { const w = chWho(V.sid, u); return `<div class="vcChip vc-on" data-vu="${html(u)}"><span class="vcAv">${ntAvatar(w.photo, w.name, 26)}</span><span class="n">${html(w.name)}</span><span class="vcBars" style="height:14px"><i></i><i></i><i></i></span></div>`; }).join('');
     }
     function level(an) {
       if (!an) return 0;
@@ -11662,7 +11638,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       const now = Date.now(), TH = 0.015;
       if (V.mic && V.loc && level(V.loc) > TH) V.spk[V.me] = now;
       Object.keys(V.peers).forEach(u => { const P = V.peers[u]; if (P.an && level(P.an) > TH) V.spk[u] = now; });
-      const sig = speakers().sort().join(',');
+      const sig = speakers().sort().join(',') + '|' + chatOpen();
       if (sig !== V.spkSig) { V.spkSig = sig; paint(); }
     }
     function attachAnalyser(stream, which, P) {
@@ -11681,7 +11657,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       catch (e) { console.warn('voz:', e); dlg('Não foi possível entrar na voz agora. Verifique sua conexão e as regras do Firestore (shared/{id}/rtc).'); cleanup(); render(); return; }
       V.unsub = FB.rtc.watchAll(sid, onDocs);
       V.hbT = setInterval(beat, 15000); V.tickT = setInterval(tick, 5000); V.meterT = setInterval(meter, 90);
-      render(); sync();
+      render();
     }
     function beat() { if (V.on) FB.rtc.set(V.sid, 'v_' + V.me, { uid: V.me, j: V.joinedAt, t: Date.now(), m: V.mic }).catch(() => {}); }
     function stopMic() {
@@ -11800,17 +11776,13 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       reconcile(); render();
     }
 
-    /* ---------- visibilidade do botão (só aparece em lousa compartilhada, ou durante a chamada) ---------- */
-    function sync() {
-      const b = chBoard(), bx = byId('vcBox');
-      if (!b && !V.on) { if (bx) { bx.style.display = 'none'; V.open = false; bx.classList.remove('open'); } return; }
-      build(); byId('vcBox').style.display = ''; place(); render();
-    }
+    /* ---------- encaixe no chat ---------- */
+    function sync() { wire(); render(); }
     window.addEventListener('pagehide', () => { try { leave(); } catch (e) {} });
     const ub = window.updateBoardWidgetControls, so = window.handleSignedOut;
     window.updateBoardWidgetControls = function () { const r = ub.apply(this, arguments); try { sync(); } catch (e) { console.warn(e); } return r; };
     window.handleSignedOut = function () { try { leave(); } catch (e) {} return so.apply(this, arguments); };
-    window.voiceSync = sync;
+    window.voiceSync = sync; window.voiceActive = () => V.on;
     setTimeout(() => { try { sync(); } catch (e) {} }, 1500);
   })();
   </script>
