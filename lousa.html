@@ -1237,7 +1237,7 @@
     <div id="stickerTabs" class="flex gap-1 overflow-x-auto pb-1.5"></div>
     <div id="stickerTitle" class="text-[11px] font-semibold text-amber-200/80 px-1 pb-1"></div>
     <div id="stickerGrid" class="grid gap-1 overflow-y-auto pr-0.5" style="height:216px;align-content:start"></div>
-    <label class="flex items-center gap-2 mt-2 px-1 text-[12px] text-amber-100 cursor-pointer select-none"><input type="checkbox" id="stkAnimChk" onchange="setStkAnim(this.checked)" style="accent-color:#fcd34d"> ✨ Animar adesivos (rostos piscam, riem…)</label>
+    <label class="flex items-center gap-2 mt-2 px-1 text-[12px] text-amber-100 cursor-pointer select-none"><input type="checkbox" id="stkAnimChk" onchange="setStkAnim(this.checked)" style="accent-color:#fcd34d"> ✨ Animar adesivos (rostos ganham vida)</label>
     <div id="stickerFreeRow" class="flex gap-1.5 mt-2">
       <input id="stickerFreeInput" type="text" placeholder="Digite ou cole qualquer emoji" onkeydown="if(event.key==='Enter') createFreeEmoji()" class="flex-1 min-w-0 bg-stone-900/80 border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-sm text-stone-100 focus:outline-none focus:border-amber-400">
       <button onclick="createFreeEmoji()" class="px-3 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-sm font-bold transition" title="Criar adesivo"><i class="fa-solid fa-plus"></i></button>
@@ -4865,6 +4865,213 @@
       renderNotes();
     }
 
+    /* =========================================================================
+       ROSTOS VIVOS — carinhas desenhadas em SVG com olhos, boca e extras animados
+       (usadas nos adesivos quando a animação está ligada; o resto fica normal)
+       ========================================================================= */
+    const FB_D = '#4a2c06';
+    const FB_FACES = {
+      '😀': { e: 'open', m: 'grin' }, '😃': { e: 'openBig', m: 'grinBig' }, '😄': { e: 'happy', m: 'grinBig' }, '😁': { e: 'openBig', m: 'teeth' },
+      '😆': { e: 'squint', m: 'laugh' }, '😅': { e: 'open', m: 'grin', x: ['sweat'] }, '🤣': { e: 'squint', m: 'laugh', x: ['tearsJoy'], r: 'rock' }, '😂': { e: 'squint', m: 'laugh', x: ['tearsJoy'], r: 'rock' },
+      '🙂': { e: 'open', m: 'smileSmall' }, '🙃': { e: 'open', m: 'smileSmall', flip: 1 }, '😉': { e: 'wink', m: 'smile' }, '😊': { e: 'happy', m: 'smile', x: ['blush'] },
+      '😇': { e: 'open', m: 'smile', x: ['halo'] }, '🥰': { e: 'happy', m: 'smile', x: ['blush', 'hearts'] }, '😍': { e: 'heart', m: 'grin' }, '🤩': { e: 'star', m: 'grin', x: ['sparkles'] },
+      '😘': { e: 'wink', m: 'kiss', x: ['blush', 'kissHeart'] }, '😗': { e: 'open', m: 'kiss' }, '😙': { e: 'wink', m: 'kiss' }, '😚': { e: 'closed', m: 'kiss', x: ['blush', 'kissHeart'] },
+      '😋': { e: 'open', m: 'yum' }, '😛': { e: 'open', m: 'tongue' }, '😜': { e: 'wink', m: 'tongue' }, '🤪': { e: 'crazy', m: 'tongue' }, '😝': { e: 'squint', m: 'tongue' },
+      '🤔': { e: 'look', m: 'hmm', b: 'raise' }, '😐': { e: 'open', m: 'neutral' }, '😑': { e: 'flat', m: 'neutral' }, '😶': { e: 'open', m: 'none' }, '😏': { e: 'look', m: 'smirk', b: 'half' },
+      '😒': { e: 'look', m: 'flat', b: 'half' }, '🙄': { e: 'roll', m: 'neutral' }, '😬': { e: 'open', m: 'grimace' }, '😌': { e: 'closed', m: 'smile', x: ['blush'] },
+      '😔': { e: 'open', m: 'frown', b: 'sad' }, '😞': { e: 'open', m: 'frown', b: 'sad' }, '😪': { e: 'closed', m: 'sleepM', x: ['bubble'] }, '😴': { e: 'closed', m: 'sleepM', x: ['zzz'] },
+      '😮': { e: 'surprised', m: 'O', b: 'up' }, '😯': { e: 'surprised', m: 'O', b: 'up' }, '😲': { e: 'surprised', m: 'OBig', b: 'up' }, '😳': { e: 'surprised', m: 'wavy', x: ['blushBig'], r: 'quiver' },
+      '🥺': { e: 'puppy', m: 'wobble', b: 'sad' }, '😦': { e: 'open', m: 'OFrown', b: 'sad' }, '😧': { e: 'open', m: 'OFrown', b: 'sad' }, '😨': { e: 'surprised', m: 'wobble', b: 'sad', r: 'quiver' }, '😰': { e: 'surprised', m: 'wobble', b: 'sad', x: ['sweat'], r: 'quiver' },
+      '😥': { e: 'open', m: 'frown', b: 'sad', x: ['sweat'] }, '😢': { e: 'open', m: 'frown', b: 'sad', x: ['tears'], r: 'quiver' }, '😭': { e: 'squint2', m: 'wail', b: 'sad', x: ['tearsRiver'], r: 'quiver' },
+      '😱': { e: 'surprised', m: 'scream', b: 'up', r: 'shake' }, '😖': { e: 'squint', m: 'wobble', r: 'quiver' }, '😣': { e: 'squint', m: 'wobble' }, '😫': { e: 'squint', m: 'wail', r: 'quiver' }, '😩': { e: 'squint', m: 'wail' },
+      '😤': { e: 'open', m: 'frown', b: 'angry', x: ['steam'] }, '😡': { e: 'open', m: 'frownTight', b: 'angry', tint: 'red', r: 'shake' }, '😠': { e: 'open', m: 'frownTight', b: 'angry', tint: 'red' },
+      '😎': { e: 'shades', m: 'smile' }, '🥱': { e: 'closed', m: 'yawn' }, '☹': { e: 'open', m: 'frown', b: 'sad' }, '🙁': { e: 'open', m: 'frown', b: 'sad' }, '😕': { e: 'open', m: 'wavy', b: 'half' }, '😟': { e: 'open', m: 'frown', b: 'sad' },
+      '😓': { e: 'open', m: 'frown', b: 'sad', x: ['sweat'] }, '😵': { e: 'xx', m: 'wavy', r: 'spinHead' }, '🤯': { e: 'surprised', m: 'OBig', b: 'up', r: 'shake' }
+    };
+    let fbUid = 0;
+    const fbHeart = (cx, cy, s, cls, fill, st) => `<g transform="translate(${cx} ${cy}) scale(${s})"><path class="${cls || ''}" style="${st || ''}" d="M0 9 C-15 -2 -10 -15 -3.5 -15 C-1.5 -15 0 -13 0 -11 C0 -13 1.5 -15 3.5 -15 C10 -15 15 -2 0 9Z" fill="${fill || '#e5214b'}"/></g>`;
+    const fbStar = (cx, cy, r, cls, st) => { let p = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .46 : r; p += (cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1) + ' '; } return `<polygon class="${cls || ''}" style="${st || ''}" points="${p}" fill="#ffd23a" stroke="#c9780a" stroke-width="1.6" stroke-linejoin="round"/>`; };
+    function fbEyes(k, d) {
+      const D = FB_D, st = `--d:${d}s`;
+      const open = (rx, ry) => `<g class="fb-blink" style="${st}"><ellipse cx="35" cy="42" rx="${rx}" ry="${ry}" fill="${D}"/><ellipse cx="65" cy="42" rx="${rx}" ry="${ry}" fill="${D}"/><circle cx="${35 + rx * .35}" cy="${42 - ry * .35}" r="${rx * .36}" fill="#fff"/><circle cx="${65 + rx * .35}" cy="${42 - ry * .35}" r="${rx * .36}" fill="#fff"/></g>`;
+      const arc = (x, y, up) => `<path d="M${x - 8} ${y} Q${x} ${y + (up ? -11 : 11)} ${x + 8} ${y}" fill="none" stroke="${D}" stroke-width="4.6" stroke-linecap="round"/>`;
+      const sclera = (cx, cy, rx, ry, pr, cls) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff" stroke="${D}" stroke-width="2.4"/><circle class="${cls}" cx="${cx}" cy="${cy}" r="${pr}" fill="${D}"/>`;
+      switch (k) {
+        case 'open': return open(5.2, 7);
+        case 'openBig': return open(5.8, 8.2);
+        case 'happy': return `<g class="fb-hop">${arc(35, 46, 1)}${arc(65, 46, 1)}</g>`;
+        case 'closed': return `<g class="fb-hop">${arc(35, 42, 0)}${arc(65, 42, 0)}</g>`;
+        case 'squint': return `<g class="fb-squeeze"><polyline points="27,32 43,41 27,50" fill="none" stroke="${D}" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="73,32 57,41 73,50" fill="none" stroke="${D}" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+        case 'squint2': return `<g class="fb-squeeze"><path d="M27 42 Q35 34 43 42" fill="none" stroke="${D}" stroke-width="4.8" stroke-linecap="round"/><path d="M57 42 Q65 34 73 42" fill="none" stroke="${D}" stroke-width="4.8" stroke-linecap="round"/></g>`;
+        case 'flat': return `<g class="fb-blink" style="${st}"><line x1="28" y1="42" x2="42" y2="42" stroke="${D}" stroke-width="4.6" stroke-linecap="round"/><line x1="58" y1="42" x2="72" y2="42" stroke="${D}" stroke-width="4.6" stroke-linecap="round"/></g>`;
+        case 'wink': return `<g class="fb-blink" style="${st}"><ellipse cx="35" cy="42" rx="5.2" ry="7" fill="${D}"/><circle cx="36.8" cy="39.5" r="1.9" fill="#fff"/></g><g class="fb-winkA"><ellipse cx="65" cy="42" rx="5.2" ry="7" fill="${D}"/><circle cx="66.8" cy="39.5" r="1.9" fill="#fff"/></g><g class="fb-winkB">${arc(65, 44, 0)}</g>`;
+        case 'heart': return fbHeart(35, 42, .95, 'fb-beat') + fbHeart(65, 42, .95, 'fb-beat');
+        case 'star': return fbStar(35, 41, 11, 'fb-twinkle') + fbStar(65, 41, 11, 'fb-twinkle', 'animation-delay:.4s');
+        case 'surprised': return sclera(35, 41, 8.2, 10, 3.6, 'fb-look') + sclera(65, 41, 8.2, 10, 3.6, 'fb-look');
+        case 'puppy': return `<g class="fb-blink" style="${st}"><ellipse cx="35" cy="43" rx="8.2" ry="9.6" fill="${D}"/><ellipse cx="65" cy="43" rx="8.2" ry="9.6" fill="${D}"/><circle class="fb-shine" cx="38" cy="39" r="3.4" fill="#fff"/><circle class="fb-shine" cx="68" cy="39" r="3.4" fill="#fff"/><circle cx="32" cy="47" r="1.6" fill="#fff"/><circle cx="62" cy="47" r="1.6" fill="#fff"/></g>`;
+        case 'look': return sclera(35, 42, 6.8, 8.6, 3.5, 'fb-look') + sclera(65, 42, 6.8, 8.6, 3.5, 'fb-look');
+        case 'roll': return sclera(35, 42, 7, 8.8, 3.6, 'fb-roll') + sclera(65, 42, 7, 8.8, 3.6, 'fb-roll');
+        case 'crazy': return sclera(34, 41, 9.6, 11, 4.2, 'fb-roll') + sclera(66, 43, 6.2, 7.4, 3, 'fb-roll2');
+        case 'xx': return [35, 65].map(x => `<g class="fb-squeeze"><line x1="${x - 7}" y1="35" x2="${x + 7}" y2="49" stroke="${D}" stroke-width="4.6" stroke-linecap="round"/><line x1="${x + 7}" y1="35" x2="${x - 7}" y2="49" stroke="${D}" stroke-width="4.6" stroke-linecap="round"/></g>`).join('');
+        case 'shades': return `<g class="fb-hop"><path d="M21 34 H47 Q47 53 34 53 Q21 53 21 34Z" fill="#1d1a18"/><path d="M53 34 H79 Q79 53 66 53 Q53 53 53 34Z" fill="#1d1a18"/><path d="M46 37 Q50 34 54 37" fill="none" stroke="#1d1a18" stroke-width="3"/><path d="M21 36 L14 32 M79 36 L86 32" stroke="#1d1a18" stroke-width="3" stroke-linecap="round"/><g class="fb-glint"><path d="M26 37 L33 37 L27 47 L23 47Z" fill="#fff" opacity=".55"/><path d="M58 37 L65 37 L59 47 L55 47Z" fill="#fff" opacity=".55"/></g></g>`;
+        default: return open(5.2, 7);
+      }
+    }
+    function fbMouth(k, uid) {
+      const D = FB_D, ln = (d, w) => `<path d="${d}" fill="none" stroke="${D}" stroke-width="${w || 4.6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      const mouthOpen = (d, extra, cls) => `<g class="${cls || 'fb-talk'}"><clipPath id="fbc${uid}"><path d="${d}"/></clipPath><path d="${d}" fill="${D}"/><g clip-path="url(#fbc${uid})"><ellipse cx="50" cy="86" rx="17" ry="11" fill="#ec5d78"/>${extra || ''}</g></g>`;
+      switch (k) {
+        case 'smile': return `<g class="fb-smile">${ln('M30 59 Q50 80 70 59')}</g>`;
+        case 'smileSmall': return `<g class="fb-smile">${ln('M37 64 Q50 73 63 64')}</g>`;
+        case 'grin': return mouthOpen('M29 57 Q50 62 71 57 Q68 82 50 82 Q32 82 29 57Z', '<path d="M26 54 H74 V63 Q50 67 26 63Z" fill="#fff"/>');
+        case 'grinBig': return mouthOpen('M27 55 Q50 61 73 55 Q71 86 50 86 Q29 86 27 55Z', '<path d="M24 52 H76 V63 Q50 68 24 63Z" fill="#fff"/>');
+        case 'teeth': return `<g class="fb-talk"><path d="M26 57 Q50 65 74 57 Q72 80 50 80 Q28 80 26 57Z" fill="#fff" stroke="${D}" stroke-width="3.4" stroke-linejoin="round"/><path d="M28 68 Q50 74 72 68 M50 63 V79" fill="none" stroke="${D}" stroke-width="1.8" opacity=".55"/></g>`;
+        case 'laugh': return mouthOpen('M25 54 Q50 60 75 54 Q73 90 50 90 Q27 90 25 54Z', '<path d="M22 51 H78 V62 Q50 68 22 62Z" fill="#fff"/>', 'fb-laugh');
+        case 'kiss': return `<g class="fb-kiss"><path d="M43 68 Q55 59 66 66 Q57 69 66 72 Q55 79 43 68Z" fill="#e0533d" stroke="${D}" stroke-width="2.6" stroke-linejoin="round"/></g>`;
+        case 'yum': return `<g class="fb-smile">${ln('M30 59 Q50 78 70 59')}</g><g class="fb-lick"><path d="M58 64 Q66 62 70 69 Q66 76 58 72Z" fill="#ec5d78" stroke="${D}" stroke-width="2.4" stroke-linejoin="round"/></g>`;
+        case 'tongue': return `${ln('M30 60 Q50 74 70 60')}<g class="fb-tongue"><path d="M40 66 Q40 86 50 86 Q60 86 60 66Z" fill="#ec5d78" stroke="${D}" stroke-width="2.8" stroke-linejoin="round"/><path d="M50 68 V78" stroke="#c23e5c" stroke-width="2" stroke-linecap="round"/></g>`;
+        case 'hmm': return `<g class="fb-hmm">${ln('M38 68 Q46 63 52 68 T64 66')}</g>`;
+        case 'neutral': return ln('M36 68 H64');
+        case 'none': return '';
+        case 'flat': return `<g class="fb-hmm">${ln('M36 69 H64')}</g>`;
+        case 'smirk': return `<g class="fb-smile">${ln('M34 68 Q52 70 68 60')}</g>`;
+        case 'grimace': return `<g class="fb-quiver"><rect x="28" y="60" width="44" height="15" rx="6" fill="#fff" stroke="${D}" stroke-width="3.2"/><path d="M39 60 V75 M50 60 V75 M61 60 V75 M28 67.5 H72" stroke="${D}" stroke-width="1.8" opacity=".6"/></g>`;
+        case 'frown': return `<g class="fb-quiver">${ln('M35 72 Q50 60 65 72')}</g>`;
+        case 'frownTight': return `<g class="fb-quiver">${ln('M34 73 Q50 61 66 73')}</g>`;
+        case 'wavy': return `<g class="fb-quiver">${ln('M34 69 Q40 63 46 69 T58 69 T66 67')}</g>`;
+        case 'wobble': return `<g class="fb-wobble">${ln('M35 72 Q42 64 50 70 Q58 64 65 72')}</g>`;
+        case 'sleepM': return `<ellipse class="fb-breath" cx="50" cy="69" rx="5.5" ry="4.5" fill="${D}"/>`;
+        case 'yawn': return `<g class="fb-laugh"><ellipse cx="50" cy="70" rx="9" ry="12" fill="${D}"/><ellipse cx="50" cy="77" rx="6" ry="4" fill="#ec5d78"/></g>`;
+        case 'O': return `<ellipse class="fb-O" cx="50" cy="70" rx="6" ry="8" fill="${D}"/>`;
+        case 'OBig': return `<ellipse class="fb-O" cx="50" cy="70" rx="8" ry="11" fill="${D}"/>`;
+        case 'OFrown': return `<ellipse class="fb-O" cx="50" cy="71" rx="6" ry="4.5" fill="${D}"/>`;
+        case 'scream': return mouthOpen('M36 58 Q50 54 64 58 Q68 88 50 88 Q32 88 36 58Z', '', 'fb-scream');
+        case 'wail': return mouthOpen('M33 66 Q50 54 67 66 Q60 82 50 82 Q40 82 33 66Z', '', 'fb-wail');
+        default: return ln('M36 68 H64');
+      }
+    }
+    function fbBrows(k) {
+      const D = FB_D, l = (d) => `<path d="${d}" fill="none" stroke="${D}" stroke-width="4.8" stroke-linecap="round"/>`;
+      switch (k) {
+        case 'angry': return `<g class="fb-brow">${l('M22 26 L43 35')}${l('M78 26 L57 35')}</g>`;
+        case 'sad': return `<g class="fb-brow">${l('M24 33 L42 26')}${l('M76 33 L58 26')}</g>`;
+        case 'up': return `<g class="fb-brow">${l('M25 24 Q35 18 44 24')}${l('M56 24 Q65 18 75 24')}</g>`;
+        case 'raise': return `<g class="fb-raise">${l('M56 20 Q66 13 76 21')}</g>${l('M25 28 H44')}`;
+        case 'half': return `<g class="fb-brow">${l('M24 26 Q34 22 44 28')}${l('M56 28 Q66 22 76 26')}</g>`;
+        default: return '';
+      }
+    }
+    function fbExtras(list) {
+      const D = FB_D; let h = '';
+      (list || []).forEach(x => {
+        if (x === 'blush') h += `<ellipse class="fb-pulse" cx="21" cy="57" rx="8" ry="5" fill="#ff6f7d" opacity=".45"/><ellipse class="fb-pulse" cx="79" cy="57" rx="8" ry="5" fill="#ff6f7d" opacity=".45"/>`;
+        if (x === 'blushBig') h += `<ellipse class="fb-pulse" cx="21" cy="57" rx="10" ry="6.5" fill="#ff4f6b" opacity=".55"/><ellipse class="fb-pulse" cx="79" cy="57" rx="10" ry="6.5" fill="#ff4f6b" opacity=".55"/>`;
+        if (x === 'sweat') h += `<path class="fb-sweat" d="M82 18 Q90 30 82 36 Q74 30 82 18Z" fill="#5ec3ff" stroke="#2b8fd0" stroke-width="1.6"/>`;
+        if (x === 'tears') h += [26, 74].map((cx, i) => `<path class="fb-tear" style="--d:${i * .6}s" d="M${cx} 50 Q${cx + 6} 59 ${cx} 63 Q${cx - 6} 59 ${cx} 50Z" fill="#5ec3ff" stroke="#2b8fd0" stroke-width="1.4"/>`).join('');
+        if (x === 'tearsRiver') h += [24, 76].map((cx, i) => `<path class="fb-tear" style="--d:${i * .35}s;animation-duration:.9s" d="M${cx} 46 Q${cx + 7} 58 ${cx} 64 Q${cx - 7} 58 ${cx} 46Z" fill="#5ec3ff" stroke="#2b8fd0" stroke-width="1.4"/>`).join('') + [30, 70].map((cx, i) => `<path class="fb-tear" style="--d:${.45 + i * .3}s;animation-duration:.9s" d="M${cx} 50 Q${cx + 5} 58 ${cx} 62 Q${cx - 5} 58 ${cx} 50Z" fill="#8fd6ff"/>`).join('');
+        if (x === 'tearsJoy') h += [[18, 46, -1], [82, 46, 1]].map((p, i) => `<path class="fb-tearJ" style="--d:${i * .25}s;--s:${p[2]}" d="M${p[0]} ${p[1]} Q${p[0] + 7} ${p[1] + 11} ${p[0]} ${p[1] + 17} Q${p[0] - 7} ${p[1] + 11} ${p[0]} ${p[1]}Z" fill="#5ec3ff" stroke="#2b8fd0" stroke-width="1.4"/>`).join('');
+        if (x === 'hearts') h += [[14, 22, 0, .55], [86, 30, .9, .45], [50, 6, 1.7, .5]].map(p => fbHeart(p[0], p[1], p[3], 'fb-rise', '#ff4f78', `--d:${p[2]}s`)).join('');
+        if (x === 'kissHeart') h += `<g transform="translate(60 66)"><g class="fb-heartfly"><g transform="scale(.7)"><path d="M0 9 C-15 -2 -10 -15 -3.5 -15 C-1.5 -15 0 -13 0 -11 C0 -13 1.5 -15 3.5 -15 C10 -15 15 -2 0 9Z" fill="#ff3d6b" stroke="#c81d48" stroke-width="1.4"/></g></g></g>`;
+        if (x === 'halo') h += `<ellipse class="fb-halo" cx="50" cy="3" rx="21" ry="6" fill="none" stroke="#ffd23a" stroke-width="4.2"/>`;
+        if (x === 'zzz') h += [[74, 20, 0, 14], [84, 8, 1, 11], [66, 28, 2, 9]].map(p => `<text class="fb-zzz" style="--d:${p[2] * .9}s" x="${p[0]}" y="${p[1]}" font-size="${p[3]}" font-weight="800" fill="#4f8ff7" font-family="Arial,sans-serif">z</text>`).join('');
+        if (x === 'bubble') h += `<circle class="fb-bubble" cx="62" cy="64" r="6" fill="#bfe6ff" stroke="#6fb8e8" stroke-width="1.4" opacity=".9"/>`;
+        if (x === 'steam') h += [[8, 60, 0], [92, 60, .5]].map(p => `<circle class="fb-steam" style="--d:${p[2]}s;--s:${p[0] < 50 ? -1 : 1}" cx="${p[0]}" cy="${p[1]}" r="6" fill="#fff" opacity=".95" stroke="#cfd8e0" stroke-width="1.2"/>`).join('');
+        if (x === 'sparkles') h += [[10, 14, 0], [92, 22, .7], [88, 78, 1.3]].map(p => `<g transform="translate(${p[0]} ${p[1]})"><path class="fb-spark" style="--d:${p[2]}s" d="M0 -7 L2 -2 L7 0 L2 2 L0 7 L-2 2 L-7 0 L-2 -2Z" fill="#ffd23a" stroke="#d98a07" stroke-width="1"/></g>`).join('');
+      });
+      return h;
+    }
+    function fbFace(emoji, size) {
+      const key = String(emoji || '').replace(/️/g, ''), c = FB_FACES[key]; if (!c) return null;
+      const id = ++fbUid, d = ((id * 37) % 40) / 10;
+      const red = c.tint === 'red', c1 = red ? '#ff9a6b' : '#ffe680', c2 = red ? '#f0442f' : '#f8bb22', rim = red ? '#b82a1a' : '#d9921a';
+      const rot = c.flip ? ' transform="rotate(180)"' : '';
+      const inner = `<g${rot}>${fbBrows(c.b)}${fbEyes(c.e, d)}${fbMouth(c.m, id)}</g>`;
+      return `<svg class="fb-face" viewBox="-6 -8 112 114" style="width:${size}px;height:auto;display:block;overflow:visible" aria-hidden="true"><defs><radialGradient id="fbg${id}" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs>` +
+        `<g class="fb-idle"><g class="${c.r ? 'fb-' + c.r : ''}"><circle cx="50" cy="50" r="47" fill="url(#fbg${id})" stroke="${rim}" stroke-width="2"/><ellipse cx="34" cy="20" rx="17" ry="8" fill="#fff" opacity=".28" transform="rotate(-24 34 20)"/>${c.x && c.x.indexOf('blush') >= 0 ? '' : ''}${fbExtras((c.x || []).filter(x => x === 'blush' || x === 'blushBig'))}${inner}${fbExtras((c.x || []).filter(x => x !== 'blush' && x !== 'blushBig'))}</g></g></svg>`;
+    }
+    const fbCss = `.fb-face *{transform-box:fill-box;transform-origin:center}
+.fb-idle{animation:fbIdle 4.6s ease-in-out infinite}
+@keyframes fbIdle{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-1.5px)}}
+.fb-blink{animation:fbBlink 4.6s infinite;animation-delay:var(--d,0s)}
+@keyframes fbBlink{0%,91%,100%{transform:scaleY(1)}94.5%{transform:scaleY(.07)}}
+.fb-hop{animation:fbHop 1.7s ease-in-out infinite}
+@keyframes fbHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.2px)}}
+.fb-squeeze{animation:fbSq .45s ease-in-out infinite alternate}
+@keyframes fbSq{from{transform:scale(1)}to{transform:scale(.86,.9)}}
+.fb-beat{animation:fbBeat 1s ease-in-out infinite}
+@keyframes fbBeat{0%,100%{transform:scale(1)}18%{transform:scale(1.2)}34%{transform:scale(.95)}50%{transform:scale(1.14)}70%{transform:scale(1)}}
+.fb-twinkle{animation:fbTwk 1.6s ease-in-out infinite}
+@keyframes fbTwk{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.22) rotate(14deg)}}
+.fb-winkA,.fb-winkB2{animation:fbWA 3.6s infinite}.fb-winkB{animation:fbWB 3.6s infinite}.fb-winkA2{animation:fbWB2 3.6s infinite}
+@keyframes fbWA{0%,36%,62%,100%{opacity:1}40%,58%{opacity:0}}
+@keyframes fbWB{0%,36%,62%,100%{opacity:0}40%,58%{opacity:1}}
+@keyframes fbWB2{0%,100%{opacity:0}}
+.fb-look{animation:fbLook 3.4s ease-in-out infinite}
+@keyframes fbLook{0%,100%{transform:translate(-2.6px,0)}45%,55%{transform:translate(2.6px,-.5px)}}
+.fb-roll{animation:fbRoll 2.2s linear infinite}.fb-roll2{animation:fbRoll 1.4s linear infinite reverse}
+@keyframes fbRoll{0%{transform:translate(0,-3.4px)}25%{transform:translate(3.4px,0)}50%{transform:translate(0,3.4px)}75%{transform:translate(-3.4px,0)}100%{transform:translate(0,-3.4px)}}
+.fb-shine{animation:fbShine 1.8s ease-in-out infinite}
+@keyframes fbShine{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.7}}
+.fb-glint{animation:fbGlint 3.4s ease-in-out infinite}
+@keyframes fbGlint{0%,60%,100%{transform:translateX(-4px);opacity:0}70%{opacity:.9}85%{transform:translateX(6px);opacity:0}}
+.fb-smile{animation:fbSmile 2.4s ease-in-out infinite;transform-origin:50% 0}
+@keyframes fbSmile{0%,100%{transform:scale(1,1)}50%{transform:scale(1.08,1.16)}}
+.fb-talk{animation:fbTalk 1.5s ease-in-out infinite;transform-origin:50% 0}
+@keyframes fbTalk{0%,100%{transform:scale(1,1)}40%{transform:scale(1.04,1.16)}}
+.fb-laugh{animation:fbLaugh .38s ease-in-out infinite alternate;transform-origin:50% 0}
+@keyframes fbLaugh{from{transform:scale(1,.74)}to{transform:scale(1.04,1.1)}}
+.fb-rock{animation:fbRock .42s ease-in-out infinite alternate}
+@keyframes fbRock{from{transform:rotate(-8deg) translateY(1px)}to{transform:rotate(8deg) translateY(-2px)}}
+.fb-shake{animation:fbShake .26s linear infinite}
+@keyframes fbShake{0%,100%{transform:translate(-1.6px,0)}25%{transform:translate(1.6px,-1px)}50%{transform:translate(-1px,1px)}75%{transform:translate(1.6px,0)}}
+.fb-quiver{animation:fbQuiv .22s linear infinite}
+@keyframes fbQuiv{0%,100%{transform:translateX(-.9px)}50%{transform:translateX(.9px)}}
+.fb-spinHead{animation:fbSpinH 2.4s ease-in-out infinite}
+@keyframes fbSpinH{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+.fb-kiss{animation:fbKiss 1.2s ease-in-out infinite}
+@keyframes fbKiss{0%,100%{transform:scale(1)}40%{transform:scale(1.28,1.2) translateX(1.5px)}}
+.fb-heartfly{animation:fbHF 2.4s ease-out infinite}
+@keyframes fbHF{0%{transform:translate(0,0) scale(.2);opacity:0}14%{opacity:1}65%{transform:translate(20px,-24px) scale(1);opacity:1}100%{transform:translate(30px,-36px) scale(1.15);opacity:0}}
+.fb-tear{animation:fbTear 1.5s ease-in infinite;animation-delay:var(--d,0s);opacity:0}
+@keyframes fbTear{0%{transform:translateY(-4px) scale(.6);opacity:0}20%{opacity:1;transform:translateY(0) scale(1)}100%{transform:translateY(24px);opacity:0}}
+.fb-tearJ{animation:fbTearJ .8s ease-in infinite;animation-delay:var(--d,0s);opacity:0}
+@keyframes fbTearJ{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:1;transform:scale(1)}100%{transform:translate(calc(var(--s,1) * 8px),22px);opacity:0}}
+.fb-sweat{animation:fbSweat 2.4s ease-in infinite}
+@keyframes fbSweat{0%{transform:translateY(-4px) scale(.7);opacity:0}20%{opacity:1;transform:scale(1)}100%{transform:translateY(22px);opacity:0}}
+.fb-rise{animation:fbRise 2.8s ease-out infinite;animation-delay:var(--d,0s);opacity:0}
+@keyframes fbRise{0%{transform:translateY(8px) scale(.4);opacity:0}25%{opacity:1}100%{transform:translateY(-16px) scale(1.1);opacity:0}}
+.fb-tongue{animation:fbTng .55s ease-in-out infinite alternate;transform-origin:50% 0}
+@keyframes fbTng{from{transform:translateY(0) scale(1,.9)}to{transform:translateY(2.5px) scale(1,1.12)}}
+.fb-lick{animation:fbLick 1.8s ease-in-out infinite;transform-origin:0 50%}
+@keyframes fbLick{0%,100%{transform:rotate(0) scale(.8)}50%{transform:rotate(-28deg) scale(1.15)}}
+.fb-breath{animation:fbBr 3s ease-in-out infinite}
+@keyframes fbBr{0%,100%{transform:scale(.8)}50%{transform:scale(1.35)}}
+.fb-bubble{animation:fbBub 3s ease-in-out infinite}
+@keyframes fbBub{0%,100%{transform:scale(.4);opacity:.3}60%{transform:scale(1.5);opacity:.95}}
+.fb-pulse{animation:fbPul 2.4s ease-in-out infinite}
+@keyframes fbPul{0%,100%{opacity:.35}50%{opacity:.7}}
+.fb-steam{animation:fbSteam 1.4s ease-out infinite;animation-delay:var(--d,0s);opacity:0}
+@keyframes fbSteam{0%{transform:translate(0,4px) scale(.4);opacity:.95}100%{transform:translate(calc(var(--s,1) * 10px),-10px) scale(1.5);opacity:0}}
+.fb-brow{animation:fbBrow 1.1s ease-in-out infinite alternate}
+@keyframes fbBrow{from{transform:translateY(0)}to{transform:translateY(1.8px)}}
+.fb-raise{animation:fbRaise 2.6s ease-in-out infinite}
+@keyframes fbRaise{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px) rotate(-4deg)}}
+.fb-halo{animation:fbHalo 2.6s ease-in-out infinite}
+@keyframes fbHalo{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-3px) rotate(4deg)}}
+.fb-zzz{animation:fbZ 3s ease-out infinite;animation-delay:var(--d,0s);opacity:0}
+@keyframes fbZ{0%{transform:translate(-6px,8px) scale(.5);opacity:0}25%{opacity:1}100%{transform:translate(8px,-14px) scale(1.2);opacity:0}}
+.fb-spark{animation:fbSpark 1.8s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes fbSpark{0%,100%{transform:scale(.2) rotate(0);opacity:0}50%{transform:scale(1.2) rotate(40deg);opacity:1}}
+.fb-O{animation:fbO 2.2s ease-in-out infinite}
+@keyframes fbO{0%,100%{transform:scale(1)}50%{transform:scale(1.18,.9)}}
+.fb-scream{animation:fbScr .3s ease-in-out infinite alternate;transform-origin:50% 0}
+@keyframes fbScr{from{transform:scale(1,.85)}to{transform:scale(1.1,1.15)}}
+.fb-wail{animation:fbWail .5s ease-in-out infinite alternate;transform-origin:50% 0}
+@keyframes fbWail{from{transform:scale(.95,.8)}to{transform:scale(1.06,1.2)}}
+.fb-wobble{animation:fbWob .3s ease-in-out infinite alternate}
+@keyframes fbWob{from{transform:translateY(0) scaleX(.97)}to{transform:translateY(1px) scaleX(1.03)}}
+.fb-hmm{animation:fbHmm 3s ease-in-out infinite}
+@keyframes fbHmm{0%,100%{transform:translateX(-2px)}50%{transform:translateX(3px)}}`;
     const STK_BASE = '0 3px 4px rgba(0,0,0,.45)';
     function stkFilter(bd) {
       bd = Number(bd); if (!(bd >= 0)) bd = 2.5;
@@ -4900,17 +5107,19 @@
       const el = byId(id), art = el && el.querySelector('.sticker-art'); if (art) art.style.filter = stkFilter(n.bd);
       if (commit) saveData();
     };
+    function fbEnsureCss() { if (!document.getElementById('fbCss')) { const st = document.createElement('style'); st.id = 'fbCss'; st.textContent = fbCss; document.head.appendChild(st); } }
     function buildStickerHtml(note) {
+      fbEnsureCss();
       const w = Math.round(note.width || 110);
       const art = note.kind === 'img'
         ? `<div class="sticker-img${note.png ? ' sticker-png' : ''}"><img data-img-id="${note.stickerId}" ${imageURLs[note.stickerId] ? `src="${imageURLs[note.stickerId]}"` : ''} draggable="false" alt=""></div>`
-        : `<div class="sticker-emoji" ${stkAnimOn(note) ? `data-an="${stkAnimKind(note.emoji)}"` : ''} style="font-size:${Math.round(w * 0.74)}px">${escapeHtml(note.emoji || '')}</div>`;
+        : `<div class="sticker-emoji" style="font-size:${Math.round(w * 0.74)}px">${(stkAnimOn(note) && fbFace(note.emoji, Math.round(w * 0.88))) || escapeHtml(note.emoji || '')}</div>`;
       return `
         <div class="img-bar">
           <button onclick="stepStickerSize('${note.id}', -1)" class="img-bar-btn" title="Diminuir"><i class="fa-solid fa-minus"></i></button>
           <button onclick="stepStickerSize('${note.id}', 1)" class="img-bar-btn" title="Aumentar"><i class="fa-solid fa-plus"></i></button>
           <label class="stk-bd" title="Contorno branco (0 = sem contorno)"><i class="fa-regular fa-square"></i><input type="range" min="0" max="10" step="0.5" value="${note.bd == null ? 2.5 : note.bd}" oninput="setStickerBorder('${note.id}', this.value, false)" onchange="setStickerBorder('${note.id}', this.value, true)" onpointerdown="event.stopPropagation()"></label>
-          ${note.kind !== 'img' ? `<button onclick="toggleStickerAnim('${note.id}')" class="img-bar-btn" style="${stkAnimOn(note) ? 'color:#fcd34d' : 'opacity:.6'}" title="${stkAnimOn(note) ? 'Desligar animação' : 'Animar este adesivo'}"><i class="fa-solid fa-wand-magic-sparkles"></i></button>` : ''}
+          ${(note.kind !== 'img' && FB_FACES[String(note.emoji || '').replace(/\uFE0F/g, '')]) ? `<button onclick="toggleStickerAnim('${note.id}')" class="img-bar-btn" style="${stkAnimOn(note) ? 'color:#fcd34d' : 'opacity:.6'}" title="${stkAnimOn(note) ? 'Desligar animação' : 'Animar este adesivo'}"><i class="fa-solid fa-wand-magic-sparkles"></i></button>` : ''}
           <button onclick="rotateSticker('${note.id}')" class="img-bar-btn" title="Girar"><i class="fa-solid fa-rotate-right"></i></button>
           ${dupToolHtml(note.id, 'img-bar-btn')}
           ${moveToolHtml(note.id, 'img-bar-btn')}
@@ -4923,6 +5132,7 @@
     function syncStickerUI(el, note) {
       const em = el.querySelector('.sticker-emoji');
       if (em) em.style.fontSize = Math.round(note.width * 0.74) + 'px';
+      const fb = el.querySelector('.fb-face'); if (fb) fb.style.width = Math.round(note.width * 0.88) + 'px';
     }
     function stepStickerSize(id, dir) {
       const note = findNote(id);
