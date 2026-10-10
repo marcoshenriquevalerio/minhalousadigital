@@ -10077,7 +10077,18 @@
       #chatForm{display:flex;gap:6px;padding:8px;background:#202c33;align-items:flex-end}
       #chatIn{flex:1;resize:none;max-height:90px;border:0;outline:0;border-radius:18px;padding:8px 13px;background:#2a3942;color:#e9edef;font-size:14px;font-family:inherit}
       #chatSend{width:38px;height:38px;border-radius:50%;border:0;background:#00a884;color:#fff;cursor:pointer;flex:none}
-      #chatSend:hover{background:#06cf9c}`;
+      #chatSend:hover{background:#06cf9c}
+      #chatMsgs{min-height:0}
+      #chatEmo{width:36px;height:38px;border-radius:50%;border:0;background:none;color:#8696a0;font-size:21px;cursor:pointer;flex:none}
+      #chatEmo:hover,#chatEmo.on{color:#00a884}
+      #chatPick{display:none;height:178px;overflow-y:auto;padding:8px;background:#111b21;border-top:1px solid rgba(255,255,255,.08);grid-template-columns:repeat(5,1fr);gap:4px;overscroll-behavior:contain}
+      #chatPick.on{display:grid}
+      #chatPick button{background:none;border:0;border-radius:10px;padding:4px;cursor:pointer;display:flex;justify-content:center}
+      #chatPick button:hover{background:rgba(255,255,255,.1)}
+      #chatPrev{display:none;align-items:center;gap:10px;padding:6px 12px;background:#111b21;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:#8696a0}
+      #chatPrev.on{display:flex}
+      #chatPrev button{margin-left:auto;background:none;border:0;color:#aebac1;cursor:pointer;font-size:15px}
+      .chStk{display:flex;justify-content:center;padding:2px 0 4px}`;
       document.head.appendChild(st);
       const bx = document.createElement('div');
       bx.id = 'chatBox'; bx.className = 'closed'; bx.style.display = 'none';
@@ -10085,7 +10096,8 @@
         <div id="chatPanel"><div id="chatHead"><div class="t">Chat da lousa<small id="chatSub"></small></div>
           <button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
           <div id="chatMsgs"></div>
-          <form id="chatForm"><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form></div>`;
+          <div id="chatPick"></div><div id="chatPrev"><span id="chatPrevFace"></span><span>Carinha selecionada — envie sozinha ou com texto</span><button type="button" id="chatPrevX" title="Remover"><i class="fa-solid fa-xmark"></i></button></div>
+          <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form></div>`;
       document.body.appendChild(bx);
       let pos = null; try { pos = JSON.parse(chLs('lousa_chat_pos')); } catch (e) {}
       CH.x = pos && isFinite(pos.x) ? pos.x : null; CH.y = pos && isFinite(pos.y) ? pos.y : 74;
@@ -10093,14 +10105,17 @@
       const drag = (el, onTap) => {
         let d = null;
         el.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button') && el.id !== 'chatFab') return; const r = bx.getBoundingClientRect(); d = { px: e.clientX, py: e.clientY, x: r.left, y: r.top, m: false }; try { el.setPointerCapture(e.pointerId); } catch (er) {} });
-        el.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.px, dy = e.clientY - d.py; if (!d.m && Math.abs(dx) + Math.abs(dy) < 6) return; d.m = true; CH.x = d.x + dx; CH.y = d.y + dy; chPlace(); });
-        el.addEventListener('pointerup', () => { if (!d) return; const m = d.m; d = null; if (m) chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); else if (onTap) onTap(); });
+        el.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.px, dy = e.clientY - d.py; if (!d.m && Math.abs(dx) + Math.abs(dy) < 6) return; d.m = true; if (CH.open) { CH.px = d.x + dx; CH.py = d.y + dy; CH.pm = true; } else { CH.x = d.x + dx; CH.y = d.y + dy; } chPlace(); });
+        el.addEventListener('pointerup', () => { if (!d) return; const m = d.m; d = null; if (m) { if (!CH.open) chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); } else if (onTap) onTap(); if (m && CH.open) { /* posição do painel não altera o botão */ } });
         el.addEventListener('pointercancel', () => { d = null; });
       };
       drag(byId('chatFab'), () => chToggle(true));
       drag(byId('chatHead'), null);
       byId('chatClose').onclick = () => chToggle(false);
       byId('chatMute').onclick = () => { chLs('lousa_chat_mute_' + chUid(), chMuted() ? '0' : '1'); chMuteUi(); };
+      byId('chatEmo').onclick = () => chPickToggle();
+      byId('chatPrevX').onclick = () => chSetFace('');
+      byId('chatPick').onclick = e => { const b = e.target.closest('button[data-f]'); if (b) { chSetFace(b.dataset.f); chPickToggle(false); byId('chatIn').focus(); } };
       byId('chatForm').onsubmit = e => { e.preventDefault(); chSend(); };
       byId('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chSend(); } });
       byId('chatIn').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(90, e.target.scrollHeight) + 'px'; });
@@ -10109,15 +10124,24 @@
     }
     function chPlace() {
       const bx = byId('chatBox'); if (!bx) return;
-      const w = CH.open ? Math.min(340, innerWidth - 16) : 48, h = CH.open ? Math.min(460, innerHeight - 16) : 48;
+      const tb = byId('topbar'), tr = tb ? tb.getBoundingClientRect() : null;
+      const bottomBar = tr && tr.top > innerHeight / 2 ? innerHeight - tr.top : 0;   // celular em pé: barra de ferramentas fica embaixo
+      const maxH = innerHeight - bottomBar - 16, cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
       if (CH.x == null) CH.x = innerWidth - 48 - 16;
-      CH.x = Math.max(8, Math.min(innerWidth - w - 8, CH.x)); CH.y = Math.max(8, Math.min(innerHeight - h - 8, CH.y));
-      bx.style.left = CH.x + 'px'; bx.style.top = CH.y + 'px';
+      CH.x = cl(CH.x, 8, innerWidth - 56); CH.y = cl(CH.y, 8, innerHeight - bottomBar - 56);   // posição do botão: nunca é alterada pelo painel
+      if (!CH.open) { bx.style.left = CH.x + 'px'; bx.style.top = CH.y + 'px'; return; }
+      const w = Math.min(340, innerWidth - 16), h = Math.min(460, maxH);
+      if (CH.px == null) { CH.px = CH.x + 48 - w; CH.py = CH.y; }   // abre a partir do canto do botão
+      CH.px = cl(CH.px, 8, innerWidth - w - 8); CH.py = cl(CH.py, 8, innerHeight - bottomBar - h - 8);
+      bx.style.left = CH.px + 'px'; bx.style.top = CH.py + 'px';
       byId('chatPanel').style.height = h + 'px';
     }
     function chMuteUi() { const m = byId('chatMute'); if (m) { const on = chMuted(); m.innerHTML = '<i class="fa-solid ' + (on ? 'fa-bell-slash' : 'fa-bell') + '"></i>'; m.title = on ? 'Notificações silenciadas — ativar' : 'Silenciar notificações'; } }
     function chToggle(open) {
-      chBuild(); CH.open = open;
+      chBuild();
+      if (open && !CH.open) { CH.px = null; CH.pm = false; }
+      if (!open && CH.open && CH.pm) { CH.x = CH.px + Math.min(340, innerWidth - 16) - 48; CH.y = CH.py; chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); }
+      CH.open = open;
       const bx = byId('chatBox'); bx.classList.toggle('open', open); bx.classList.toggle('closed', !open);
       chPlace(); chMuteUi();
       const b = chBoard();
@@ -10138,21 +10162,37 @@
       const b = chBoard(), box = byId('chatMsgs'); if (!b || !box || !CH.open) return;
       const me = shMe().uid, msgs = b.chat || [], inf = SH.info[b.shared.sid];
       byId('chatSub').textContent = (inf && inf.members ? inf.members.length + ' participantes · ' : '') + 'some após 1h sem conversa';
+      try { fbEnsureCss(); } catch (e) {}
       const near = scroll || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
       if (!msgs.length) { box.innerHTML = '<div id="chatEmpty"><i class="fa-regular fa-comments" style="font-size:28px;margin-bottom:8px;display:block"></i>Nenhuma mensagem ainda. Diga olá! As mensagens somem sozinhas após 1 hora sem conversa.</div>'; return; }
       box.innerHTML = msgs.map(m => {
         const w = chWho(b.shared.sid, m.u), mine = m.u === me, d = new Date(m.t || 0);
         const tm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        return `<div class="chMsg${mine ? ' me' : ''}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub"><div class="chName">${html(w.name)}</div><div class="chTx">${html(m.x)}</div><div class="chTm">${tm}</div></div></div>`;
+        return `<div class="chMsg${mine ? ' me' : ''}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub"><div class="chName">${html(w.name)}</div>${m.s && typeof fbFace === 'function' ? '<div class="chStk">' + (fbFace(m.s, 64) || html(m.s)) + '</div>' : ''}${m.x ? '<div class="chTx">' + html(m.x) + '</div>' : ''}<div class="chTm">${tm}</div></div></div>`;
       }).join('');
       if (near) box.scrollTop = box.scrollHeight;
     }
+    function chPickToggle(on) {
+      const el = byId('chatPick'); if (!el) return;
+      on = on === undefined ? !el.classList.contains('on') : on;
+      if (on && !el.dataset.ok && typeof fbFace === 'function') {
+        try { fbEnsureCss(); } catch (e) {}
+        el.innerHTML = Object.keys(FB_FACES).map(k => `<button type="button" data-f="${k}" title="${k}">${fbFace(k, 40) || k}</button>`).join(''); el.dataset.ok = '1';
+      }
+      el.classList.toggle('on', on); byId('chatEmo').classList.toggle('on', on);
+      if (on) { byId('chatMsgs').scrollTop = byId('chatMsgs').scrollHeight; }
+    }
+    function chSetFace(f) {
+      CH.face = f || '';
+      const pv = byId('chatPrev'); pv.classList.toggle('on', !!f);
+      byId('chatPrevFace').innerHTML = f ? (fbFace(f, 54) || '') : '';
+    }
     function chSend() {
       const b = chBoard(), inp = byId('chatIn'); if (!b || !inp) return;
-      const x = inp.value.trim().slice(0, 500); if (!x) return;
+      const x = inp.value.trim().slice(0, 500), sf = CH.face || ''; if (!x && !sf) return;
       const me = shMe().uid;
-      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }]).slice(-CH_MAX);
-      inp.value = ''; inp.style.height = 'auto';
+      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; return m; })).slice(-CH_MAX);
+      inp.value = ''; inp.style.height = 'auto'; chSetFace(''); chPickToggle(false);
       const ids = {}; b.chat.forEach(m => { ids[m.id] = 1; });
       if (CH.known[b.shared.sid]) CH.known[b.shared.sid] = ids;
       chMarkRead(b); chRender(true); saveData();
