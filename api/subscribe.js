@@ -20,7 +20,8 @@ module.exports = wrap(async (req, res) => {
   });
   await subRef(u.uid).set({
     preapprovalId: p.id, status: "pending", amount: b.price, payerEmail: u.email, name: u.name,
-    nextPayment: (cur && cur.nextPayment) || 0, createdAt: Date.now(), updatedAt: Date.now()
+    nextPayment: (cur && cur.nextPayment) || 0, createdAt: Date.now(), updatedAt: Date.now(),
+    initPoint: p.init_point || "", startedAt: 0, lastPaidAt: 0, cancelReason: "", cancelledAt: 0
   }, { merge: true });
   res.status(200).json({ url: p.init_point });
 });

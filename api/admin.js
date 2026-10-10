@@ -1,6 +1,6 @@
 // POST /api/admin  { action, ... }  -> tudo do painel de controle. Só dono e administradores autorizados.
 const S = require("../lib/server");
-const { CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, proActive, wrap, body } = S;
+const { CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, enforce, proActive, wrap, body } = S;
 
 const mask = (t) => (t ? "••••••••" + String(t).slice(-4) : "");
 const bad = (m, st = 400) => { const e = new Error(m); e.status = st; throw e; };
@@ -25,7 +25,7 @@ async function listAll() {
       lastSeen: u.metadata.lastRefreshTime ? Date.parse(u.metadata.lastRefreshTime) : 0,
       disabled: !!u.disabled,
       admin: email === OWNER || admins.includes(email),
-      sub: s ? { status: s.status || "", amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "" } : null,
+      sub: s ? { status: s.status || "", amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "", startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, cancelReason: s.cancelReason || "", cancelledAt: s.cancelledAt || 0 } : null,
       pro: proActive(s)
     };
   });
@@ -110,7 +110,7 @@ const actions = {
     for (const d of snap.docs) {
       const s = d.data();
       if (!s.preapprovalId || s.manual) continue;
-      try { await syncPreapproval(s.preapprovalId, d.id); n++; } catch (e) { failed++; }
+      try { const r = await syncPreapproval(s.preapprovalId, d.id); if (r) await enforce(d.id, r); n++; } catch (e) { failed++; }
     }
     return { ok: true, synced: n, failed };
   },

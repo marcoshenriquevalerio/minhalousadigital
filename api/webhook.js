@@ -1,6 +1,6 @@
 // Mercado Pago -> POST /api/webhook : avisa quando a assinatura é autorizada, pausada, cancelada etc.
 // Cadastre em: Mercado Pago > Suas integrações > (sua aplicação) > Webhooks
-//   URL: https://minhalousadigital.vercel.app/api/webhook   Eventos: "Planos e assinaturas"
+//   URL: https://minhalousadigital.vercel.app/api/webhook   Eventos: "Planos e assinaturas" e "Pagamentos recorrentes de assinaturas"
 const { getMp, syncPreapproval, crypto, wrap, body } = require("../lib/server");
 
 function assinaturaOk(req, secret, dataId) {
@@ -25,10 +25,18 @@ module.exports = wrap(async (req, res) => {
   if (type.includes("subscription_preapproval") && !type.includes("plan")) {
     await syncPreapproval(String(dataId));
   } else if (type.includes("authorized_payment")) {
-    // cobrança mensal: busca a assinatura ligada e atualiza a próxima data
-    const { mp } = require("../lib/server");
+    // cobrança mensal: busca a assinatura ligada, atualiza a próxima data e anota se o pagamento foi aprovado
+    const { mp, subRef } = require("../lib/server");
     const ap = await mp("/authorized_payments/" + encodeURIComponent(dataId));
-    if (ap.preapproval_id) await syncPreapproval(String(ap.preapproval_id));
+    if (ap.preapproval_id) {
+      const r = await syncPreapproval(String(ap.preapproval_id));
+      if (r && r.uid) {
+        const pay = ap.payment || {}, upd = { updatedAt: Date.now() };
+        if (ap.status === "processed" && pay.status === "approved") { upd.lastPaidAt = Date.parse(ap.last_modified || ap.debit_date) || Date.now(); upd.failCount = 0; }
+        else if (ap.status === "recycling" || ["rejected", "cancelled"].includes(pay.status)) { upd.lastFailAt = Date.now(); upd.failCount = (Number(r.failCount) || 0) + 1; }
+        await subRef(r.uid).set(upd, { merge: true });
+      }
+    }
   }
   res.status(200).json({ ok: true });
 });
