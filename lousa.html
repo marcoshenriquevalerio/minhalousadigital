@@ -11801,17 +11801,27 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       try { if (sessionStorage.getItem(key)) return; } catch (e) {}   // fechou nesta visita; volta na próxima
       remove();
       const exp = b.k === 'expired', urgent = exp || b.left <= 1;
-      const title = exp ? 'Assinatura Pro suspensa por falta de pagamento' : b.pending ? 'Conclua o pagamento da sua assinatura Pro' : 'Pagamento do Pro pendente';
-      const msg = exp
+      let title = exp ? 'Assinatura Pro suspensa por falta de pagamento' : b.pending ? 'Conclua o pagamento da sua assinatura Pro' : 'Pagamento do Pro pendente';
+      let msg = exp
         ? 'Passaram os 5 dias de tolerância sem pagamento, então sua conta voltou ao plano Grátis. Tudo o que você criou continua salvo. Pague para reativar o Pro.'
         : (b.pending ? 'Sua assinatura ainda não foi paga. ' : 'Sua cobrança de ' + fmt(b.due) + ' ainda não foi paga. ')
           + 'Pague até <b>' + fmt(b.limit) + '</b> (' + (b.left <= 0 ? 'último dia' : 'faltam ' + b.left + (b.left === 1 ? ' dia' : ' dias')) + ') para sua assinatura não ser cancelada.';
+      if (b.pix) {   // Pix: não renova sozinho, avisa antes de vencer
+        title = exp ? 'Seu Pro por Pix venceu' : 'Seu Pro por Pix vence em breve';
+        msg = exp ? 'O período pago por Pix terminou e sua conta voltou ao plano Grátis. Tudo o que você criou continua salvo. Pague com Pix ou cartão para reativar o Pro.'
+          : 'Seu Pro está pago até <b>' + fmt(b.limit) + '</b> (' + (b.left <= 0 ? 'vence hoje' : 'faltam ' + b.left + (b.left === 1 ? ' dia' : ' dias')) + '). Renove com Pix ou cartão para continuar sem interrupção.';
+      }
       const el = document.createElement('div');
       el.id = 'payBar'; el.setAttribute('role', 'alert');
       el.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9600;width:min(560px,calc(100vw - 20px));display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;color:#fff;box-shadow:0 12px 34px rgba(0,0,0,.55);font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:1.35;border:1px solid rgba(255,255,255,.25);background:' + (urgent ? 'linear-gradient(135deg,#b91c1c,#7f1d1d)' : 'linear-gradient(135deg,#d97706,#92400e)');
       el.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="font-size:22px;flex:none"></i><div style="flex:1;min-width:0"><b style="display:block;font-size:14px;margin-bottom:2px">' + title + '</b>' + msg + '</div>'
-        + '<a href="' + (s.initPoint || s.payUrl || PAGAR) + '" target="_blank" rel="noopener" style="flex:none;background:#fff;color:#111;font-weight:700;padding:8px 12px;border-radius:10px;text-decoration:none">Pagar agora</a>'
+        + '<a href="#" data-go style="flex:none;background:#fff;color:#111;font-weight:700;padding:8px 12px;border-radius:10px;text-decoration:none">Pagar agora</a>'
         + '<button type="button" aria-label="Fechar aviso" style="flex:none;background:none;border:0;color:#fff;font-size:20px;line-height:1;cursor:pointer;opacity:.8">&times;</button>';
+      el.querySelector('[data-go]').onclick = (ev) => {   // paga dentro do próprio site (Pix ou cartão), sem abrir outra aba
+        ev.preventDefault();
+        const url = 'login.html?plano=pro&renovar=1';
+        if (top !== self) parent.postMessage({ type: 'lousa-go', url }, location.origin); else location.href = url;
+      };
       el.querySelector('button').onclick = () => { try { sessionStorage.setItem(key, '1'); } catch (e) {} el.remove(); };
       document.body.appendChild(el);
     }
@@ -11820,6 +11830,13 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       try {
         const st = await FB.status(force);
         if (!st || st.admin || st.owner) { remove(); return; }
+        const sb = st.sub || {};
+        if (sb.method === 'pix' && sb.pixUntil && !sb.manual) {
+          const DAYMS = 864e5, left = Math.ceil((sb.pixUntil - Date.now()) / DAYMS);
+          if (left > 5) { remove(); return; }
+          show({ k: left > 0 || sb.pixUntil > Date.now() ? 'grace' : 'expired', pix: true, limit: sb.pixUntil, left: Math.max(0, left) }, sb);
+          return;
+        }
         show(FB.billing(st.sub), st.sub || {});
       } catch (e) { console.warn('aviso de pagamento:', e); }
     }

@@ -213,7 +213,7 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
    <div class="box" style="max-width:640px">
     <h2>Endereço de avisos (webhook)</h2><p class="h">Cadastre este endereço no Mercado Pago para o acesso ser liberado ou cortado sozinho quando uma assinatura mudar.</p>
     <div class="cp"><input id="wu" readonly><button class="btn" id="cu" type="button">Copiar</button></div>
-    <ol class="how" style="margin-top:14px"><li>Abra Suas integrações e escolha sua aplicação.</li><li>Vá em Webhooks e cole o endereço acima.</li><li>Marque o evento Planos e assinaturas e salve.</li></ol>
+    <ol class="how" style="margin-top:14px"><li>Abra Suas integrações e escolha sua aplicação.</li><li>Vá em Webhooks e cole o endereço acima.</li><li>Marque os eventos Planos e assinaturas, Pagamentos recorrentes de assinaturas e <b>Pagamentos</b> (este confirma os Pix) e salve.</li></ol>
    </div>
   </section>
 
@@ -318,8 +318,10 @@ $('ub').onclick=rowAct;$('sb').onclick=rowAct;$('mb').onclick=rowAct;
 
 
 /* assinantes pro: quem paga de verdade, entrada, próxima cobrança e tolerância */
+const isPix=u=>u.sub&&u.sub.method==='pix';
 function bsit(u){
  const b=FB.billing(u.sub),s=u.sub;
+ if(isPix(u))return u.pro?'<span class="pill g">Pix · pago até '+dt(s.pixUntil)+'</span>':'<span class="pill r">Pix vencido em '+dt(s.pixUntil)+'</span>';
  if(b.k==='ok')return '<span class="pill g">Em dia</span>';
  if(b.k==='grace')return b.pending?'<span class="pill a">Aguardando 1º pagamento · até '+dt(b.limit)+'</span>':'<span class="pill a">Atrasado '+b.late+(b.late===1?' dia':' dias')+' · tolerância até '+dt(b.limit)+'</span>';
  if(b.k==='expired')return '<span class="pill r">Vencido há '+b.late+(b.late===1?' dia':' dias')+' · sem pagamento</span>';
@@ -332,16 +334,16 @@ function subs(){
  const paid=D.users.filter(u=>!u.admin&&u.sub&&!u.sub.manual&&(['authorized','pending','paused'].includes(u.sub.status)||(u.sub.status==='cancelled'&&(u.pro||(u.sub.cancelReason==='unpaid'&&Date.now()-(u.sub.cancelledAt||0)<30*864e5)))));
  const manual=D.users.filter(u=>!u.admin&&u.sub&&u.sub.manual);
  let ok=0,gr=0,ex=0,mrr=0;
- paid.forEach(u=>{const k=FB.billing(u.sub).k;if(k==='ok')ok++;else if(k==='grace')gr++;else if(k==='expired')ex++;else if(k==='cancelled'&&u.sub.cancelReason==='unpaid')ex++;
+ paid.forEach(u=>{const k=isPix(u)?(u.pro?'ok':'expired'):FB.billing(u.sub).k;if(k==='ok')ok++;else if(k==='grace')gr++;else if(k==='expired')ex++;else if(k==='cancelled'&&u.sub.cancelReason==='unpaid')ex++;
   if(k==='ok'||k==='grace')mrr+=Number(u.sub.amount||0)});
  $('bMrr').textContent=money(mrr);$('bOk').textContent=ok;$('bGr').textContent=gr;$('bEx').textContent=ex;
  const rank={expired:0,grace:1,paused:2,ok:3,cancelled:4};
- const L=paid.filter(u=>!q||(u.email+' '+u.name).toLowerCase().includes(q)).sort((a,b)=>(rank[FB.billing(a.sub).k]-rank[FB.billing(b.sub).k])||((a.sub.nextPayment||0)-(b.sub.nextPayment||0)));
+ const L=paid.filter(u=>!q||(u.email+' '+u.name).toLowerCase().includes(q)).sort((a,b)=>(rank[isPix(a)?(a.pro?'ok':'expired'):FB.billing(a.sub).k]-rank[isPix(b)?(b.pro?'ok':'expired'):FB.billing(b.sub).k])||((a.sub.nextPayment||0)-(b.sub.nextPayment||0)));
  $('bCount').textContent=L.length+(L.length===1?' assinante':' assinantes');
  const who=u=>'<div class="u">'+av(u)+'<div><b>'+esc(u.name||u.email)+'</b><small>'+esc(u.email)+'</small></div></div>';
  $('sb').innerHTML=L.map(u=>{const s=u.sub,b=FB.billing(s),btns=[];
   if(s.preapprovalId&&(s.status==='authorized'||s.status==='paused'||s.status==='pending'))btns.push('<button class="btn s d" data-a="cancel" data-id="'+u.uid+'">Cancelar assinatura</button>');
-  const nx=b.k==='cancelled'?'-':(s.nextPayment?dt(s.nextPayment)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">cobrança automática</small>':'-');
+  const nx=isPix(u)?dt(s.pixUntil)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">renovação por Pix (manual)</small>':b.k==='cancelled'?'-':(s.nextPayment?dt(s.nextPayment)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">cobrança automática</small>':'-');
   return '<tr><td>'+who(u)+'</td><td>'+(b.entry?dt(b.entry):'-')+(b.lastPaid?'<br><small style="color:var(--mu)">último pagamento '+dt(b.lastPaid)+'</small>':'')+'</td><td>'+nx+'</td><td>'+bsit(u)+'</td><td><div class="acts">'+btns.join('')+'</div></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Ninguém está pagando o Pro ainda.</td></tr>';
  $('mb').innerHTML=manual.map(u=>'<tr><td>'+who(u)+'</td><td><span class="pill g">Pro liberado</span></td><td style="text-align:right"><button class="btn s" data-a="ungrant" data-id="'+u.uid+'">Remover Pro</button></td></tr>').join('')||'<tr><td class="empty">Você não liberou o Pro para ninguém.</td></tr>'}
 $('bq').oninput=subs;
