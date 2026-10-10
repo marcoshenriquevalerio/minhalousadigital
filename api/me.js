@@ -1,8 +1,13 @@
 // POST /api/me -> quem sou eu? sou admin? tenho acesso Pro? e como está meu pagamento?
-const { getUser, isAdminEmail, subRef, syncPreapproval, enforce, proActive, OWNER, wrap } = require("../lib/server");
+const { getUser, isAdminEmail, subRef, syncPreapproval, syncPix, db, enforce, proActive, OWNER, wrap } = require("../lib/server");
 module.exports = wrap(async (req, res) => {
   const u = await getUser(req);
   const admin = u.verified && (await isAdminEmail(u.email));
+  // Pix pago mas o aviso (webhook) ainda não chegou? Confere os Pix recentes direto no Mercado Pago.
+  try {
+    const pend = await db.collection("pixPayments").where("uid", "==", u.uid).where("applied", "==", false).get();
+    for (const d of pend.docs.slice(0, 3)) if (Date.now() - (d.data().createdAt || 0) < 3 * 864e5) await syncPix(d.id);
+  } catch (e) { console.warn("pix:", e.message); }
   let s = (await subRef(u.uid).get()).data() || null;
   // Voltou do checkout e o aviso (webhook) ainda não chegou? Confere direto no Mercado Pago.
   if (s && s.preapprovalId && s.status === "pending") {
@@ -14,7 +19,7 @@ module.exports = wrap(async (req, res) => {
     admin, owner: u.email === OWNER,
     pro: admin || proActive(s),
     sub: s ? {
-      status: s.status, nextPayment: s.nextPayment || 0, amount: s.amount || 0, manual: !!s.manual,
+      status: s.status, method: s.method || "", pixUntil: s.pixUntil || 0, nextPayment: s.nextPayment || 0, amount: s.amount || 0, manual: !!s.manual,
       startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0,
       initPoint: s.status === "pending" ? (s.initPoint || "") : ""
     } : null

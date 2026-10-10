@@ -1,7 +1,7 @@
 // Mercado Pago -> POST /api/webhook : avisa quando a assinatura é autorizada, pausada, cancelada etc.
 // Cadastre em: Mercado Pago > Suas integrações > (sua aplicação) > Webhooks
 //   URL: https://minhalousadigital.vercel.app/api/webhook   Eventos: "Planos e assinaturas" e "Pagamentos recorrentes de assinaturas"
-const { getMp, syncPreapproval, crypto, wrap, body } = require("../lib/server");
+const { getMp, syncPreapproval, syncPix, crypto, wrap, body } = require("../lib/server");
 
 function assinaturaOk(req, secret, dataId) {
   const sig = String(req.headers["x-signature"] || "");
@@ -22,7 +22,9 @@ module.exports = wrap(async (req, res) => {
   const { webhookSecret } = await getMp();
   if (webhookSecret && !assinaturaOk(req, webhookSecret, dataId)) return res.status(401).json({ error: "Assinatura inválida." });
 
-  if (type.includes("subscription_preapproval") && !type.includes("plan")) {
+  if (type === "payment") {
+    await syncPix(String(dataId));   // ignora pagamentos que não são Pix gerados pelo site
+  } else if (type.includes("subscription_preapproval") && !type.includes("plan")) {
     await syncPreapproval(String(dataId));
   } else if (type.includes("authorized_payment")) {
     // cobrança mensal: busca a assinatura ligada, atualiza a próxima data e anota se o pagamento foi aprovado
@@ -32,7 +34,7 @@ module.exports = wrap(async (req, res) => {
       const r = await syncPreapproval(String(ap.preapproval_id));
       if (r && r.uid) {
         const pay = ap.payment || {}, upd = { updatedAt: Date.now() };
-        if (ap.status === "processed" && pay.status === "approved") { upd.lastPaidAt = Date.parse(ap.last_modified || ap.debit_date) || Date.now(); upd.failCount = 0; }
+        if (ap.status === "processed" && pay.status === "approved") { if (r.needsPay) { upd.needsPay = false; upd.status = "authorized"; upd.startedAt = r.startedAt || Date.now(); } upd.lastPaidAt = Date.parse(ap.last_modified || ap.debit_date) || Date.now(); upd.failCount = 0; }
         else if (ap.status === "recycling" || ["rejected", "cancelled"].includes(pay.status)) { upd.lastFailAt = Date.now(); upd.failCount = (Number(r.failCount) || 0) + 1; }
         await subRef(r.uid).set(upd, { merge: true });
       }

@@ -25,7 +25,7 @@ async function listAll() {
       lastSeen: u.metadata.lastRefreshTime ? Date.parse(u.metadata.lastRefreshTime) : 0,
       disabled: !!u.disabled,
       admin: email === OWNER || admins.includes(email),
-      sub: s ? { status: s.status || "", amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "", startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, cancelReason: s.cancelReason || "", cancelledAt: s.cancelledAt || 0 } : null,
+      sub: s ? { status: s.status || "", method: s.method || "", pixUntil: s.pixUntil || 0, amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "", startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, cancelReason: s.cancelReason || "", cancelledAt: s.cancelledAt || 0 } : null,
       pro: proActive(s)
     };
   });
