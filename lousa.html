@@ -1237,7 +1237,6 @@
     <div id="stickerTabs" class="flex gap-1 overflow-x-auto pb-1.5"></div>
     <div id="stickerTitle" class="text-[11px] font-semibold text-amber-200/80 px-1 pb-1"></div>
     <div id="stickerGrid" class="grid gap-1 overflow-y-auto pr-0.5" style="height:216px;align-content:start"></div>
-    <label class="flex items-center gap-2 mt-2 px-1 text-[12px] text-amber-100 cursor-pointer select-none"><input type="checkbox" id="stkAnimChk" onchange="setStkAnim(this.checked)" style="accent-color:#fcd34d"> ✨ Animar adesivos (rostos ganham vida)</label>
     <div id="stickerFreeRow" class="flex gap-1.5 mt-2">
       <input id="stickerFreeInput" type="text" placeholder="Digite ou cole qualquer emoji" onkeydown="if(event.key==='Enter') createFreeEmoji()" class="flex-1 min-w-0 bg-stone-900/80 border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-sm text-stone-100 focus:outline-none focus:border-amber-400">
       <button onclick="createFreeEmoji()" class="px-3 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-sm font-bold transition" title="Criar adesivo"><i class="fa-solid fa-plus"></i></button>
@@ -4805,7 +4804,6 @@
       }
       grid.scrollTop = 0;
       byId('stickerFreeRow').style.display = isMine ? 'none' : 'flex';
-      { const ck = byId('stkAnimChk'); if (ck) ck.checked = !!appData.stkAnim; }
       hydrateImages();
     }
 
@@ -5071,7 +5069,52 @@
 .fb-wobble{animation:fbWob .3s ease-in-out infinite alternate}
 @keyframes fbWob{from{transform:translateY(0) scaleX(.97)}to{transform:translateY(1px) scaleX(1.03)}}
 .fb-hmm{animation:fbHmm 3s ease-in-out infinite}
-@keyframes fbHmm{0%,100%{transform:translateX(-2px)}50%{transform:translateX(3px)}}`;
+@keyframes fbHmm{0%,100%{transform:translateX(-2px)}50%{transform:translateX(3px)}}
+/* pausas: o rosto fica parado um tempo e depois se mexe */
+.fb-idle{animation:fbIdle 6.5s ease-in-out infinite}
+@keyframes fbIdle{0%,60%,100%{transform:rotate(0) translateY(0)}18%{transform:rotate(-2.2deg) translateY(-1px)}38%{transform:rotate(2.2deg) translateY(-1.5px)}}
+.fb-hop{animation:fbHop 4s ease-in-out infinite}
+@keyframes fbHop{0%,45%,100%{transform:translateY(0)}20%{transform:translateY(-2.4px)}}
+.fb-squeeze{animation:fbSq 2.6s ease-in-out infinite}
+@keyframes fbSq{0%{transform:scale(1)}8.3%{transform:scale(.86,.9)}16.7%{transform:scale(1)}25.0%{transform:scale(.86,.9)}33.3%{transform:scale(1)}41.7%{transform:scale(.86,.9)}50.0%{transform:scale(1)}50.1%,100%{transform:scale(1)}}
+.fb-beat{animation:fbBeat 2.8s ease-in-out infinite}
+@keyframes fbBeat{0%,50%,100%{transform:scale(1)}8%{transform:scale(1.2)}16%{transform:scale(.95)}25%{transform:scale(1.15)}35%{transform:scale(1)}}
+.fb-twinkle{animation:fbTwk 3.2s ease-in-out infinite}
+@keyframes fbTwk{0%,55%,100%{transform:scale(1) rotate(0)}25%{transform:scale(1.22) rotate(14deg)}}
+.fb-roll{animation:fbRoll 4.4s ease-in-out infinite}.fb-roll2{animation:fbRoll 3.2s ease-in-out infinite reverse}
+@keyframes fbRoll{0%,75%,100%{transform:translate(0,-3.4px)}15%{transform:translate(3.4px,0)}30%{transform:translate(0,3.4px)}45%{transform:translate(-3.4px,0)}60%{transform:translate(0,-3.4px)}}
+.fb-smile{animation:fbSmile 3.6s ease-in-out infinite}
+@keyframes fbSmile{0%,55%,100%{transform:scale(1,1)}25%{transform:scale(1.08,1.18)}}
+.fb-talk{animation:fbTalk 3.4s ease-in-out infinite}
+@keyframes fbTalk{0%,50%,100%{transform:scale(1,1)}12%{transform:scale(1.04,1.16)}24%{transform:scale(1,1.02)}36%{transform:scale(1.03,1.12)}}
+.fb-laugh{animation:fbLaugh 2.8s linear infinite;animation-direction:normal}
+@keyframes fbLaugh{0%{transform:scale(1,.95)}5.5%{transform:scale(1,.76)}11.0%{transform:scale(1.04,1.1)}16.5%{transform:scale(1,.76)}22.0%{transform:scale(1.04,1.1)}27.5%{transform:scale(1,.76)}33.0%{transform:scale(1.04,1.1)}38.5%{transform:scale(1,.76)}44.0%{transform:scale(1.04,1.1)}49.5%{transform:scale(1,.76)}55.0%{transform:scale(1.04,1.1)}55.1%,100%{transform:scale(1,.95)}}
+.fb-rock{animation:fbRock 2.8s ease-in-out infinite}
+@keyframes fbRock{0%{transform:rotate(0)}5.5%{transform:rotate(-8deg) translateY(1px)}11.0%{transform:rotate(8deg) translateY(-2px)}16.5%{transform:rotate(-8deg) translateY(1px)}22.0%{transform:rotate(8deg) translateY(-2px)}27.5%{transform:rotate(-8deg) translateY(1px)}33.0%{transform:rotate(8deg) translateY(-2px)}38.5%{transform:rotate(-8deg) translateY(1px)}44.0%{transform:rotate(8deg) translateY(-2px)}49.5%{transform:rotate(-8deg) translateY(1px)}55.0%{transform:rotate(8deg) translateY(-2px)}55.1%,100%{transform:rotate(0)}}
+.fb-shake{animation:fbShake 2s linear infinite}
+@keyframes fbShake{0%{transform:translate(0,0)}3.1%{transform:translate(-1.6px,0)}6.2%{transform:translate(1.6px,-1px)}9.4%{transform:translate(-1.6px,0)}12.5%{transform:translate(1.6px,-1px)}15.6%{transform:translate(-1.6px,0)}18.8%{transform:translate(1.6px,-1px)}21.9%{transform:translate(-1.6px,0)}25.0%{transform:translate(1.6px,-1px)}28.1%{transform:translate(-1.6px,0)}31.2%{transform:translate(1.6px,-1px)}34.4%{transform:translate(-1.6px,0)}37.5%{transform:translate(1.6px,-1px)}40.6%{transform:translate(-1.6px,0)}43.8%{transform:translate(1.6px,-1px)}46.9%{transform:translate(-1.6px,0)}50.0%{transform:translate(1.6px,-1px)}50.1%,100%{transform:translate(0,0)}}
+.fb-quiver{animation:fbQuiv 2.4s linear infinite}
+@keyframes fbQuiv{0%{transform:translateX(0)}3.8%{transform:translateX(-.9px)}7.5%{transform:translateX(.9px)}11.2%{transform:translateX(-.9px)}15.0%{transform:translateX(.9px)}18.8%{transform:translateX(-.9px)}22.5%{transform:translateX(.9px)}26.2%{transform:translateX(-.9px)}30.0%{transform:translateX(.9px)}33.8%{transform:translateX(-.9px)}37.5%{transform:translateX(.9px)}41.2%{transform:translateX(-.9px)}45.0%{transform:translateX(.9px)}45.1%,100%{transform:translateX(0)}}
+.fb-kiss{animation:fbKiss 3.4s ease-in-out infinite}
+@keyframes fbKiss{0%,70%,100%{transform:scale(1)}12%{transform:scale(1.28,1.2) translateX(1.5px)}24%{transform:scale(1)}36%{transform:scale(1.24,1.16) translateX(1px)}48%{transform:scale(1)}}
+.fb-heartfly{animation:fbHF 3.4s ease-out infinite}
+@keyframes fbHF{0%{transform:translate(0,0) scale(.2);opacity:0}8%{opacity:1}42%{transform:translate(20px,-24px) scale(1);opacity:1}58%{transform:translate(30px,-36px) scale(1.15);opacity:0}100%{transform:translate(30px,-36px) scale(1.15);opacity:0}}
+.fb-tongue{animation:fbTng 2.6s ease-in-out infinite}
+@keyframes fbTng{0%{transform:translateY(0) scale(1,.95)}8.3%{transform:translateY(2.5px) scale(1,1.12)}16.7%{transform:translateY(0) scale(1,.9)}25.0%{transform:translateY(2.5px) scale(1,1.12)}33.3%{transform:translateY(0) scale(1,.9)}41.7%{transform:translateY(2.5px) scale(1,1.12)}50.0%{transform:translateY(0) scale(1,.9)}50.1%,100%{transform:translateY(0) scale(1,.95)}}
+.fb-lick{animation:fbLick 3.4s ease-in-out infinite}
+@keyframes fbLick{0%,60%,100%{transform:rotate(0) scale(.8)}30%{transform:rotate(-28deg) scale(1.15)}}
+.fb-scream{animation:fbScr 1.8s linear infinite}
+@keyframes fbScr{0%{transform:scale(1,1)}7.5%{transform:scale(1.1,1.15)}15.0%{transform:scale(1,.85)}22.5%{transform:scale(1.1,1.15)}30.0%{transform:scale(1,.85)}37.5%{transform:scale(1.1,1.15)}45.0%{transform:scale(1,.85)}52.5%{transform:scale(1.1,1.15)}60.0%{transform:scale(1,.85)}60.1%,100%{transform:scale(1,1)}}
+.fb-wail{animation:fbWail 2.2s linear infinite}
+@keyframes fbWail{0%{transform:scale(1,1)}8.1%{transform:scale(1.06,1.2)}16.2%{transform:scale(.95,.8)}24.4%{transform:scale(1.06,1.2)}32.5%{transform:scale(.95,.8)}40.6%{transform:scale(1.06,1.2)}48.8%{transform:scale(.95,.8)}56.9%{transform:scale(1.06,1.2)}65.0%{transform:scale(.95,.8)}65.1%,100%{transform:scale(1,1)}}
+.fb-wobble{animation:fbWob 2.2s linear infinite}
+@keyframes fbWob{0%{transform:translateY(0)}5.0%{transform:translateY(1px) scaleX(1.03)}10.0%{transform:translateY(0) scaleX(.97)}15.0%{transform:translateY(1px) scaleX(1.03)}20.0%{transform:translateY(0) scaleX(.97)}25.0%{transform:translateY(1px) scaleX(1.03)}30.0%{transform:translateY(0) scaleX(.97)}35.0%{transform:translateY(1px) scaleX(1.03)}40.0%{transform:translateY(0) scaleX(.97)}45.0%{transform:translateY(1px) scaleX(1.03)}50.0%{transform:translateY(0) scaleX(.97)}50.1%,100%{transform:translateY(0)}}
+.fb-brow{animation:fbBrow 3s ease-in-out infinite}
+@keyframes fbBrow{0%,50%,100%{transform:translateY(0)}20%{transform:translateY(1.8px)}}
+.fb-O{animation:fbO 3.6s ease-in-out infinite}
+@keyframes fbO{0%,55%,100%{transform:scale(1)}25%{transform:scale(1.18,.9)}}
+.fb-pulse{animation:fbPul 4s ease-in-out infinite}
+`;
     const STK_BASE = '0 3px 4px rgba(0,0,0,.45)';
     function stkFilter(bd) {
       bd = Number(bd); if (!(bd >= 0)) bd = 2.5;
@@ -5099,7 +5142,7 @@
       if (T(/🎉|🎊|🎈|🥳|🎁|🪅/u)) return 'party';
       return 'bob';
     }
-    function stkAnimOn(note) { return note.kind !== 'img' && (note.anim !== undefined ? !!note.anim : !!appData.stkAnim); }
+    function stkAnimOn(note) { return note.kind !== 'img' && !!note.anim; }
     window.setStkAnim = function (on) { appData.stkAnim = !!on; saveData(); renderNotes(); };
     window.toggleStickerAnim = function (id) { const n = findNote(id); if (!n) return; n.anim = !stkAnimOn(n); saveData(); renderNotes(); };
     window.setStickerBorder = function (id, v, commit) {
