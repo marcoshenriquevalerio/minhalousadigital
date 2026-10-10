@@ -290,7 +290,9 @@ Object.assign(window.FB, {
     set: (sid, id, d) => setDoc(doc(db, "shared", sid, "rtc", id), d),
     update: (sid, id, d) => updateDoc(doc(db, "shared", sid, "rtc", id), d),
     del: (sid, id) => deleteDoc(doc(db, "shared", sid, "rtc", id)),
-    watch: (sid, id, cb) => onSnapshot(doc(db, "shared", sid, "rtc", id), (s) => cb(s.exists() ? s.data() : null), () => cb(null))
+    watch: (sid, id, cb) => onSnapshot(doc(db, "shared", sid, "rtc", id), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
+    // Voz: escuta TODOS os documentos de sinalização da lousa (presença "v_{uid}" e ligações "vc_{a}_{b}"); cb(lista de {id, ...dados})
+    watchAll: (sid, cb) => onSnapshot(collection(db, "shared", sid, "rtc"), (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => { console.warn("voz:", e); cb(null, e); })
   },
 
   // Imagens da lousa compartilhada
