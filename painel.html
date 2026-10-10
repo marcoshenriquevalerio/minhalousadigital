@@ -205,6 +205,7 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
    <div class="box" style="max-width:640px">
     <div class="row" style="margin-bottom:14px"><h2 style="margin:0">Conexão</h2><span class="pill" id="mpSt">...</span></div>
     <label class="f">Access Token<small>Mercado Pago > Seu negócio > Configurações > Credenciais > Credenciais de produção.</small><input id="mt" type="password" autocomplete="off" placeholder="APP_USR-..."></label>
+    <label class="f">Public Key<small>Mesma tela das credenciais. Ela libera o formulário de cartão dentro do site (a chave pública pode aparecer, não é secreta).</small><input id="mk" autocomplete="off" placeholder="APP_USR-..."></label>
     <label class="f">Chave secreta do webhook <small>(recomendado) Fica em Suas integrações > Webhooks > Configurar notificações.</small><input id="ms" type="password" autocomplete="off" placeholder="Cole aqui a assinatura secreta"></label>
     <div class="row"><button class="btn p" id="sm" type="button">Salvar chaves</button><button class="btn" id="tm" type="button">Testar conexão</button></div>
     <p class="sub" id="mpRes" style="margin:12px 0 0;font-size:14px"></p>
@@ -281,6 +282,7 @@ function render(){
  if(document.activeElement!==$('pv')&&document.activeElement!==$('pr')){$('pv').value=String(D.billing.price.toFixed(2)).replace('.',',');$('pr').value=D.billing.reason}
  $('mpSt').className='pill '+(M.hasToken?(M.live?'g':'a'):'r');$('mpSt').textContent=M.hasToken?(M.live?'Produção':'Chave de teste'):'Sem chave';
  $('mt').placeholder=M.hasToken?M.tokenMask+' (já salva, cole outra para trocar)':'APP_USR-...';
+ $('mk').value=M.publicKey||'';
  $('ms').placeholder=M.hasSecret?'•••••••• (já salva, cole outra para trocar)':'Cole aqui a assinatura secreta';
  $('wu').value=M.webhookUrl;
  team();
@@ -377,9 +379,9 @@ $('rpl').onclick=()=>{if(!confirm('Voltar os recursos ao padrão? Só vale depoi
 
 /* mercado pago */
 $('sm').onclick=async()=>{
- const a=$('mt').value.trim(),b=$('ms').value.trim();
- if(!a&&!b){toast('Cole uma chave para salvar.',true);return}
- const r=await run($('sm'),()=>call('saveMp',{accessToken:a,webhookSecret:b}),'Chaves salvas');
+ const a=$('mt').value.trim(),b=$('ms').value.trim(),k=$('mk').value.trim();
+ if(!a&&!b&&!k){toast('Cole uma chave para salvar.',true);return}
+ const r=await run($('sm'),()=>call('saveMp',{accessToken:a,webhookSecret:b,publicKey:k}),'Chaves salvas');
  if(r){$('mt').value='';$('ms').value='';load().catch(()=>{})}};
 $('tm').onclick=async()=>{$('mpRes').textContent='Testando...';
  try{const r=await call('testMp');$('mpRes').textContent='Conectado à conta '+(r.nickname||r.email||'do Mercado Pago')+'.'}

@@ -85,8 +85,10 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <h1 style="font-size:clamp(28px,5vw,36px)">Assinar o Pro</h1>
    <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
    <div class="sum"><span>Plano Pro, mensal</span><b data-price>R$ 19,90</b></div>
-   <p class="s" style="font-size:14px;margin-bottom:18px">Você paga no Mercado Pago (cartão ou saldo). A primeira cobrança é hoje e a renovação vem automática, todo mês nesta mesma data. Cancele quando quiser.</p>
-   <button class="btn" id="pay" type="button" style="width:100%">Continuar para o pagamento</button>
+   <p class="s" style="font-size:14px;margin-bottom:18px" id="payTxt">Pague com cartão de crédito aqui mesmo, sem sair do site. A primeira cobrança é hoje e a renovação vem automática, todo mês nesta mesma data. Cancele quando quiser.</p>
+   <div id="brickBox" style="text-align:left;margin-bottom:6px"></div>
+   <p class="hint" id="secure" hidden>🔒 Pagamento seguro processado pelo Mercado Pago. Os dados do cartão não passam pelo nosso servidor.</p>
+   <button class="btn" id="pay" type="button" style="width:100%" hidden>Continuar para o pagamento</button>
    <p class="msg" id="msg3" role="status"></p>
    <button class="lk" id="payBack" type="button">Voltar aos planos</button>
   </div>
@@ -120,9 +122,11 @@ $('gl').onclick=async()=>{
  if(!window.FB){say('msg','Aguarde um instante e tente de novo.');return}
  say('msg','');
  try{await FB.login()}catch(e){say('msg',authMsg(e))}};
+let PK='',PRICE=19.9,brick=null,brickLoading=false;
 const RETORNO=new URLSearchParams(location.search).get('retorno')==='1';
 const money=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
 fetch('/api/public').then(r=>r.json()).then(j=>{
+ if(j&&j.mpKey)PK=j.mpKey;if(j&&j.price)PRICE=Number(j.price);
  if(j&&j.price){document.querySelectorAll('[data-price]').forEach(e=>e.textContent=money(j.price));$('pPrice').textContent=money(j.price)+'/mês'}
  if(j&&j.cards){$('fSub').textContent=j.cards.free.join(', ');$('pSub').textContent=j.cards.pro.filter(t=>!/^Cancele/.test(t)).join(', ')}}).catch(()=>{});
 function sair(url){ // navega a página inteira (o endereço do site fica fixo)
@@ -139,7 +143,7 @@ addEventListener('fb-auth',async e=>{
  if(tier==='admin'){location.replace('painel.html');return}
  if(tier==='pro'||(tier==='free'&&want!=='pro')){location.replace(APP);return}
  $('hello').textContent='olá, '+String(u.name||'').split(' ')[0]+'!';
- show(want==='pro'?'vPay':'vPlans')});
+ show(want==='pro'?'vPay':'vPlans');if(want==='pro')montar()});
 /* depois do checkout: espera o Mercado Pago confirmar */
 async function confirmar(n){
  show('vWait');$('wb').hidden=true;$('wsp').hidden=false;$('wt').textContent='Confirmando seu pagamento';$('ws').textContent='Isso leva só alguns segundos...';
@@ -158,8 +162,35 @@ async function activate(plan,msgId){
  try{await FB.setPlan({status:'active',plan,source:'free'});location.replace(APP)}
  catch(err){console.error(err);show('vPlans');say(msgId,'Não foi possível concluir. Tente de novo.')}}
 $('pFree').onclick=()=>activate('free','msg2');
-$('pPro').onclick=()=>{say('msg3','');show('vPay')};
+$('pPro').onclick=()=>{say('msg3','');show('vPay');montar()};
 $('payBack').onclick=()=>show('vPlans');
+/* formulário de cartão dentro do próprio card (Mercado Pago Bricks) */
+function sdk(){return new Promise((ok,no)=>{if(window.MercadoPago)return ok();const s=document.createElement('script');s.src='https://sdk.mercadopago.com/js/v2';s.onload=ok;s.onerror=()=>no(new Error('Não foi possível carregar o formulário de pagamento.'));document.head.appendChild(s)})}
+async function montar(){
+ if(brick||brickLoading)return;
+ if(!PK){await new Promise(r=>setTimeout(r,1200))} // dá tempo de /api/public responder
+ if(!PK){$('pay').hidden=false;return} // sem chave pública: usa o checkout do Mercado Pago (modo antigo)
+ brickLoading=true;$('pay').hidden=true;
+ try{
+  await sdk();
+  const mp=new MercadoPago(PK,{locale:'pt-BR'});
+  brick=await mp.bricks().create('cardPayment','brickBox',{
+   initialization:{amount:PRICE,payer:{email:(who&&who.email)||''}},
+   customization:{
+    visual:{hideFormTitle:true,style:{theme:'dark',customVariables:{baseColor:'#9be3c0',formBackgroundColor:'transparent',borderRadiusMedium:'12px',borderRadiusLarge:'14px'}},texts:{formSubmit:'Assinar por '+money(PRICE)+'/mês'}},
+    paymentMethods:{maxInstallments:1,types:{excluded:['debit_card']}}},
+   callbacks:{
+    onReady:()=>{$('secure').hidden=false},
+    onError:e=>{console.error(e)},
+    onSubmit:async d=>{
+     say('msg3','');
+     try{
+      const r=await FB.api('subscribe',{token:d.token,email:d.payer&&d.payer.email});
+      if(r.already){location.replace(APP);return}
+      confirmar(0);
+     }catch(err){console.error(err);say('msg3',err.message||'Não foi possível concluir o pagamento.');throw err}}}});
+ }catch(err){console.error(err);brick=null;$('pay').hidden=false;say('msg3',err.message||'')}
+ brickLoading=false}
 $('pay').onclick=async()=>{
  const b=$('pay');b.disabled=true;say('msg3','');
  try{
