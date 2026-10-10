@@ -7402,6 +7402,7 @@
        WIDGETS (relógio, calendário do mês, dinossauro, cobra, jogo da velha) — peça 'widget' da lousa
        ========================================================================= */
     const WG_KINDS = {
+      weather:  { name: 'Clima',            icon: 'fa-cloud-sun',     w: 300, styles: ['Hoje', '7 dias', 'Por hora', 'Minimal'] },
       clock:    { name: 'Relógio',           icon: 'fa-clock',         w: 280, styles: ['Digital', 'Analógico', 'Com data', 'Minimal'] },
       calendar: { name: 'Calendário do mês', icon: 'fa-calendar-days', w: 300, styles: ['Dias pintados', 'Pontinhos', 'Próximos dias'] },
       dino:     { name: 'Dinossauro',        icon: 'fa-dragon',        w: 420, game: 1, styles: ['Branco', 'Amarelo', 'Rosa', 'Azul', 'Verde'] },
@@ -7454,9 +7455,191 @@
       n.ws = ((n.ws || 0) + 1) % WG_KINDS[n.wk].styles.length;
       saveData(); renderNotes();
     };
+    /* =========================================================================
+       CLIMA — widget em tempo real (Open-Meteo, sem chave) com ícones animados
+       ========================================================================= */
+    const WX_CLOUD = 'M20 46h26a9 9 0 0 0 1.5-17.9A13 13 0 0 0 22.3 26 10.5 10.5 0 0 0 20 46Z';
+    const WX_CACHE = {};
+    let wxUid = 0;
+    function wxInfo(code, day) {   // código WMO → { k: tipo de animação, t: descrição }
+      const c = Number(code);
+      if (c === 0) return { k: day ? 'sun' : 'moon', t: day ? 'Céu limpo' : 'Noite limpa' };
+      if (c === 1) return { k: day ? 'sun' : 'moon', t: 'Predomínio de sol' };
+      if (c === 2) return { k: day ? 'part' : 'pmoon', t: 'Parcialmente nublado' };
+      if (c === 3) return { k: 'cloud', t: 'Nublado' };
+      if (c === 45 || c === 48) return { k: 'fog', t: 'Neblina' };
+      if (c >= 51 && c <= 57) return { k: 'drizzle', t: 'Garoa' };
+      if (c >= 61 && c <= 65) return { k: 'rain', t: c === 61 ? 'Chuva fraca' : c === 63 ? 'Chuva' : 'Chuva forte' };
+      if (c === 66 || c === 67) return { k: 'rain', t: 'Chuva congelante' };
+      if (c >= 71 && c <= 77) return { k: 'snow', t: 'Neve' };
+      if (c >= 80 && c <= 82) return { k: 'rain', t: 'Pancadas de chuva' };
+      if (c === 85 || c === 86) return { k: 'snow', t: 'Pancadas de neve' };
+      if (c >= 95) return { k: 'storm', t: 'Tempestade' };
+      return { k: 'cloud', t: 'Nublado' };
+    }
+    function wxIcon(code, day, size) {
+      const mk = isMarker(), ink = wgInk(), sun = mk ? '#f59e0b' : '#fcd34d', rain = mk ? '#0284c7' : '#7dd3fc', moon = mk ? '#64748b' : '#f1f5f9';
+      const cf = mk ? '#e8eef5' : '#2b4d3b', cf2 = mk ? '#cbd5e1' : '#3a6350', info = wxInfo(code, day), id = 'wxm' + (++wxUid);
+      const cloud = (fill, tr, dl, op) => `<g transform="${tr || ''}" opacity="${op || 1}"><g class="wx-drift" style="animation-delay:${dl || 0}s"><path d="${WX_CLOUD}" fill="${fill || cf}" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/></g></g>`;
+      const rays = (cx, cy) => { let r = ''; for (let i = 0; i < 8; i++) r += `<line class="wx-ray" style="animation-delay:${(i * .3).toFixed(1)}s" x1="${cx}" y1="${cy - 17}" x2="${cx}" y2="${cy - 24}" stroke="${sun}" stroke-width="3" stroke-linecap="round" transform="rotate(${i * 45} ${cx} ${cy})"/>`; return r; };
+      const sunG = (tr) => `<g transform="${tr || ''}"><g class="wx-spin">${rays(32, 32)}</g><circle class="wx-pulse" cx="32" cy="32" r="11" fill="${sun}" stroke="${ink}" stroke-width="1.6" stroke-opacity=".55"/></g>`;
+      const moonG = (tr) => `<g transform="${tr || ''}"><mask id="${id}"><rect width="64" height="64" fill="#fff"/><circle cx="40" cy="26" r="12" fill="#000"/></mask><circle class="wx-pulse" cx="30" cy="34" r="15" fill="${moon}" mask="url(#${id})"/></g>`;
+      const stars = [[46, 14, 0], [52, 30, .8], [14, 12, 1.5]].map(s => `<circle class="wx-tw" style="animation-delay:${s[2]}s" cx="${s[0]}" cy="${s[1]}" r="1.8" fill="${moon}"/>`).join('');
+      const drops = (xs, col) => xs.map((x, i) => `<line class="wx-fall" style="animation-delay:${(i * .27).toFixed(2)}s" x1="${x}" y1="44" x2="${x - 3}" y2="51" stroke="${col || rain}" stroke-width="2.6" stroke-linecap="round"/>`).join('');
+      let g = '';
+      switch (info.k) {
+        case 'sun': g = sunG(); break;
+        case 'moon': g = moonG() + stars; break;
+        case 'part': g = sunG('translate(-5 -9) scale(.72)') + cloud(cf, 'translate(2 4)', 0); break;
+        case 'pmoon': g = moonG('translate(-6 -8) scale(.7)') + stars + cloud(cf, 'translate(2 4)', 0); break;
+        case 'cloud': g = cloud(cf2, 'translate(-8 -7) scale(.8)', 1.2, .85) + cloud(cf, 'translate(2 3)', 0); break;
+        case 'fog': g = cloud(cf, 'translate(1 -8) scale(.92)', 0) + [48, 54, 60].map((y, i) => `<line class="wx-slide" style="animation-delay:${i * .8}s;animation-duration:${3.4 + i * .9}s" x1="${14 + i * 3}" y1="${y}" x2="${46 + i * 2}" y2="${y}" stroke="${ink}" stroke-width="3" stroke-linecap="round" opacity=".75"/>`).join(''); break;
+        case 'drizzle': g = cloud(cf, 'translate(0 -6)', 0) + drops([25, 33, 41]).replace(/stroke-width="2.6"/g, 'stroke-width="1.8"'); break;
+        case 'rain': g = cloud(cf2, 'translate(0 -6)', 0) + drops([22, 29, 36, 43]); break;
+        case 'snow': g = cloud(cf, 'translate(0 -6)', 0) + [24, 32, 40, 28, 36].map((x, i) => `<circle class="wx-snow" style="animation-delay:${(i * .6).toFixed(1)}s" cx="${x}" cy="44" r="2" fill="${ink}"/>`).join(''); break;
+        case 'storm': g = cloud(mk ? '#cbd5e1' : '#243f31', 'translate(0 -7)', 0) + drops([21, 44]) + `<polygon class="wx-flash" points="34,38 26,52 32,52 29,63 41,47 35,47 38,38" fill="${sun}" stroke="${ink}" stroke-width="1" stroke-linejoin="round"/>`; break;
+        default: g = cloud(cf, '', 0);
+      }
+      return `<svg viewBox="0 0 64 64" style="width:${typeof size === 'number' ? size + 'px' : size};height:auto;display:block;overflow:visible" aria-hidden="true">${g}</svg>`;
+    }
+    const wxCss = `.wx-spin{transform-box:fill-box;transform-origin:center;animation:wxSpin 24s linear infinite}
+.wx-pulse{transform-box:fill-box;transform-origin:center;animation:wxPulse 3.4s ease-in-out infinite}
+.wx-ray{animation:wxRay 2.4s ease-in-out infinite}
+.wx-drift{animation:wxDrift 7s ease-in-out infinite alternate}
+.wx-fall{animation:wxFall 1.05s linear infinite;opacity:0}
+.wx-snow{animation:wxSnow 3.2s linear infinite;opacity:0}
+.wx-slide{animation:wxSlide 4s ease-in-out infinite alternate}
+.wx-flash{animation:wxFlash 3.2s infinite;opacity:.15}
+.wx-tw{animation:wxTw 2.6s ease-in-out infinite}
+@keyframes wxSpin{to{transform:rotate(360deg)}}
+@keyframes wxPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes wxRay{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes wxDrift{from{transform:translateX(-3px)}to{transform:translateX(3px)}}
+@keyframes wxFall{0%{transform:translate(2px,-5px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,11px);opacity:0}}
+@keyframes wxSnow{0%{transform:translate(0,-4px);opacity:0}20%{opacity:1}50%{transform:translate(3px,6px)}100%{transform:translate(-2px,16px);opacity:0}}
+@keyframes wxSlide{from{transform:translateX(-5px)}to{transform:translateX(6px)}}
+@keyframes wxFlash{0%,52%,60%,100%{opacity:.12}54%,58%{opacity:1}}
+@keyframes wxTw{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1.3)}}
+.wx-box{font-family:inherit;text-align:center;line-height:1.15}
+.wx-city{font-size:6.2cqw;opacity:.9;cursor:pointer;display:inline-flex;align-items:center;gap:1.5cqw}
+.wx-city:hover{opacity:1}
+.wx-day{display:grid;grid-template-columns:1.9fr 1fr 1.3fr 2.6fr;align-items:center;gap:2cqw;font-size:5.4cqw;padding:.8cqw 0;border-bottom:1px dashed rgba(255,255,255,.14)}
+.theme-marker .wx-day{border-bottom-color:rgba(15,23,42,.15)}
+.wx-bar{height:1.4cqw;border-radius:9px;background:rgba(255,255,255,.14);position:relative;overflow:hidden}
+.theme-marker .wx-bar{background:rgba(15,23,42,.12)}
+.wx-bar i{position:absolute;top:0;bottom:0;border-radius:9px;background:linear-gradient(90deg,#7dd3fc,#fcd34d)}
+.wx-btn{margin-top:2cqw;padding:1.4cqw 4cqw;border-radius:99px;border:1.5px dashed currentColor;font-size:5.4cqw}
+.wx-btn:hover{background:rgba(255,255,255,.1)}
+#wxCfg{position:fixed;inset:0;z-index:9997;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.62);backdrop-filter:blur(2px)}
+#wxCfg .wxc{width:min(94vw,380px);max-height:92vh;overflow:auto;border-radius:16px;padding:18px;color:#f1f4ea;background:radial-gradient(circle at 30% 0,#2c5a43,#1b3a2b 70%);border:3px solid #8a5a2b;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#wxCfg h3{font-size:20px;font-weight:700;margin-bottom:12px;color:#fde68a}
+#wxCfg label{display:block;font-size:12px;opacity:.8;margin:12px 0 4px}
+#wxCfg input[type=text]{width:100%;padding:9px 12px;border-radius:10px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.25);color:#fff;outline:none}
+#wxCfg .row{display:flex;gap:8px}
+#wxCfg button{padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#f1f4ea;font-size:13px}
+#wxCfg button:hover{background:rgba(255,255,255,.2)}
+#wxCfg button.pri{background:#d99a12;border-color:#fcd34d;color:#2b1d03;font-weight:700}
+#wxCfg .res{display:block;width:100%;text-align:left;margin-top:6px}
+#wxCfg .res.sel{background:rgba(134,239,172,.25);border-color:#86efac}
+#wxCfg .un button.on{background:#86efac;color:#10331f;border-color:#86efac;font-weight:700}
+#wxCfg .msg{font-size:12px;opacity:.8;margin-top:6px;min-height:16px}`;
+    function wxCfgOf(n) {
+      const d = (appData.wxPrefs || {});
+      return Object.assign({ name: '', lat: null, lon: null, unit: d.unit || 'c' }, n.wx || {});
+    }
+    async function wxLoad(c) {
+      const key = [c.lat, c.lon, c.unit].join('|'), hit = WX_CACHE[key];
+      if (hit && Date.now() - hit.t < 600000) return hit.d;
+      const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7&temperature_unit=${c.unit === 'f' ? 'fahrenheit' : 'celsius'}&wind_speed_unit=${c.unit === 'f' ? 'mph' : 'kmh'}`;
+      const r = await fetch(u); if (!r.ok) throw new Error('http ' + r.status);
+      const d = await r.json(); WX_CACHE[key] = { t: Date.now(), d }; return d;
+    }
+    function wxMount(b, n) {
+      if (!document.getElementById('wxCss')) { const st = document.createElement('style'); st.id = 'wxCss'; st.textContent = wxCss; document.head.appendChild(st); }
+      const s = n.ws || 0, c = wxCfgOf(n); let dead = false, iv = 0;
+      const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'], U = c.unit === 'f' ? '°F' : '°C', rd = (x) => Math.round(x);
+      const gear = `<span class="wx-city" data-wxcfg="1" title="Configurações de clima"><i class="fa-solid fa-location-dot"></i>${escapeHtml(c.name || 'Escolher cidade')}</span>`;
+      b.onclick = (e) => { if (e.target.closest('[data-wxcfg]')) wxOpenCfg(n.id); };
+      if (c.lat == null) {
+        b.innerHTML = `<div class="wx-box font-chalk" style="padding:3cqw 0">${wxIcon(2, true, '38%')}<div style="font-size:6.4cqw;margin-top:2cqw">Clima em tempo real</div><button class="wx-btn font-chalk" data-wxcfg="1"><i class="fa-solid fa-gear"></i> Escolher cidade</button></div>`;
+        return () => {};
+      }
+      const draw = (d) => {
+        const cu = d.current, day = !!cu.is_day, inf = wxInfo(cu.weather_code, day), dl = d.daily;
+        let h;
+        if (s === 1) {
+          const lo = Math.min(...dl.temperature_2m_min), hi = Math.max(...dl.temperature_2m_max), span = Math.max(1, hi - lo);
+          h = `<div class="wx-box font-chalk"><div>${gear}</div><div style="font-size:5.6cqw;opacity:.85;margin:1cqw 0 2cqw">Agora ${rd(cu.temperature_2m)}${U} · ${inf.t}</div>` + dl.time.map((t, i) => {
+            const p = t.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]), a = dl.temperature_2m_min[i], z = dl.temperature_2m_max[i], pr = dl.precipitation_probability_max[i];
+            return `<div class="wx-day"><span style="text-align:left">${i === 0 ? 'Hoje' : DIAS[dt.getDay()]}</span><span style="width:9cqw">${wxIcon(dl.weather_code[i], true, '100%')}</span><span style="color:${isMarker() ? '#0284c7' : '#7dd3fc'};font-size:4.6cqw">${pr != null ? '💧' + pr + '%' : ''}</span><span style="display:flex;align-items:center;gap:1.5cqw"><span style="opacity:.8">${rd(a)}°</span><span class="wx-bar" style="flex:1"><i style="left:${(a - lo) / span * 100}%;right:${100 - (z - lo) / span * 100}%"></i></span><b>${rd(z)}°</b></span></div>`;
+          }).join('') + `</div>`;
+        } else if (s === 2) {
+          const ht = d.hourly, st0 = ht.time.findIndex(x => x >= cu.time.slice(0, 13) + ':00'), at = Math.max(0, st0);
+          let hs = ''; for (let k = 0; k < 6; k++) { const i = at + k * 2; if (i >= ht.time.length) break; const hr = +ht.time[i].slice(11, 13), isD = hr >= 6 && hr < 18; hs += `<div style="flex:1;min-width:0"><div style="font-size:4.6cqw;opacity:.8">${k ? String(hr).padStart(2, '0') + 'h' : 'Agora'}</div><div style="width:78%;margin:0 auto">${wxIcon(ht.weather_code[i], isD, '100%')}</div><div style="font-size:5.4cqw">${rd(ht.temperature_2m[i])}°</div></div>`; }
+          h = `<div class="wx-box font-chalk"><div>${gear}</div><div style="display:flex;align-items:center;justify-content:center;gap:3cqw;margin:1cqw 0"><span style="width:26cqw">${wxIcon(cu.weather_code, day, '100%')}</span><span style="text-align:left"><span style="font-size:19cqw;line-height:1">${rd(cu.temperature_2m)}${U}</span><div style="font-size:5.6cqw;opacity:.9">${inf.t}</div></span></div><div style="display:flex;gap:1cqw;border-top:1px dashed rgba(255,255,255,.25);padding-top:2cqw;margin-top:1cqw">${hs}</div></div>`;
+        } else if (s === 3) {
+          h = `<div class="wx-box font-chalk" style="display:flex;align-items:center;justify-content:center;gap:4cqw"><span style="width:30cqw">${wxIcon(cu.weather_code, day, '100%')}</span><span style="text-align:left"><span style="font-size:22cqw;line-height:1">${rd(cu.temperature_2m)}°</span><div style="font-size:6cqw">${gear}</div></span></div>`;
+        } else {
+          h = `<div class="wx-box font-chalk"><div>${gear}</div><div style="width:46cqw;margin:0 auto">${wxIcon(cu.weather_code, day, '100%')}</div><div style="font-size:21cqw;line-height:1">${rd(cu.temperature_2m)}${U}</div><div style="font-size:7cqw;margin:1cqw 0 2cqw">${inf.t}</div><div style="display:flex;justify-content:center;flex-wrap:wrap;gap:1cqw 4cqw;font-size:5.2cqw;opacity:.9"><span>↑ ${rd(dl.temperature_2m_max[0])}°  ↓ ${rd(dl.temperature_2m_min[0])}°</span><span>sensação ${rd(cu.apparent_temperature)}°</span><span>💧 ${cu.relative_humidity_2m}%</span><span>💨 ${rd(cu.wind_speed_10m)} ${c.unit === 'f' ? 'mph' : 'km/h'}</span></div></div>`;
+        }
+        b.innerHTML = h;
+      };
+      const load = async () => {
+        try { const d = await wxLoad(c); if (!dead) draw(d); }
+        catch (e) { if (!dead && !b.querySelector('.wx-box')) b.innerHTML = `<div class="wx-box font-chalk" style="padding:4cqw 0;font-size:6cqw">Sem conexão com o clima<br><button class="wx-btn font-chalk" data-wxcfg="1">${escapeHtml(c.name)}</button></div>`; }
+      };
+      const hit = WX_CACHE[[c.lat, c.lon, c.unit].join('|')];
+      if (hit) draw(hit.d); else b.innerHTML = `<div class="wx-box font-chalk" style="padding:6cqw 0;font-size:6cqw;opacity:.8">Carregando clima…</div>`;
+      load(); iv = setInterval(load, 300000);
+      return () => { dead = true; clearInterval(iv); };
+    }
+    window.wxOpenCfg = function (id) {
+      const n = findNote(id); if (!n) return;
+      if (!document.getElementById('wxCss')) { const st = document.createElement('style'); st.id = 'wxCss'; st.textContent = wxCss; document.head.appendChild(st); }
+      const old = document.getElementById('wxCfg'); if (old) old.remove();
+      const cur = wxCfgOf(n); let pick = cur.lat != null ? { name: cur.name, lat: cur.lat, lon: cur.lon } : null, unit = cur.unit;
+      const el = document.createElement('div'); el.id = 'wxCfg';
+      el.innerHTML = `<div class="wxc font-chalk"><h3><i class="fa-solid fa-cloud-sun"></i> Configurações de clima</h3>
+        <label>Cidade</label><div class="row"><input type="text" id="wxQ" placeholder="Ex.: Campinas, São Paulo, Lisboa…" value=""><button id="wxGo">Buscar</button></div>
+        <button id="wxGeo" style="margin-top:8px"><i class="fa-solid fa-location-crosshairs"></i> Usar minha localização</button>
+        <div id="wxRes"></div><div class="msg" id="wxMsg">${pick ? 'Cidade atual: <b>' + escapeHtml(pick.name) + '</b>' : ''}</div>
+        <label>Temperatura</label><div class="row un"><button data-u="c">°C · Celsius</button><button data-u="f">°F · Fahrenheit</button></div>
+        <div class="row" style="justify-content:flex-end;margin-top:18px"><button id="wxCancel">Cancelar</button><button class="pri" id="wxSave">Salvar</button></div></div>`;
+      document.body.appendChild(el);
+      const q = (s) => el.querySelector(s), msg = (t) => { q('#wxMsg').innerHTML = t; };
+      const paintU = () => el.querySelectorAll('[data-u]').forEach(b => b.classList.toggle('on', b.dataset.u === unit)); paintU();
+      el.addEventListener('click', (e) => {
+        if (e.target === el || e.target.closest('#wxCancel')) el.remove();
+        const u = e.target.closest('[data-u]'); if (u) { unit = u.dataset.u; paintU(); }
+        const r = e.target.closest('.res'); if (r) { pick = JSON.parse(r.dataset.p); el.querySelectorAll('.res').forEach(x => x.classList.toggle('sel', x === r)); msg('Selecionada: <b>' + escapeHtml(pick.name) + '</b>'); }
+      });
+      const search = async () => {
+        const t = q('#wxQ').value.trim(); if (t.length < 2) return; msg('Buscando…');
+        try {
+          const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=pt&format=json&name=' + encodeURIComponent(t)), d = await r.json();
+          if (!d.results || !d.results.length) { q('#wxRes').innerHTML = ''; msg('Nenhuma cidade encontrada.'); return; }
+          q('#wxRes').innerHTML = d.results.map(x => { const nm = [x.name, x.admin1, x.country].filter(Boolean).join(', '); return `<button class="res" data-p='${escapeHtml(JSON.stringify({ name: nm, lat: x.latitude, lon: x.longitude }))}'>📍 ${escapeHtml(nm)}</button>`; }).join('');
+          msg('Toque na cidade desejada.');
+        } catch (e) { msg('Sem conexão para buscar a cidade.'); }
+      };
+      q('#wxGo').onclick = search; q('#wxQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); }); setTimeout(() => q('#wxQ').focus(), 50);
+      q('#wxGeo').onclick = () => {
+        if (!navigator.geolocation) { msg('Seu navegador não permite localização.'); return; } msg('Obtendo localização…');
+        navigator.geolocation.getCurrentPosition(async (p) => {
+          let nm = 'Minha localização';
+          try { const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=1&language=pt&name=${p.coords.latitude.toFixed(2)},${p.coords.longitude.toFixed(2)}`); } catch (e) {}
+          pick = { name: nm, lat: +p.coords.latitude.toFixed(4), lon: +p.coords.longitude.toFixed(4) }; msg('Usando <b>minha localização</b>.');
+        }, () => msg('Não foi possível obter a localização.'), { timeout: 10000 });
+      };
+      q('#wxSave').onclick = () => {
+        if (!pick) { msg('Escolha uma cidade primeiro.'); return; }
+        n.wx = { name: pick.name, lat: pick.lat, lon: pick.lon, unit }; appData.wxPrefs = { unit };
+        el.remove(); saveData(); renderNotes();
+      };
+    };
     function buildWidgetHtml(note) {
       const k = WG_KINDS[note.wk] || WG_KINDS.clock;
-      return `<div class="wg-card ${note.nb ? 'wg-nb' : ''}" id="wgc_${note.id}"><div class="wg-bar drag-handle"><span class="wg-title"><i class="fa-solid ${k.icon}"></i> ${k.name}</span><span class="wg-act">${k.game ? `<button onclick="wgSnd('${note.id}')" id="wgs_${note.id}" title="Música e sons: ligar/desligar"><i class="fa-solid ${note.snd ? 'fa-volume-high' : 'fa-volume-xmark'}"></i></button>` : ''}<button onclick="wgBorder('${note.id}')" title="Mostrar/ocultar a borda pontilhada"><i class="fa-solid fa-vector-square"></i></button>${k.styles.length > 1 ? `<button onclick="wgCycle('${note.id}')" title="Mudar o estilo">${k.styles[(note.ws || 0) % k.styles.length]} <i class="fa-solid fa-palette"></i></button>` : ''}<button onclick="deleteNote('${note.id}')" title="Remover"><i class="fa-solid fa-xmark"></i></button></span></div><div class="wg-body" id="wgb_${note.id}" tabindex="0"></div></div>${resizeHandlesHtml()}`;
+      return `<div class="wg-card ${note.nb ? 'wg-nb' : ''}" id="wgc_${note.id}"><div class="wg-bar drag-handle"><span class="wg-title"><i class="fa-solid ${k.icon}"></i> ${k.name}</span><span class="wg-act">${k.game ? `<button onclick="wgSnd('${note.id}')" id="wgs_${note.id}" title="Música e sons: ligar/desligar"><i class="fa-solid ${note.snd ? 'fa-volume-high' : 'fa-volume-xmark'}"></i></button>` : ''}${note.wk === 'weather' ? `<button onclick="wxOpenCfg('${note.id}')" title="Configurações de clima"><i class="fa-solid fa-gear"></i></button>` : ''}<button onclick="wgBorder('${note.id}')" title="Mostrar/ocultar a borda pontilhada"><i class="fa-solid fa-vector-square"></i></button>${k.styles.length > 1 ? `<button onclick="wgCycle('${note.id}')" title="Mudar o estilo">${k.styles[(note.ws || 0) % k.styles.length]} <i class="fa-solid fa-palette"></i></button>` : ''}<button onclick="deleteNote('${note.id}')" title="Remover"><i class="fa-solid fa-xmark"></i></button></span></div><div class="wg-body" id="wgb_${note.id}" tabindex="0"></div></div>${resizeHandlesHtml()}`;
     }
 
     /* =========================================================================
@@ -7546,6 +7729,7 @@
     }
 
     const WG_MOUNT = {
+      weather(b, n) { return wxMount(b, n); },
       clock(b, n) {
         const s = n.ws || 0, ink = wgInk(), p2 = (x) => String(x).padStart(2, '0');
         const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
