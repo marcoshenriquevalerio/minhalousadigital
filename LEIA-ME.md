@@ -35,3 +35,13 @@ Cancelamento: pelo painel (Usuários) ou pela conta da pessoa no Mercado Pago; o
 ## Painel
 Visão geral, usuários (liberar/remover Pro, cancelar assinatura, bloquear), valor da assinatura, chaves do Mercado Pago
 e equipe (autorizar outros e-mails). Só o dono altera as chaves e a equipe.
+
+## Cobrança, tolerância de 5 dias e cancelamento automático
+- Quem paga o Pro aparece no painel em **Assinantes Pro**, com data de entrada, próxima cobrança automática e situação.
+- Venceu e não pagou? A pessoa continua com o Pro por **5 dias de tolerância** e vê um aviso na lousa. Passou disso sem pagar, a assinatura é
+  cancelada no Mercado Pago e a conta volta para o plano Grátis (o que ela criou continua salvo). Quem comprou e nunca pagou também tem 5 dias.
+- Quem você liberou à mão (Liberar Pro) **nunca** é cobrado nem recebe aviso.
+- O sistema descobre sozinho se pagou: o Mercado Pago avisa o webhook a cada cobrança. No Mercado Pago (Webhooks) marque os DOIS eventos:
+  **Planos e assinaturas** e **Pagamentos recorrentes de assinaturas**.
+- `api/cron.js` roda todo dia (vercel.json) e cancela quem passou dos 5 dias. Opcional: crie `CRON_SECRET` na Vercel (qualquer texto longo)
+  para só a Vercel conseguir chamar essa rotina.

@@ -119,6 +119,7 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
   <nav id="nav">
    <button data-v="vGeral" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Visão geral</button>
    <button data-v="vUsers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 010 6.4M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg>Usuários</button>
+   <button data-v="vSubs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>Assinantes Pro</button>
    <button data-v="vPrice"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg>Assinatura</button>
    <button data-v="vPlans"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="1.8" fill="currentColor"/><circle cx="15" cy="12" r="1.8" fill="currentColor"/><circle cx="10" cy="17" r="1.8" fill="currentColor"/></svg>Recursos dos planos</button>
    <button data-v="vMp"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>Mercado Pago</button>
@@ -159,6 +160,24 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
     <thead><tr><th>Pessoa</th><th>Plano</th><th>Próxima cobrança</th><th>Último acesso</th><th></th></tr></thead>
     <tbody id="ub"></tbody></table></div>
    <p class="sub" id="uCount" style="margin:10px 2px 0;font-size:13px"></p>
+  </section>
+
+  <!-- ASSINANTES PRO (quem paga de verdade) -->
+  <section id="vSubs" hidden>
+   <h1>Assinantes Pro</h1><p class="sub">Só quem paga pelo Pro. Cada assinante tem 5 dias de tolerância depois do vencimento; passou disso sem pagar, o Pro é cancelado.</p>
+   <div class="cards">
+    <div class="st g"><small>Receita mensal</small><b id="bMrr">R$ 0,00</b></div>
+    <div class="st"><small>Em dia</small><b id="bOk">0</b></div>
+    <div class="st"><small>Em tolerância (5 dias)</small><b id="bGr">0</b></div>
+    <div class="st"><small>Sem pagamento (cancelados)</small><b id="bEx">0</b></div>
+   </div>
+   <div class="tools"><input id="bq" type="search" placeholder="Buscar assinante por nome ou e-mail" aria-label="Buscar assinante"></div>
+   <div class="tw"><table>
+    <thead><tr><th>Pessoa</th><th>Entrada</th><th>Próxima cobrança</th><th>Situação</th><th></th></tr></thead>
+    <tbody id="sb"></tbody></table></div>
+   <p class="sub" id="bCount" style="margin:10px 2px 24px;font-size:13px"></p>
+   <div class="box"><h2>Pro liberado por você</h2><p class="h">Esses não pagam e nunca recebem cobrança nem aviso de pagamento.</p>
+    <div class="tw"><table><tbody id="mb"></tbody></table></div></div>
   </section>
 
   <!-- ASSINATURA -->
@@ -242,7 +261,7 @@ function plano(u){
  if(u.admin)return '<span class="pill g">Administrador</span>';
  const s=u.sub;
  if(s&&s.manual)return '<span class="pill g">Pro (liberado)</span>';
- if(s&&s.status==='authorized')return '<span class="pill g">Pro ativo</span>';
+ if(s&&s.status==='authorized'){const b=FB.billing(s);return b.k==='grace'?'<span class="pill a">Pro · pagamento atrasado</span>':b.k==='expired'?'<span class="pill r">Pro vencido</span>':'<span class="pill g">Pro ativo</span>'}
  if(s&&s.status==='pending')return '<span class="pill a">Aguardando pagamento</span>';
  if(s&&s.status==='paused')return '<span class="pill a">Pausado</span>';
  if(s&&s.status==='cancelled')return u.pro?'<span class="pill a">Cancelado (vale até '+dt(s.nextPayment)+')</span>':'<span class="pill">Cancelado</span>';
@@ -258,7 +277,7 @@ function render(){
   [true,'Confira o valor da assinatura ('+money(D.billing.price)+' por mês)','vPrice']];
  $('steps').innerHTML=st.map(s=>'<div class="'+(s[0]?'ok':'')+'"><i>'+(s[0]?'✓':'')+'</i><span>'+(s[0]?esc(s[1]):'<button type="button" data-go="'+s[2]+'">'+esc(s[1])+'</button>')+'</span></div>').join('');
  $('recent').innerHTML=D.users.slice().sort((a,b)=>b.lastLogin-a.lastLogin).slice(0,6).map(u=>'<tr><td><div class="u">'+av(u)+'<div><b>'+esc(u.name||u.email)+'</b><small>'+esc(u.email)+'</small></div></div></td><td>'+plano(u)+'</td><td style="text-align:right;color:var(--mu)">'+ago(u.lastLogin)+'</td></tr>').join('')||'<tr><td class="empty">Ninguém entrou ainda.</td></tr>';
- users();
+ users();subs();
  if(document.activeElement!==$('pv')&&document.activeElement!==$('pr')){$('pv').value=String(D.billing.price.toFixed(2)).replace('.',',');$('pr').value=D.billing.reason}
  $('mpSt').className='pill '+(M.hasToken?(M.live?'g':'a'):'r');$('mpSt').textContent=M.hasToken?(M.live?'Produção':'Chave de teste'):'Sem chave';
  $('mt').placeholder=M.hasToken?M.tokenMask+' (já salva, cole outra para trocar)':'APP_USR-...';
@@ -285,7 +304,7 @@ function users(){
   }
   return '<tr><td><div class="u">'+av(u)+'<div><b>'+esc(u.name||u.email)+'</b><small>'+esc(u.email)+'</small></div></div></td><td>'+plano(u)+'</td><td>'+(s&&s.status==='authorized'?dt(s.nextPayment)+' · '+money(s.amount):'-')+'</td><td>'+((Date.now()-Math.max(u.lastSeen,u.lastLogin)<9e5)?'<span class="dot"></span>online':ago(u.lastLogin))+'</td><td><div class="acts">'+btns.join('')+'</div></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>'}
 $('q').oninput=users;$('fl').onchange=users;
-$('ub').onclick=async e=>{const b=e.target.closest('[data-a]');if(!b)return;
+const rowAct=async e=>{const b=e.target.closest('[data-a]');if(!b)return;
  const id=b.dataset.id,u=D.users.find(x=>x.uid===id),a=b.dataset.a,nm=u.name||u.email;
  const ops={grant:['grant',{on:true},'Pro liberado para '+nm],ungrant:['grant',{on:false},'Pro removido de '+nm],
   cancel:['cancelSub',{},'Assinatura cancelada'],off:['disableUser',{disabled:true},nm+' foi bloqueado'],on:['disableUser',{disabled:false},nm+' foi desbloqueado']};
@@ -293,6 +312,37 @@ $('ub').onclick=async e=>{const b=e.target.closest('[data-a]');if(!b)return;
  if(a==='cancel'&&!confirm('Cancelar a assinatura de '+nm+'? Novas cobranças serão interrompidas no Mercado Pago.'))return;
  if(a==='off'&&!confirm('Bloquear '+nm+'? A pessoa será desconectada e não consegue mais entrar.'))return;
  const r=await run(b,()=>call(o[0],Object.assign({uid:id},o[1])),o[2]);if(r)load().catch(()=>{})};
+$('ub').onclick=rowAct;$('sb').onclick=rowAct;$('mb').onclick=rowAct;
+
+
+/* assinantes pro: quem paga de verdade, entrada, próxima cobrança e tolerância */
+function bsit(u){
+ const b=FB.billing(u.sub),s=u.sub;
+ if(b.k==='ok')return '<span class="pill g">Em dia</span>';
+ if(b.k==='grace')return b.pending?'<span class="pill a">Aguardando 1º pagamento · até '+dt(b.limit)+'</span>':'<span class="pill a">Atrasado '+b.late+(b.late===1?' dia':' dias')+' · tolerância até '+dt(b.limit)+'</span>';
+ if(b.k==='expired')return '<span class="pill r">Vencido há '+b.late+(b.late===1?' dia':' dias')+' · sem pagamento</span>';
+ if(b.k==='paused')return '<span class="pill a">Pausado</span>';
+ if(b.k==='cancelled'&&s.cancelReason==='unpaid')return '<span class="pill r">Cancelado por falta de pagamento'+(s.cancelledAt?' · '+dt(s.cancelledAt):'')+'</span>';
+ if(b.k==='cancelled')return u.pro?'<span class="pill a">Cancelado (vale até '+dt(s.nextPayment)+')</span>':'<span class="pill">Cancelado</span>';
+ return '<span class="pill">-</span>'}
+function subs(){
+ const q=$('bq').value.trim().toLowerCase();
+ const paid=D.users.filter(u=>!u.admin&&u.sub&&!u.sub.manual&&(['authorized','pending','paused'].includes(u.sub.status)||(u.sub.status==='cancelled'&&(u.pro||(u.sub.cancelReason==='unpaid'&&Date.now()-(u.sub.cancelledAt||0)<30*864e5)))));
+ const manual=D.users.filter(u=>!u.admin&&u.sub&&u.sub.manual);
+ let ok=0,gr=0,ex=0,mrr=0;
+ paid.forEach(u=>{const k=FB.billing(u.sub).k;if(k==='ok')ok++;else if(k==='grace')gr++;else if(k==='expired')ex++;else if(k==='cancelled'&&u.sub.cancelReason==='unpaid')ex++;
+  if(k==='ok'||k==='grace')mrr+=Number(u.sub.amount||0)});
+ $('bMrr').textContent=money(mrr);$('bOk').textContent=ok;$('bGr').textContent=gr;$('bEx').textContent=ex;
+ const rank={expired:0,grace:1,paused:2,ok:3,cancelled:4};
+ const L=paid.filter(u=>!q||(u.email+' '+u.name).toLowerCase().includes(q)).sort((a,b)=>(rank[FB.billing(a.sub).k]-rank[FB.billing(b.sub).k])||((a.sub.nextPayment||0)-(b.sub.nextPayment||0)));
+ $('bCount').textContent=L.length+(L.length===1?' assinante':' assinantes');
+ const who=u=>'<div class="u">'+av(u)+'<div><b>'+esc(u.name||u.email)+'</b><small>'+esc(u.email)+'</small></div></div>';
+ $('sb').innerHTML=L.map(u=>{const s=u.sub,b=FB.billing(s),btns=[];
+  if(s.preapprovalId&&(s.status==='authorized'||s.status==='paused'||s.status==='pending'))btns.push('<button class="btn s d" data-a="cancel" data-id="'+u.uid+'">Cancelar assinatura</button>');
+  const nx=b.k==='cancelled'?'-':(s.nextPayment?dt(s.nextPayment)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">cobrança automática</small>':'-');
+  return '<tr><td>'+who(u)+'</td><td>'+(b.entry?dt(b.entry):'-')+(b.lastPaid?'<br><small style="color:var(--mu)">último pagamento '+dt(b.lastPaid)+'</small>':'')+'</td><td>'+nx+'</td><td>'+bsit(u)+'</td><td><div class="acts">'+btns.join('')+'</div></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Ninguém está pagando o Pro ainda.</td></tr>';
+ $('mb').innerHTML=manual.map(u=>'<tr><td>'+who(u)+'</td><td><span class="pill g">Pro liberado</span></td><td style="text-align:right"><button class="btn s" data-a="ungrant" data-id="'+u.uid+'">Remover Pro</button></td></tr>').join('')||'<tr><td class="empty">Você não liberou o Pro para ninguém.</td></tr>'}
+$('bq').oninput=subs;
 
 /* assinatura */
 $('sp').onclick=async()=>{const ap=$('pa').checked;

@@ -422,6 +422,30 @@ Object.assign(window.FB, {
     return FB._st;
   },
 
+  // Situação da cobrança de uma assinatura paga (Mercado Pago). Quem foi liberado à mão (manual) nunca é cobrado.
+  // k: none | manual | ok | grace (atrasado, dentro dos 5 dias) | expired (passou dos 5 dias) | paused | cancelled
+  billing(s, now) {
+    const DAY = 864e5, GRACE = 5 * DAY, SOFT = 12 * 36e5;   // 5 dias de tolerância; 12h de folga para o aviso do Mercado Pago chegar
+    now = now || Date.now();
+    if (!s) return { k: "none" };
+    if (s.manual) return { k: "manual" };
+    const due = Number(s.nextPayment) || 0;
+    const entry = Number(s.startedAt || s.createdAt || s.dateCreated || s.firstPayment || 0) || 0;
+    const out = { due, entry, amount: s.amount, lastPaid: Number(s.lastPaidAt) || 0 };
+    if (s.status === "cancelled") return Object.assign(out, { k: "cancelled" });
+    if (s.status === "pending") {   // comprou e ainda não pagou: 5 dias para pagar a partir da compra
+      const base = entry || due; if (!base) return Object.assign(out, { k: "grace", pending: true, left: 5 });
+      const limit = base + GRACE;
+      return Object.assign(out, now <= limit ? { k: "grace", pending: true, limit, left: Math.max(0, Math.ceil((limit - now) / DAY)) } : { k: "expired", pending: true, limit, late: Math.floor((now - base) / DAY) });
+    }
+    if (!due) return Object.assign(out, { k: s.status === "paused" ? "paused" : "ok" });
+    if (s.status === "authorized" && now <= due + SOFT) return Object.assign(out, { k: "ok" });
+    if (s.status === "authorized" && Number(s.lastPaidAt) >= due - SOFT) return Object.assign(out, { k: "ok" });   // pagamento deste ciclo já aprovado
+    if (s.status === "paused" && due > now) return Object.assign(out, { k: "paused" });
+    const limit = due + GRACE;   // a data da cobrança passou e o Mercado Pago ainda não registrou o pagamento
+    return Object.assign(out, now <= limit ? { k: "grace", limit, late: Math.max(0, Math.floor((now - due) / DAY)), left: Math.max(0, Math.ceil((limit - now) / DAY)) } : { k: "expired", limit, late: Math.floor((now - due) / DAY) });
+  },
+
   async getPlan() {
     const snap = await getDoc(doc(db, "users", uid(), "plan", "me"));
     return snap.exists() ? snap.data() : null;
@@ -437,7 +461,7 @@ Object.assign(window.FB, {
     let st = null;
     try { st = await FB.status(true); } catch (e) { console.warn("status:", e); }
     if (st && st.admin) return "admin";
-    if (st && st.pro) return "pro";
+    if (st && st.pro && FB.billing(st.sub).k !== "expired") return "pro";   // passou dos 5 dias sem pagar: volta para o grátis
     const plan = await FB.getPlan();
     if (plan && plan.status === "active") return "free"; // um "pro" gravado no navegador (demo antigo) não vale mais
     const main = await getDoc(mainRef());
