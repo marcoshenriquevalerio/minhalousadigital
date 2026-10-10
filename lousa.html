@@ -7545,7 +7545,7 @@
 #wxCfg .msg{font-size:12px;opacity:.8;margin-top:6px;min-height:16px}`;
     function wxCfgOf(n) {
       const d = (appData.wxPrefs || {});
-      return Object.assign({ name: '', lat: null, lon: null, unit: d.unit || 'c' }, n.wx || {});
+      return Object.assign({ name: '', lat: null, lon: null, unit: d.unit || 'c', showName: true }, n.wx || {});
     }
     async function wxLoad(c) {
       const key = [c.lat, c.lon, c.unit].join('|'), hit = WX_CACHE[key];
@@ -7558,7 +7558,7 @@
       if (!document.getElementById('wxCss')) { const st = document.createElement('style'); st.id = 'wxCss'; st.textContent = wxCss; document.head.appendChild(st); }
       const s = n.ws || 0, c = wxCfgOf(n); let dead = false, iv = 0;
       const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'], U = c.unit === 'f' ? '°F' : '°C', rd = (x) => Math.round(x);
-      const gear = `<span class="wx-city" data-wxcfg="1" title="Configurações de clima"><i class="fa-solid fa-location-dot"></i>${escapeHtml(c.name || 'Escolher cidade')}</span>`;
+      const gear = c.showName === false ? '' : `<span class="wx-city" data-wxcfg="1" title="Configurações de clima"><i class="fa-solid fa-location-dot"></i>${escapeHtml(c.name || 'Escolher cidade')}</span>`;
       b.onclick = (e) => { if (e.target.closest('[data-wxcfg]')) wxOpenCfg(n.id); };
       if (c.lat == null) {
         b.innerHTML = `<div class="wx-box font-chalk" style="padding:3cqw 0">${wxIcon(2, true, '38%')}<div style="font-size:6.4cqw;margin-top:2cqw">Clima em tempo real</div><button class="wx-btn font-chalk" data-wxcfg="1"><i class="fa-solid fa-gear"></i> Escolher cidade</button></div>`;
@@ -7603,6 +7603,7 @@
         <label>Cidade</label><div class="row"><input type="text" id="wxQ" placeholder="Ex.: Campinas, São Paulo, Lisboa…" value=""><button id="wxGo">Buscar</button></div>
         <button id="wxGeo" style="margin-top:8px"><i class="fa-solid fa-location-crosshairs"></i> Usar minha localização</button>
         <div id="wxRes"></div><div class="msg" id="wxMsg">${pick ? 'Cidade atual: <b>' + escapeHtml(pick.name) + '</b>' : ''}</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;opacity:1;font-size:14px"><input type="checkbox" id="wxShow" ${cur.showName === false ? '' : 'checked'} style="width:18px;height:18px;accent-color:#86efac"> Mostrar o nome da cidade no widget</label>
         <label>Temperatura</label><div class="row un"><button data-u="c">°C · Celsius</button><button data-u="f">°F · Fahrenheit</button></div>
         <div class="row" style="justify-content:flex-end;margin-top:18px"><button id="wxCancel">Cancelar</button><button class="pri" id="wxSave">Salvar</button></div></div>`;
       document.body.appendChild(el);
@@ -7633,7 +7634,7 @@
       };
       q('#wxSave').onclick = () => {
         if (!pick) { msg('Escolha uma cidade primeiro.'); return; }
-        n.wx = { name: pick.name, lat: pick.lat, lon: pick.lon, unit }; appData.wxPrefs = { unit };
+        n.wx = { name: pick.name, lat: pick.lat, lon: pick.lon, unit, showName: q('#wxShow').checked }; appData.wxPrefs = { unit };
         el.remove(); saveData(); renderNotes();
       };
     };
