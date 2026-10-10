@@ -518,6 +518,7 @@
     .sticker-img.sticker-png { border-radius: 0; overflow: visible; }
     .sticker-img.sticker-png img { object-fit: contain; }
     .sticker-img.sticker-png::after { display: none; }
+    .sticker-img[data-an] { animation: stkBob 2.8s ease-in-out infinite, stkSway 5s ease-in-out infinite; transform-origin: 50% 62%; }
     /* adesivos: contorno branco ajustável + animações */
     .stk-bd { display:inline-flex; align-items:center; gap:4px; padding:0 4px; font-size:11px; color:#fde68a; }
     .stk-bd input[type=range] { width:64px; height:4px; accent-color:#fcd34d; }
@@ -4897,7 +4898,8 @@
       '😱': { e: 'surprised', m: 'scream', b: 'up', r: 'shake' }, '😖': { e: 'squint', m: 'wobble', r: 'quiver' }, '😣': { e: 'squint', m: 'wobble' }, '😫': { e: 'squint', m: 'wail', r: 'quiver' }, '😩': { e: 'squint', m: 'wail' },
       '😤': { e: 'open', m: 'frown', b: 'angry', x: ['steam'] }, '😡': { e: 'open', m: 'frownTight', b: 'angry', tint: 'red', r: 'shake' }, '😠': { e: 'open', m: 'frownTight', b: 'angry', tint: 'red' },
       '😎': { e: 'shades', m: 'smile' }, '🥱': { e: 'closed', m: 'yawn' }, '☹': { e: 'open', m: 'frown', b: 'sad' }, '🙁': { e: 'open', m: 'frown', b: 'sad' }, '😕': { e: 'open', m: 'wavy', b: 'half' }, '😟': { e: 'open', m: 'frown', b: 'sad' },
-      '😓': { e: 'open', m: 'frown', b: 'sad', x: ['sweat'] }, '😵': { e: 'xx', m: 'wavy', r: 'spinHead' }, '🤯': { e: 'surprised', m: 'OBig', b: 'up', r: 'shake' }
+      '😓': { e: 'open', m: 'frown', b: 'sad', x: ['sweat'] }, '😵': { e: 'xx', m: 'wavy', r: 'spinHead' }, '🤯': { e: 'surprised', m: 'OBig', b: 'up', r: 'shake' },
+      '🤑':{e:'star',m:'grin'},'🤗':{e:'happy',m:'grinBig',x:['blush','hearts']},'🤭':{e:'open',m:'smileSmall',x:['blush']},'🤫':{e:'look',m:'neutral'},'🤐':{e:'open',m:'flat'},'🤨':{e:'look',m:'neutral',b:'raise'},'🤥':{e:'look',m:'smirk'},'🤤':{e:'open',m:'smile',x:['bubble']},'😷':{e:'flat',m:'neutral'},'🤒':{e:'open',m:'frown',b:'sad',x:['sweat']},'🤕':{e:'open',m:'frown',b:'sad'},'🤢':{e:'squint',m:'wavy'},'🤮':{e:'squint',m:'scream'},'🤧':{e:'squint2',m:'wobble',x:['sweat']},'🥵':{e:'open',m:'tongue',tint:'red',x:['steam']},'🥶':{e:'surprised',m:'grimace',r:'quiver'},'🥴':{e:'crazy',m:'wavy'},'🤠':{e:'open',m:'smile'},'🥳':{e:'happy',m:'grinBig',x:['sparkles']},'🤓':{e:'look',m:'smile'},'🧐':{e:'look',m:'hmm',b:'raise'},'😈':{e:'open',m:'smirk',b:'angry',tint:'red'},'👿':{e:'open',m:'frownTight',b:'angry',tint:'red'},'🤡':{e:'open',m:'grinBig',x:['blushBig']},'😺':{e:'happy',m:'grin'},'😸':{e:'squint',m:'laugh'},'😹':{e:'squint',m:'laugh',x:['tearsJoy'],r:'rock'},'😻':{e:'heart',m:'grin'},'😼':{e:'look',m:'smirk'},'😽':{e:'closed',m:'kiss'},'🙀':{e:'surprised',m:'scream',r:'shake'},'😿':{e:'open',m:'frown',b:'sad',x:['tears']},'😾':{e:'open',m:'frownTight',b:'angry',tint:'red'},'☺':{e:'happy',m:'smile',x:['blush']},'🥲':{e:'happy',m:'smile',x:['tears']},'🥹':{e:'puppy',m:'wobble'}
     };
     let fbUid = 0;
     const fbHeart = (cx, cy, s, cls, fill, st) => `<g transform="translate(${cx} ${cy}) scale(${s})"><path class="${cls || ''}" style="${st || ''}" d="M0 9 C-15 -2 -10 -15 -3.5 -15 C-1.5 -15 0 -13 0 -11 C0 -13 1.5 -15 3.5 -15 C10 -15 15 -2 0 9Z" fill="${fill || '#e5214b'}"/></g>`;
@@ -5155,7 +5157,7 @@
       if (T(/🎉|🎊|🎈|🥳|🎁|🪅/u)) return 'party';
       return 'bob';
     }
-    function stkAnimOn(note) { return note.kind !== 'img' && !!note.anim; }
+    function stkAnimOn(note) { return !!note.anim; }
     window.setStkAnim = function (on) { appData.stkAnim = !!on; saveData(); renderNotes(); };
     window.toggleStickerAnim = function (id) { const n = findNote(id); if (!n) return; n.anim = !stkAnimOn(n); saveData(); renderNotes(); };
     window.setStickerBorder = function (id, v, commit) {
@@ -5168,14 +5170,14 @@
       fbEnsureCss();
       const w = Math.round(note.width || 110);
       const art = note.kind === 'img'
-        ? `<div class="sticker-img${note.png ? ' sticker-png' : ''}"><img data-img-id="${note.stickerId}" ${imageURLs[note.stickerId] ? `src="${imageURLs[note.stickerId]}"` : ''} draggable="false" alt=""></div>`
-        : `<div class="sticker-emoji" style="font-size:${Math.round(w * 0.74)}px">${(stkAnimOn(note) && fbFace(note.emoji, Math.round(w * 0.88))) || escapeHtml(note.emoji || '')}</div>`;
+        ? `<div class="sticker-img${note.png ? ' sticker-png' : ''}"${stkAnimOn(note) ? ' data-an="bob"' : ''}><img data-img-id="${note.stickerId}" ${imageURLs[note.stickerId] ? `src="${imageURLs[note.stickerId]}"` : ''} draggable="false" alt=""></div>`
+        : `<div class="sticker-emoji"${(stkAnimOn(note) && !fbFace(note.emoji, 10)) ? ` data-an="${stkAnimKind(note.emoji)}"` : ''} style="font-size:${Math.round(w * 0.74)}px">${(stkAnimOn(note) && fbFace(note.emoji, Math.round(w * 0.88))) || escapeHtml(note.emoji || '')}</div>`;
       return `
         <div class="img-bar">
           <button onclick="stepStickerSize('${note.id}', -1)" class="img-bar-btn" title="Diminuir"><i class="fa-solid fa-minus"></i></button>
           <button onclick="stepStickerSize('${note.id}', 1)" class="img-bar-btn" title="Aumentar"><i class="fa-solid fa-plus"></i></button>
           <label class="stk-bd" title="Contorno branco (0 = sem contorno)"><i class="fa-regular fa-square"></i><input type="range" min="0" max="10" step="0.5" value="${note.bd == null ? 2.5 : note.bd}" oninput="setStickerBorder('${note.id}', this.value, false)" onchange="setStickerBorder('${note.id}', this.value, true)" onpointerdown="event.stopPropagation()"></label>
-          ${(note.kind !== 'img' && FB_FACES[String(note.emoji || '').replace(/\uFE0F/g, '')]) ? `<button onclick="toggleStickerAnim('${note.id}')" class="img-bar-btn" style="${stkAnimOn(note) ? 'color:#fcd34d' : 'opacity:.6'}" title="${stkAnimOn(note) ? 'Desligar animação' : 'Animar este adesivo'}"><i class="fa-solid fa-wand-magic-sparkles"></i></button>` : ''}
+          ${true ? `<button onclick="toggleStickerAnim('${note.id}')" class="img-bar-btn" style="${stkAnimOn(note) ? 'color:#fcd34d' : 'opacity:.6'}" title="${stkAnimOn(note) ? 'Desligar animação' : 'Animar este adesivo'}"><i class="fa-solid fa-wand-magic-sparkles"></i></button>` : ''}
           <button onclick="rotateSticker('${note.id}')" class="img-bar-btn" title="Girar"><i class="fa-solid fa-rotate-right"></i></button>
           ${dupToolHtml(note.id, 'img-bar-btn')}
           ${moveToolHtml(note.id, 'img-bar-btn')}
