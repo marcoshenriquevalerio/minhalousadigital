@@ -51,7 +51,7 @@ const actions = {
       billing: { price: billing.price, reason: billing.reason },
       plans,
       catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
-      mp: { hasToken: !!m.accessToken, tokenMask: mask(m.accessToken), hasSecret: !!m.webhookSecret, live: /^APP_USR-/.test(m.accessToken), webhookUrl: SITE + "/api/webhook" },
+      mp: { hasToken: !!m.accessToken, tokenMask: mask(m.accessToken), hasSecret: !!m.webhookSecret, publicKey: m.publicKey || "", live: /^APP_USR-/.test(m.accessToken), webhookUrl: SITE + "/api/webhook" },
       admins: [OWNER].concat(admins.filter((e) => e !== OWNER))
     };
   },
@@ -63,6 +63,11 @@ const actions = {
       const t = b.accessToken.trim();
       if (!/^(APP_USR|TEST)-/.test(t)) bad("O Access Token do Mercado Pago começa com APP_USR- (produção) ou TEST-.");
       upd.accessToken = t;
+    }
+    if (typeof b.publicKey === "string" && b.publicKey.trim()) {
+      const k = b.publicKey.trim();
+      if (!/^(APP_USR|TEST)-/.test(k)) bad("A Public Key do Mercado Pago começa com APP_USR- (produção) ou TEST-.");
+      upd.publicKey = k;
     }
     if (typeof b.webhookSecret === "string" && b.webhookSecret.trim()) upd.webhookSecret = b.webhookSecret.trim();
     if (b.clearSecret) upd.webhookSecret = "";
