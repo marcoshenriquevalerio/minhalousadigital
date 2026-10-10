@@ -2523,16 +2523,16 @@
       const ls = note.listSize || 24, cb = Math.round(ls * 1.25);
       return `
         <div class="chalk-frame rounded-lg p-3" style="color:${getChalkHex(note)};${note.height ? 'height:100%;display:flex;flex-direction:column;' : ''}">
-          ${chalkBarHtml(note, `<button onclick="changeListSize('${note.id}', -2)" class="chalk-btn text-[11px] font-bold px-1 rounded transition" title="Diminuir letra">A-</button><button onclick="changeListSize('${note.id}', 2)" class="chalk-btn text-[13px] font-bold px-1 rounded transition" title="Aumentar letra">A+</button>`)}
+          ${chalkBarHtml(note, `<button onclick="changeListSize('${note.id}', -2)" class="chalk-btn text-[11px] font-bold px-1 rounded transition" title="Diminuir letra">A-</button><button onclick="changeListSize('${note.id}', 2)" class="chalk-btn text-[13px] font-bold px-1 rounded transition" title="Aumentar letra">A+</button><button onclick="toggleChecklistTitle('${note.id}')" class="chalk-btn text-[11px] px-1 rounded transition" title="${note.noTitle ? 'Mostrar título' : 'Esconder título'}" style="${note.noTitle ? 'opacity:.55' : ''}"><i class="fa-solid fa-heading"></i></button><button onclick="toggleChecklistLine('${note.id}')" class="chalk-btn text-[11px] px-1 rounded transition" title="${note.noLine ? 'Mostrar risco' : 'Tirar o risco'}" style="${note.noLine ? 'opacity:.55' : ''}"><i class="fa-solid fa-minus"></i></button>`)}
 
           <div class="erase-layer" style="${note.height ? 'flex:1;min-height:0;display:flex;flex-direction:column;' : ''}${maskCss(note)}">
-          <input type="text"
+          ${note.noTitle ? '' : `          <input type="text"
                  value="${escapeHtml(note.title || '')}"
                  onchange="updateChecklistTitle('${note.id}', this.value)"
                  placeholder="Título..."
                  class="chalk-ink chalk-input w-full bg-transparent border-0 font-chalk font-bold focus:outline-none pb-1"
                  style="color:inherit; font-size:${Math.round(ls * 1.25)}px">
-          <div class="chalk-line mb-2"></div>
+          ${note.noLine ? '<div class="mb-2"></div>' : '<div class="chalk-line mb-2"></div>'}`}
 
           <div class="chalk-items space-y-1.5 max-h-[300px] overflow-y-auto pr-1" ${note.height ? 'style="flex:1;min-height:0;max-height:none"' : ''}>
             ${items.map((item, idx) => {
@@ -3477,6 +3477,8 @@
       renderNotes();
     }
 
+    function toggleChecklistTitle(id) { const n = findNote(id); if (!n) return; n.noTitle = !n.noTitle; saveData(); renderNotes(); }
+    function toggleChecklistLine(id) { const n = findNote(id); if (!n) return; n.noLine = !n.noLine; saveData(); renderNotes(); }
     function updateChecklistTitle(id, newTitle) {
       const board = getActiveBoard();
       const note = board.notes.find(n => n.id === id);
