@@ -9555,15 +9555,15 @@
     const shBoard = (sid) => sharedBoards().find(b => b.shared.sid === sid);
     const shMe = () => FB.me();
     function shContent(b) {
-      return { name: b.name, kind: b.kind || null, nextZIndex: b.nextZIndex || 5, notes: b.notes || [], strokes: b.strokes || [], fin: b.fin || null };
+      return { name: b.name, kind: b.kind || null, nextZIndex: b.nextZIndex || 5, notes: b.notes || [], strokes: b.strokes || [], fin: b.fin || null, chat: b.chat || [] };
     }
     function shNorm(c) {
-      return { name: c.name || 'Lousa', kind: c.kind || null, nextZIndex: c.nextZIndex || 5, notes: c.notes || [], strokes: c.strokes || [], fin: c.fin || null };
+      return { name: c.name || 'Lousa', kind: c.kind || null, nextZIndex: c.nextZIndex || 5, notes: c.notes || [], strokes: c.strokes || [], fin: c.fin || null, chat: c.chat || [] };
     }
     const shMap = (a) => { const o = {}; (a || []).forEach(x => { o[x.id] = stable(x); }); return o; };
     function shBase(c) {
       c = shNorm(c);
-      return { notes: shMap(c.notes), strokes: shMap(c.strokes), rows: shMap(c.fin && c.fin.rows),
+      return { notes: shMap(c.notes), strokes: shMap(c.strokes), chat: shMap(c.chat), rows: shMap(c.fin && c.fin.rows),
         f: { name: stable(c.name), kind: stable(c.kind), nextZIndex: stable(c.nextZIndex), fin: stable(c.fin) } };
     }
     /* mescla por item (3 vias: meu estado, o da nuvem e o último que eu conhecia) */
@@ -9611,7 +9611,7 @@
         if (CAL.ready && CAL.sig[b.id] === undefined && b.shared && b.shared.owner === shMe().uid && oldCal && Object.keys(oldCal).length) { b.calendarEvents = oldCal; calFlush(); }
         const localDests = b.fin && b.fin.dests;
         b.name = remote.name; b.kind = remote.kind || undefined; b.nextZIndex = remote.nextZIndex; b.notes = remote.notes;
-        b.strokes = remote.strokes; if (remote.fin) b.fin = remote.fin; else delete b.fin;
+        b.strokes = remote.strokes; b.chat = remote.chat; if (remote.fin) b.fin = remote.fin; else delete b.fin;
         if (b.fin && Array.isArray(localDests)) { const dd = shMergeDests(localDests, b.fin.dests, null, b.fin.rows); if (dd) b.fin.dests = dd; }   // categorias que só eu tinha entram juntas
         return;
       }
@@ -9621,6 +9621,7 @@
       b.nextZIndex = Math.max(c.nextZIndex, remote.nextZIndex);
       b.notes = shMergeList(c.notes, remote.notes, base.notes); shFixScores(b.notes, c.notes, remote.notes);
       b.strokes = shMergeList(c.strokes, remote.strokes, base.strokes);
+      b.chat = shMergeList(c.chat, remote.chat, base.chat || {}).sort((x, y) => (x.t || 0) - (y.t || 0)).slice(-200);
       if (c.kind || remote.kind) b.kind = c.kind || remote.kind;
       let fin = pick('fin');
       if (c.fin && remote.fin) {   // lançamentos mesclados linha a linha
@@ -9710,7 +9711,9 @@
       SH.rev[sid] = data.rev; SH.sig[sid] = stable(shNorm(data.content)); SH.base[sid] = newBase;
       shCacheLocal();
       const activeB = getActiveBoard();
-      if (onlyPool) { /* só mudou a jogada da sinuca: ela é atualizada ao vivo, sem refazer a lousa */ }
+      const chatOnly = !!oldBase && !onlyPool && sameMap(oldBase.notes, newBase.notes) && sameMap(oldBase.strokes, newBase.strokes) && sameMap(oldBase.rows, newBase.rows) && stable(oldBase.f) === stable(newBase.f);
+      try { chatIncoming(sid, b); } catch (er) { console.warn(er); }
+      if (onlyPool || chatOnly) { /* só mudou a jogada da sinuca ou o chat: não refaz a lousa */ }
       else if (activeB === b || activeB.kind === 'finance') shRender(); else updateBoardWidgetControls();
       if (byId('shareModal') && !byId('shareModal').classList.contains('hidden')) renderShareModal();
       if (stable(shNorm(shContent(b))) !== SH.sig[sid]) shSchedule(sid, 80);   // sobrou algo meu para enviar
@@ -10004,9 +10007,15 @@
     function shNotifSound() {
       if (!SHN.inOk || !SHN.outOk) return;
       const keys = shNotifKeys();
-      if (SHN.seen === null) { SHN.seen = keys; return; }   // primeira carga: só memoriza, não toca
+      const sk = 'lousa_seen_' + (currentUser ? currentUser.uid : '');
+      const save = () => { try { SHN.seen = SHN.seen.slice(-400); localStorage.setItem(sk, JSON.stringify(SHN.seen)); } catch (e) {} };
+      if (SHN.seen === null) {   // primeira carga: compara com o que já foi visto neste aparelho (avisos que chegaram offline tocam agora)
+        let st = null; try { st = JSON.parse(localStorage.getItem(sk)); } catch (e) {}
+        if (!Array.isArray(st)) { SHN.seen = keys.slice(); save(); return; }
+        SHN.seen = st;
+      }
       const fresh = keys.filter(k => SHN.seen.indexOf(k) < 0);
-      SHN.seen = keys;
+      if (fresh.length) { SHN.seen = SHN.seen.concat(fresh); save(); }
       if (fresh.length && Date.now() > SHN.mute) shChime();
     }
     function shInvChanged() {
@@ -10020,8 +10029,161 @@
       Object.keys(SH.unsubs).forEach(shUnwatch);
       if (SH.unInv) { SH.unInv(); SH.unInv = null; }
       SH.inc = []; SH.out = []; SHN.seen = null; SHN.inOk = SHN.outOk = false; updateBell();
+      try { chatHide(); } catch (e) {}
       ['shareModal', 'finLinkModal', 'pieceLinkModal', 'profileModal'].forEach(closeOv); closeNotif();
     }
+
+
+    /* ----- CHAT DAS LOUSAS COMPARTILHADAS (botão flutuante) ----- */
+    const CH = { open: false, known: {}, x: null, y: null, ready: false, last: {} };
+    const CH_TTL = 3600000, CH_MAX = 200;
+    const chLs = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; };
+    const chUid = () => (currentUser ? currentUser.uid : '');
+    const chMuted = () => chLs('lousa_chat_mute_' + chUid()) === '1';
+    const chReadKey = (sid) => 'lousa_chat_read_' + chUid() + '_' + sid;
+    function chBoard() { const b = getActiveBoard && getActiveBoard(); return b && b.shared && b.shared.sid && SH.on ? b : null; }
+    function chWho(sid, uid) {
+      const me = shMe(), inf = SH.info[sid] || {};
+      if (uid === me.uid) { const mp = window.MYPROF || {}; return { name: shMyName() || 'Você', photo: mp.photo || '' }; }
+      const i = (inf.members || []).indexOf(uid), em = i >= 0 ? (inf.memberEmails || [])[i] : '';
+      const p = shPerson(sid, uid, em) || {};
+      return { name: p.name || (em ? String(em).split('@')[0] : 'Participante'), photo: p.photo || '' };
+    }
+    function chBuild() {
+      if (byId('chatBox')) return;
+      const st = document.createElement('style');
+      st.textContent = `
+      #chatBox{position:fixed;z-index:9000;touch-action:none;font-family:inherit}
+      #chatBox.closed{width:48px;height:48px}
+      #chatFab{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00a884,#128c7e);color:#fff;border:2px solid rgba(255,255,255,.25);box-shadow:0 6px 18px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;cursor:grab;position:relative;font-size:19px;user-select:none}
+      #chatBadge{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;border:2px solid #fff}
+      #chatPanel{display:none;flex-direction:column;width:min(340px,calc(100vw - 16px));border-radius:16px;overflow:hidden;background:#0b141a;color:#e9edef;box-shadow:0 14px 40px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08)}
+      #chatBox.open #chatPanel{display:flex}#chatBox.open #chatFab{display:none}
+      #chatHead{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#202c33;cursor:grab;user-select:none}
+      #chatHead .t{flex:1;min-width:0;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #chatHead .t small{display:block;font-weight:400;font-size:11px;color:#8696a0}
+      #chatHead button{background:none;border:0;color:#aebac1;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px}
+      #chatHead button:hover{background:rgba(255,255,255,.1)}
+      #chatMsgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#0b141a;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);background-size:16px 16px;overscroll-behavior:contain}
+      .chMsg{display:flex;gap:7px;align-items:flex-end;max-width:92%}
+      .chMsg.me{align-self:flex-end;flex-direction:row-reverse}
+      .chBub{border-radius:12px;padding:6px 9px 4px;background:#202c33;min-width:70px;word-break:break-word;box-shadow:0 1px 1px rgba(0,0,0,.3)}
+      .chMsg.me .chBub{background:#005c4b}
+      .chName{font-size:11.5px;font-weight:700;color:#53bdeb;margin-bottom:1px}
+      .chMsg.me .chName{color:#7be3c4}
+      .chTx{font-size:13.5px;line-height:1.35;white-space:pre-wrap}
+      .chTm{font-size:10px;color:#8696a0;text-align:right;margin-top:1px}
+      #chatEmpty{margin:auto;text-align:center;color:#8696a0;font-size:12.5px;padding:0 20px}
+      #chatForm{display:flex;gap:6px;padding:8px;background:#202c33;align-items:flex-end}
+      #chatIn{flex:1;resize:none;max-height:90px;border:0;outline:0;border-radius:18px;padding:8px 13px;background:#2a3942;color:#e9edef;font-size:14px;font-family:inherit}
+      #chatSend{width:38px;height:38px;border-radius:50%;border:0;background:#00a884;color:#fff;cursor:pointer;flex:none}
+      #chatSend:hover{background:#06cf9c}`;
+      document.head.appendChild(st);
+      const bx = document.createElement('div');
+      bx.id = 'chatBox'; bx.className = 'closed'; bx.style.display = 'none';
+      bx.innerHTML = `<div id="chatFab" title="Chat da lousa (arraste para mover)"><i class="fa-solid fa-comments"></i><span id="chatBadge"></span></div>
+        <div id="chatPanel"><div id="chatHead"><div class="t">Chat da lousa<small id="chatSub"></small></div>
+          <button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
+          <div id="chatMsgs"></div>
+          <form id="chatForm"><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form></div>`;
+      document.body.appendChild(bx);
+      let pos = null; try { pos = JSON.parse(chLs('lousa_chat_pos')); } catch (e) {}
+      CH.x = pos && isFinite(pos.x) ? pos.x : null; CH.y = pos && isFinite(pos.y) ? pos.y : 74;
+      // arrastar (botão e cabeçalho); toque sem mover = abre
+      const drag = (el, onTap) => {
+        let d = null;
+        el.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button') && el.id !== 'chatFab') return; const r = bx.getBoundingClientRect(); d = { px: e.clientX, py: e.clientY, x: r.left, y: r.top, m: false }; try { el.setPointerCapture(e.pointerId); } catch (er) {} });
+        el.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.px, dy = e.clientY - d.py; if (!d.m && Math.abs(dx) + Math.abs(dy) < 6) return; d.m = true; CH.x = d.x + dx; CH.y = d.y + dy; chPlace(); });
+        el.addEventListener('pointerup', () => { if (!d) return; const m = d.m; d = null; if (m) chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); else if (onTap) onTap(); });
+        el.addEventListener('pointercancel', () => { d = null; });
+      };
+      drag(byId('chatFab'), () => chToggle(true));
+      drag(byId('chatHead'), null);
+      byId('chatClose').onclick = () => chToggle(false);
+      byId('chatMute').onclick = () => { chLs('lousa_chat_mute_' + chUid(), chMuted() ? '0' : '1'); chMuteUi(); };
+      byId('chatForm').onsubmit = e => { e.preventDefault(); chSend(); };
+      byId('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chSend(); } });
+      byId('chatIn').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(90, e.target.scrollHeight) + 'px'; });
+      window.addEventListener('resize', chPlace);
+      setInterval(chExpire, 30000);
+    }
+    function chPlace() {
+      const bx = byId('chatBox'); if (!bx) return;
+      const w = CH.open ? Math.min(340, innerWidth - 16) : 48, h = CH.open ? Math.min(460, innerHeight - 16) : 48;
+      if (CH.x == null) CH.x = innerWidth - 48 - 16;
+      CH.x = Math.max(8, Math.min(innerWidth - w - 8, CH.x)); CH.y = Math.max(8, Math.min(innerHeight - h - 8, CH.y));
+      bx.style.left = CH.x + 'px'; bx.style.top = CH.y + 'px';
+      byId('chatPanel').style.height = h + 'px';
+    }
+    function chMuteUi() { const m = byId('chatMute'); if (m) { const on = chMuted(); m.innerHTML = '<i class="fa-solid ' + (on ? 'fa-bell-slash' : 'fa-bell') + '"></i>'; m.title = on ? 'Notificações silenciadas — ativar' : 'Silenciar notificações'; } }
+    function chToggle(open) {
+      chBuild(); CH.open = open;
+      const bx = byId('chatBox'); bx.classList.toggle('open', open); bx.classList.toggle('closed', !open);
+      chPlace(); chMuteUi();
+      const b = chBoard();
+      if (open && b) { chMarkRead(b); chRender(true); setTimeout(() => { try { byId('chatIn').focus(); } catch (e) {} }, 50); }
+      chBadge();
+    }
+    function chMarkRead(b) { const m = b.chat || []; if (m.length) chLs(chReadKey(b.shared.sid), String(m[m.length - 1].t || 0)); chBadge(); }
+    function chUnread(b) {
+      const me = shMe().uid, rd = +chLs(chReadKey(b.shared.sid)) || 0;
+      return (b.chat || []).filter(m => m.u !== me && (m.t || 0) > rd).length;
+    }
+    function chBadge() {
+      const el = byId('chatBadge'); if (!el) return; const b = chBoard();
+      const n = b && !CH.open ? chUnread(b) : 0;
+      el.style.display = n ? 'flex' : 'none'; el.textContent = n > 99 ? '99+' : n;
+    }
+    function chRender(scroll) {
+      const b = chBoard(), box = byId('chatMsgs'); if (!b || !box || !CH.open) return;
+      const me = shMe().uid, msgs = b.chat || [], inf = SH.info[b.shared.sid];
+      byId('chatSub').textContent = (inf && inf.members ? inf.members.length + ' participantes · ' : '') + 'some após 1h sem conversa';
+      const near = scroll || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      if (!msgs.length) { box.innerHTML = '<div id="chatEmpty"><i class="fa-regular fa-comments" style="font-size:28px;margin-bottom:8px;display:block"></i>Nenhuma mensagem ainda. Diga olá! As mensagens somem sozinhas após 1 hora sem conversa.</div>'; return; }
+      box.innerHTML = msgs.map(m => {
+        const w = chWho(b.shared.sid, m.u), mine = m.u === me, d = new Date(m.t || 0);
+        const tm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        return `<div class="chMsg${mine ? ' me' : ''}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub"><div class="chName">${html(w.name)}</div><div class="chTx">${html(m.x)}</div><div class="chTm">${tm}</div></div></div>`;
+      }).join('');
+      if (near) box.scrollTop = box.scrollHeight;
+    }
+    function chSend() {
+      const b = chBoard(), inp = byId('chatIn'); if (!b || !inp) return;
+      const x = inp.value.trim().slice(0, 500); if (!x) return;
+      const me = shMe().uid;
+      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }]).slice(-CH_MAX);
+      inp.value = ''; inp.style.height = 'auto';
+      const ids = {}; b.chat.forEach(m => { ids[m.id] = 1; });
+      if (CH.known[b.shared.sid]) CH.known[b.shared.sid] = ids;
+      chMarkRead(b); chRender(true); saveData();
+    }
+    function chExpire() {
+      if (!SH.on) return;
+      sharedBoards().forEach(b => {
+        const m = b.chat; if (!m || !m.length) return;
+        if (Date.now() - (m[m.length - 1].t || 0) > CH_TTL) { b.chat = []; CH.known[b.shared.sid] = {}; if (getActiveBoard() === b) { chRender(); chBadge(); } saveData(); }
+      });
+    }
+    function chIncoming(sid, b) {
+      const me = shMe().uid, msgs = (b.chat || []).filter(m => Date.now() - (m.t || 0) <= CH_TTL || true);
+      const first = !CH.known[sid];
+      let fresh;
+      if (first) { const rd = +chLs(chReadKey(sid)) || 0; fresh = msgs.filter(m => m.u !== me && (m.t || 0) > rd); }   // chegou enquanto eu estava offline
+      else fresh = msgs.filter(m => m.u !== me && !CH.known[sid][m.id]);
+      const ids = {}; msgs.forEach(m => { ids[m.id] = 1; }); CH.known[sid] = ids;
+      const active = chBoard() === b;
+      if (active && CH.open) { chMarkRead(b); chRender(); return; }
+      if (fresh.length && !chMuted()) shChime();
+      if (active) chBadge();
+    }
+    window.chatIncoming = chIncoming;
+    function chatIncoming(sid, b) { chIncoming(sid, b); }
+    function chatSync() {
+      const b = chBoard();
+      if (!b) { const bx = byId('chatBox'); if (bx) bx.style.display = 'none'; CH.open = false; if (bx) { bx.classList.remove('open'); bx.classList.add('closed'); } return; }
+      chBuild(); byId('chatBox').style.display = ''; chPlace(); chMuteUi(); chBadge(); if (CH.open) chRender();
+    }
+    function chatHide() { const bx = byId('chatBox'); if (bx) bx.remove(); CH.open = false; CH.known = {}; }
 
     (function () {
       const hi = window.handleSignedIn, ho = window.handleSignedOut, sd = window.saveData, rn = window.renderNotes, ub = window.updateBoardWidgetControls, ra = window.relayoutAll, at = window.applyTheme;
@@ -10046,6 +10208,7 @@
           const tx = byId('sharedBadgeText'); if (tx) tx.textContent = inf && inf.members ? 'Compartilhada · ' + inf.members.length : 'Compartilhada';
         }
         const fb = byId('btnNewFin'); if (fb) fb.style.display = '';
+        try { chatSync(); } catch (e) { console.warn(e); }
       };
       window.relayoutAll = function () { ra.apply(this, arguments); try { renderChalk(); } catch (e) {} };
       window.applyTheme = function () { at.apply(this, arguments); try { renderStrokes(); renderChalk(); } catch (e) {} };
