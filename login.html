@@ -45,15 +45,16 @@ p.s{color:var(--m);margin-bottom:26px}
 .demo{display:inline-block;margin-bottom:14px;padding:5px 12px;border-radius:99px;background:var(--a);color:#3a2a0a;font-size:13px;font-weight:700}
 .sum{display:flex;justify-content:space-between;padding:14px 16px;margin:6px 0 18px;border-radius:14px;background:#ffffff0d}
 .lk{background:none;border:0;color:var(--m);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;margin-top:14px}.lk:hover{color:var(--g)}
-.ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;overflow:auto;background:rgba(4,12,8,.74);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:fd .3s}
+.ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;overflow:auto;background:rgba(4,12,8,.88);animation:fd .3s}
 .ov[hidden]{display:none}@keyframes fd{from{opacity:0}}
 .pm{position:relative;width:min(440px,100%);margin:auto;padding:34px 30px 24px;border-radius:30px;text-align:center;background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c044;box-shadow:0 40px 100px #000b,inset 0 0 90px #9be3c014;animation:up .5s cubic-bezier(.2,.7,.2,1) backwards}
 .pm h2{font-size:clamp(28px,5vw,34px);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:4px 0 0}
 .px{position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:#ffffff12;color:var(--g);font-size:22px;line-height:1;cursor:pointer;transition:.25s}.px:hover{background:#ffffff26}
 .fl{display:block;text-align:left;margin-bottom:12px;font-size:13px;color:var(--m);font-weight:600}
-.fx,.fi{display:block;width:100%;height:48px;margin-top:5px;border-radius:14px;border:1px solid #ffffff2e;background:#ffffff0d;color:var(--g);font-size:16px;font-family:inherit;transition:.25s}
-.fi{padding:0 14px}.fx{padding:0 10px;overflow:hidden}.fx iframe{height:46px!important}
-.fi::placeholder{color:var(--m)}.fi:focus,.fx:focus-within{outline:0;border-color:var(--v);box-shadow:0 0 0 3px #9be3c030}
+.fx,.fi{display:block;width:100%;height:48px;margin-top:5px;border-radius:14px;border:1px solid #ffffff55;background:#f2efe4;color:#0c1f17;font-size:16px;font-family:inherit;transition:.25s}
+.fi{padding:0 14px}.fx{padding:0 6px;position:relative}
+.gz-on .fx,.gz-on .fx *{cursor:text!important}
+.fi::placeholder{color:#6b7a70}.fi:focus,.fx:focus-within{outline:0;border-color:var(--v);box-shadow:0 0 0 3px #9be3c055}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tos{display:flex;gap:10px;align-items:flex-start;text-align:left;margin:4px 0 14px;font-size:13px;color:var(--m);cursor:pointer}.tos input{flex:none;width:18px;height:18px;margin-top:2px;accent-color:#9be3c0}
 .sec{display:flex;align-items:flex-start;justify-content:center;gap:6px;font-size:12px;margin-top:14px}.sec svg{flex:none;margin-top:2px}
@@ -120,8 +121,9 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <div class="tabs" role="tablist"><button type="button" class="on" id="tCard" role="tab">Cartão</button><button type="button" id="tPix" role="tab">Pix</button></div>
    <div id="paneCard">
     <form id="cf" autocomplete="off" novalidate>
-     <label class="fl">Número do cartão<div class="fx" id="cfNum"></div></label>
-     <div class="g2"><label class="fl">Validade<div class="fx" id="cfExp"></div></label><label class="fl">CVV<div class="fx" id="cfCvv"></div></label></div>
+     <div class="fl">Número do cartão<div class="fx" id="cfNum"></div></div>
+     <div class="g2"><div class="fl">Validade<div class="fx" id="cfExp"></div></div><div class="fl">CVV<div class="fx" id="cfCvv"></div></div></div>
+     <p class="msg" id="cfErr" style="margin:-4px 0 10px"></p>
      <label class="fl">Nome no cartão<input class="fi" id="cfName" autocomplete="cc-name" placeholder="Como está no cartão"></label>
      <label class="fl">CPF do titular<input class="fi" id="cfDoc" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label>
      <button class="btn" id="cfGo" type="submit" style="width:100%">Assinar</button>
@@ -214,11 +216,15 @@ async function montar(){
  try{
   await sdk();
   mpi=new MercadoPago(PK,{locale:'pt-BR'});
-  const st={color:'#f2efe4',placeholderColor:'#a3b8ac',fontSize:'16px'};
-  mpi.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000',style:st}).mount('cfNum');
-  mpi.fields.create('expirationDate',{placeholder:'MM/AA',style:st}).mount('cfExp');
-  mpi.fields.create('securityCode',{placeholder:'123',style:st}).mount('cfCvv');
+  ['cfNum','cfExp','cfCvv'].forEach(i=>{$(i).innerHTML=''});
+  mpi.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000'}).mount('cfNum');
+  mpi.fields.create('expirationDate',{placeholder:'MM/AA'}).mount('cfExp');
+  mpi.fields.create('securityCode',{placeholder:'123'}).mount('cfCvv');
   montado=true;
+  // confere se os campos protegidos realmente apareceram
+  setTimeout(()=>{if(!['cfNum','cfExp','cfCvv'].every(i=>$(i).querySelector('iframe'))){
+   console.error('Campos do cartão não carregaram (iframes ausentes).');
+   say('cfErr','Os campos do cartão não carregaram. Desative bloqueadores de anúncios para este site, recarregue a página ou use o Pix.')}},5000);
  }catch(err){console.error(err);aba(true);say('msg3',err.message||'Não foi possível carregar o formulário de cartão. Use o Pix.')}
  montando=false}
 $('cfDoc').oninput=e=>{const d=e.target.value.replace(/\D/g,'').slice(0,11);e.target.value=d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
