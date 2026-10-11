@@ -47,12 +47,15 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0c1f17
 <script>
 /* Avisa quando existe versão nova publicada. Só aparece se a versão aberta ficou para trás. */
 (function(){
- var cur=null,open=false,snooze=0,$=function(i){return document.getElementById(i)};
+ var cur=null,open=false,stale=false,snooze=0,$=function(i){return document.getElementById(i)};
  function ver(){return fetch('/api/version',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){return j&&j.v||null}).catch(function(){return null})}
  function check(){ver().then(function(v){
   if(!v)return;
   if(cur===null){cur=v;return}               // versão com a qual esta página foi aberta
-  if(v!==cur&&!open&&Date.now()>snooze)show()})}
+  if(v!==cur){stale=true;tryShow()}})}
+ // só avisa na tela de login ou dentro da lousa (não na página de vendas, termos etc.)
+ function inApp(){try{var l=document.getElementById('app').contentWindow.location;return /^(login|lousa)(\.html)?$/.test(l.pathname.split('/').pop()||'')}catch(e){return false}}
+ function tryShow(){if(stale&&!open&&Date.now()>snooze&&inApp())show()}
  function show(){open=true;$('updA').hidden=false;$('updB').hidden=true;$('upd').hidden=false;$('updGo').focus()}
  $('updLt').onclick=function(){$('upd').hidden=true;open=false;snooze=Date.now()+10*60000};   // volta a avisar em 10 min
  $('updGo').onclick=function(){
@@ -63,7 +66,8 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0c1f17
    f.style.width=n+'%';bar.setAttribute('aria-valuenow',n);
    p.textContent=n<100?'Atualizando... '+n+'%':'Pronto! Abrindo a versão nova...';
    if(x<1)requestAnimationFrame(tick);else setTimeout(function(){location.reload()},350)})()};
- check();setInterval(check,180000);
+ check();setInterval(function(){check();tryShow()},30000);   // confere a cada 30 s
+ document.addEventListener('DOMContentLoaded',function(){document.getElementById('app').addEventListener('load',function(){setTimeout(tryShow,700)})});
  addEventListener('focus',check);
  document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
 })();

@@ -1,5 +1,8 @@
 {
   "cleanUrls": true,
-  "functions": { "api/*.js": { "maxDuration": 30 } },
+  "functions": {
+    "api/*.js": { "maxDuration": 30 },
+    "api/version.js": { "maxDuration": 30, "includeFiles": "**/*.{html,js,json,css,svg,png,jpg,webp,ico}" }
+  },
   "crons": [{ "path": "/api/cron", "schedule": "0 9 * * *" }]
 }
