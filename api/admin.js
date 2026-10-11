@@ -1,6 +1,6 @@
 // POST /api/admin  { action, ... }  -> tudo do painel de controle. Só dono e administradores autorizados.
 const S = require("../lib/server");
-const { CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, enforce, proActive, wrap, body } = S;
+const { paymentsInfo, recordAp, payRef, CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, enforce, proActive, wrap, body } = S;
 
 const mask = (t) => (t ? "••••••••" + String(t).slice(-4) : "");
 const bad = (m, st = 400) => { const e = new Error(m); e.status = st; throw e; };
@@ -141,6 +141,28 @@ const actions = {
     await auth.updateUser(b.uid, { disabled: !!b.disabled });
     if (b.disabled) await auth.revokeRefreshTokens(b.uid);
     return { ok: true };
+  },
+
+  // Detalhe de um assinante: dados, termos aceitos e histórico de pagamentos (cada item vira comprovante)
+  async userDetail(u, b) {
+    if (!b.uid) bad("Usuário inválido.");
+    const [rec, sd] = await Promise.all([auth.getUser(b.uid).catch(() => null), subRef(b.uid).get()]);
+    const s = sd.data() || null;
+    let snap = await subRef(b.uid).collection("payments").limit(200).get();
+    if (snap.empty && s && s.preapprovalId && !s.manual) {   // assinaturas antigas: busca o histórico no Mercado Pago uma vez
+      try { const pi = await paymentsInfo(s.preapprovalId); for (const x of pi.list) await recordAp(b.uid, x); snap = await subRef(b.uid).collection("payments").limit(200).get(); }
+      catch (e) { console.warn("backfill:", e.message); }
+    }
+    const payments = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())).sort((a, c) => (c.paidAt || 0) - (a.paidAt || 0));
+    return {
+      uid: b.uid, email: rec ? lc(rec.email) : "", name: rec ? rec.displayName || "" : "", photo: rec ? rec.photoURL || "" : "",
+      sub: s ? {
+        status: s.status || "", method: s.method || "", amount: s.amount || 0, nextPayment: s.nextPayment || 0, pixUntil: s.pixUntil || 0,
+        startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, manual: !!s.manual, cancelReason: s.cancelReason || "",
+        termsAcceptedAt: s.termsAcceptedAt || 0, termsVersion: s.termsVersion || ""
+      } : null,
+      payments
+    };
   },
 
   async addAdmin(u, b) {

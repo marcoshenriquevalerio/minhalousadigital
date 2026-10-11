@@ -1,7 +1,7 @@
 // Mercado Pago -> POST /api/webhook : avisa quando a assinatura é autorizada, pausada, cancelada etc.
 // Cadastre em: Mercado Pago > Suas integrações > (sua aplicação) > Webhooks
 //   URL: https://minhalousadigital.vercel.app/api/webhook   Eventos: "Planos e assinaturas" e "Pagamentos recorrentes de assinaturas"
-const { getMp, syncPreapproval, syncPix, crypto, wrap, body } = require("../lib/server");
+const { getMp, syncPreapproval, syncPix, recordAp, crypto, wrap, body } = require("../lib/server");
 
 function assinaturaOk(req, secret, dataId) {
   const sig = String(req.headers["x-signature"] || "");
@@ -37,6 +37,7 @@ module.exports = wrap(async (req, res) => {
         if (ap.status === "processed" && pay.status === "approved") { if (r.needsPay) { upd.needsPay = false; upd.status = "authorized"; upd.startedAt = r.startedAt || Date.now(); } upd.lastPaidAt = Date.parse(ap.last_modified || ap.debit_date) || Date.now(); upd.failCount = 0; }
         else if (ap.status === "recycling" || ["rejected", "cancelled"].includes(pay.status)) { upd.lastFailAt = Date.now(); upd.failCount = (Number(r.failCount) || 0) + 1; }
         await subRef(r.uid).set(upd, { merge: true });
+        await recordAp(r.uid, ap);   // histórico + comprovante
       }
     }
   }

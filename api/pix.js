@@ -2,7 +2,7 @@
 // POST /api/pix  { action: "check", id }         -> confere no Mercado Pago se esse Pix foi pago
 // O Pro só é liberado quando o Mercado Pago confirma o pagamento (aqui ou pelo webhook).
 const crypto = require("crypto");
-const { getUser, getBilling, mp, subRef, pixRef, syncPix, SITE, wrap, body, PIX_DAYS } = require("../lib/server");
+const { getUser, getBilling, mp, subRef, pixRef, syncPix, TERMS_VERSION, SITE, wrap, body, PIX_DAYS } = require("../lib/server");
 const pad = (n) => String(n).padStart(2, "0");
 function brTime(ms) {   // data com fuso -03:00, formato que o Mercado Pago aceita
   const d = new Date(ms - 3 * 36e5);
@@ -38,6 +38,6 @@ module.exports = wrap(async (req, res) => {
   });
   const td = (p.point_of_interaction && p.point_of_interaction.transaction_data) || {};
   if (!td.qr_code) { const e = new Error("Não foi possível gerar o Pix agora. Tente de novo."); e.status = 502; throw e; }
-  await pixRef(p.id).set({ uid: u.uid, email: u.email, amount: bill.price, createdAt: Date.now(), expiresAt: exp, applied: false, termsAcceptedAt: Date.now(), termsVersion: "2026-10-10" });
+  await pixRef(p.id).set({ uid: u.uid, email: u.email, amount: bill.price, createdAt: Date.now(), expiresAt: exp, applied: false, termsAcceptedAt: Date.now(), termsVersion: TERMS_VERSION });
   res.status(200).json({ id: String(p.id), qr: td.qr_code, qrImage: td.qr_code_base64 || "", amount: bill.price, expiresAt: exp, days: PIX_DAYS });
 });

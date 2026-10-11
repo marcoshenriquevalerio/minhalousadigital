@@ -1,7 +1,7 @@
 // POST /api/subscribe -> assinatura recorrente no cartão, dentro do site.
 // Com { token } (formulário de cartão): cobra na hora e SÓ libera o Pro se a 1ª cobrança foi aprovada.
 // Sem token: devolve o link do checkout do Mercado Pago (modo antigo, caso o formulário não carregue).
-const { getUser, getBilling, mp, subRef, firstPayment, SITE, wrap, body } = require("../lib/server");
+const { getUser, getBilling, mp, subRef, paymentsInfo, recordAp, TERMS_VERSION, SITE, wrap, body } = require("../lib/server");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 module.exports = wrap(async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido." });
@@ -30,7 +30,7 @@ module.exports = wrap(async (req, res) => {
     }, token ? { card_token_id: token } : {})
   });
   const base = {
-    termsAcceptedAt: now, termsVersion: "2026-10-10",
+    termsAcceptedAt: now, termsVersion: TERMS_VERSION,
     preapprovalId: p.id, amount: b.price, payerEmail: u.email, name: u.name, updatedAt: now,
     initPoint: p.init_point || "", cancelReason: "", cancelledAt: 0
   };
@@ -46,7 +46,7 @@ module.exports = wrap(async (req, res) => {
   }
   // Confere de verdade se a cobrança foi aprovada (até ~9s)
   let pay = "unknown";
-  for (let i = 0; i < 6 && pay === "unknown"; i++) { await sleep(i ? 1500 : 800); pay = await firstPayment(p.id); }
+  for (let i = 0; i < 6 && pay === "unknown"; i++) { await sleep(i ? 1500 : 800); const pi = await paymentsInfo(p.id); pay = pi.state; if (pay === "approved") for (const x of pi.list) await recordAp(u.uid, x).catch(() => {}); }
   if (pay === "rejected" || p.status === "cancelled") {
     try { await mp("/preapproval/" + encodeURIComponent(p.id), { method: "PUT", body: { status: "cancelled" } }); } catch (e) {}
     const e = new Error("O pagamento não foi aprovado. Confira os dados do cartão ou use outro cartão."); e.status = 402; throw e;
