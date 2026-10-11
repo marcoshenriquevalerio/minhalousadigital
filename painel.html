@@ -162,7 +162,7 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
 
   <!-- USUÁRIOS -->
   <section id="vUsers" hidden>
-   <h1>Usuários</h1><p class="sub">Quem tem conta, o plano de cada um e o que você pode fazer.</p>
+   <h1>Usuários</h1><p class="sub">Quem tem conta, o plano de cada um e o que você pode fazer. <span id="uHid" style="opacity:.8"></span></p>
    <div class="tools">
     <input id="q" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário">
     <select id="fl" aria-label="Filtrar">
@@ -306,6 +306,7 @@ function render(){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 
 function users(){
+ const hid=(D.stats&&D.stats.hidden)||0;$('uHid').textContent=hid?'('+hid+(hid===1?' conta que só fez login, sem escolher plano, fica oculta.)':' contas que só fizeram login, sem escolher plano, ficam ocultas.)'):'';
  const q=$('q').value.trim().toLowerCase(),f=$('fl').value;
  const L=D.users.filter(u=>{
   if(q&&!(u.email+' '+u.name).toLowerCase().includes(q))return false;

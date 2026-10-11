@@ -16,7 +16,10 @@ async function listAll() {
   const subs = {};
   (await db.collection("subscriptions").get()).forEach((d) => (subs[d.id] = d.data()));
   const admins = await getAdmins();
-  return users.map((u) => {
+  // Quem escolheu um plano (Grátis ou Pro): users/{uid}/plan/me com status "active"
+  const chose = new Set();
+  (await db.collectionGroup("plan").get()).forEach((d) => { const x = d.data(); if (x && x.status === "active" && d.ref.parent.parent) chose.add(d.ref.parent.parent.id); });
+  const all = users.map((u) => {
     const s = subs[u.uid] || null, email = lc(u.email);
     return {
       uid: u.uid, email, name: u.displayName || "", photo: u.photoURL || "",
@@ -26,9 +29,23 @@ async function listAll() {
       disabled: !!u.disabled,
       admin: email === OWNER || admins.includes(email),
       sub: s ? { status: s.status || "", method: s.method || "", pixUntil: s.pixUntil || 0, amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "", startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, cancelReason: s.cancelReason || "", cancelledAt: s.cancelledAt || 0 } : null,
-      pro: proActive(s)
+      pro: proActive(s),
+      _chose: chose.has(u.uid)
     };
   });
+  // Só aparece quem de fato virou cliente: escolheu um plano, tem/teve pagamento, foi liberado, é admin ou está bloqueado.
+  // Quem só entrou com o Google e saiu (ou tentou pagar e nunca pagou) fica oculto.
+  const keep = (x) => {
+    if (x.admin || x.disabled || x._chose) return true;
+    const s = x.sub;
+    if (!s) return false;
+    if (s.manual || s.lastPaidAt > 0 || s.pixUntil > 0) return true;
+    return ["authorized", "paused", "pending"].includes(s.status);
+  };
+  const shown = all.filter(keep);
+  shown.hidden = all.length - shown.length;
+  shown.forEach((x) => delete x._chose);
+  return shown;
 }
 
 const actions = {
@@ -40,6 +57,7 @@ const actions = {
       me: { email: u.email, owner: u.owner },
       stats: {
         users: users.length,
+        hidden: users.hidden || 0,
         pro: users.filter((x) => x.pro).length,
         active: active.length,
         pending: users.filter((x) => x.sub && x.sub.status === "pending").length,
