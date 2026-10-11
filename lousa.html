@@ -10143,7 +10143,21 @@
       #chatStk .sk-row button{flex:1 1 auto;border:0;border-radius:999px;padding:7px 12px;background:#202c33;color:#e9edef;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
       #chatStk .sk-row button.on{background:#005c4b;box-shadow:inset 0 0 0 1px #00a884}
       #chatStk .sk-row button.pri{background:#00a884}
-      #chStkTx{border:0;outline:0;border-radius:18px;padding:8px 13px;background:#2a3942;color:#e9edef;font-size:14px;font-family:inherit}`;
+      #chStkTx{border:0;outline:0;border-radius:18px;padding:8px 13px;background:#2a3942;color:#e9edef;font-size:14px;font-family:inherit}
+      #chatMic{width:38px;height:38px;border-radius:50%;border:0;background:#2a3942;color:#aebac1;cursor:pointer;flex:none}
+      #chatMic:hover{color:#00a884}
+      #chatRec{display:none;gap:8px;padding:8px;background:#202c33;align-items:center}
+      #chatRec.on{display:flex}
+      #chatRec button{width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;flex:none;color:#fff}
+      #chRecX{background:#3b4a54}#chRecOk{background:#00a884}
+      #chRecInfo{flex:1;display:flex;align-items:center;gap:8px;color:#e9edef;font-size:14px}
+      #chRecInfo i{color:#ef4444;animation:chBlink 1s ease-in-out infinite}
+      @keyframes chBlink{50%{opacity:.25}}
+      #chatPanel.tabVoz #chatRec{display:none!important}
+      .chAud{display:flex;align-items:center;gap:8px;min-width:170px;padding:2px 0}
+      .chAud button{width:34px;height:34px;border-radius:50%;border:0;background:#00a884;color:#fff;cursor:pointer;flex:none;padding:0}
+      .chAud input{flex:1;min-width:60px;accent-color:#53bdeb}
+      .chAud span{font-size:11px;color:#aebac1;min-width:32px;text-align:right}`;
       document.head.appendChild(st);
       const bx = document.createElement('div');
       bx.id = 'chatBox'; bx.className = 'closed'; bx.style.display = 'none';
@@ -10152,7 +10166,8 @@
           <button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
           <div id="chatMsgs"></div>
           <div id="chatPick"><div id="chatPickTabs"></div><div id="chatPickBody"></div></div><div id="chatPrev"><span id="chatPrevFace"></span><span>Carinha selecionada — envie sozinha ou com texto</span><button type="button" id="chatPrevX" title="Remover"><i class="fa-solid fa-xmark"></i></button></div>
-          <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form>
+          <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatMic" type="button" title="Gravar áudio"><i class="fa-solid fa-microphone"></i></button><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form>
+          <div id="chatRec"><button type="button" id="chRecX" title="Cancelar"><i class="fa-solid fa-trash"></i></button><div id="chRecInfo"><i class="fa-solid fa-circle"></i><span>Gravando</span><b id="chRecT">0:00</b></div><button type="button" id="chRecOk" title="Enviar áudio"><i class="fa-solid fa-paper-plane"></i></button></div>
           <div id="chatReact"></div>
           <div id="chatStk"><div class="sk-h"><span>Nova figurinha</span><button type="button" id="chStkX" title="Fechar"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="sk-b"><div class="sk-cv"><canvas id="chStkCv" width="256" height="256"></canvas></div>
@@ -10193,7 +10208,7 @@
       window.addEventListener('resize', chPlace);
       let sz = null; try { sz = JSON.parse(chLs('lousa_chat_size')); } catch (e) {}
       if (sz && isFinite(sz.w) && isFinite(sz.h)) { CH.w = sz.w; CH.h = sz.h; }
-      chResizeInit(); chReactInit(); chStkInit();
+      chResizeInit(); chReactInit(); chStkInit(); chAudInit();
       setInterval(chExpire, 30000);
     }
     function chPlace() {
@@ -10212,7 +10227,7 @@
     }
     function chMuteUi() { const m = byId('chatMute'); if (m) { const on = chMuted(); m.innerHTML = '<i class="fa-solid ' + (on ? 'fa-bell-slash' : 'fa-bell') + '"></i>'; m.title = on ? 'Notificações silenciadas — ativar' : 'Silenciar notificações'; } }
     function chToggle(open) {
-      chBuild();
+      chBuild(); if (!open) chRecCancel();
       if (open && !CH.open) { CH.px = null; CH.pm = false; }
       if (!open && CH.open && CH.pm) { CH.x = CH.px + (CH.cw || Math.min(340, innerWidth - 16)) - 48; CH.y = CH.py; chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); }
       CH.open = open;
@@ -10246,10 +10261,11 @@
         const rx = {}; Object.keys(m.r || {}).forEach(u => { const e = m.r[u]; if (CH_REACTS.indexOf(e) >= 0) (rx[e] = rx[e] || []).push(u); });
         const rxh = Object.keys(rx).length ? '<div class="chRx">' + Object.keys(rx).map(e => `<button type="button" data-e="${e}" class="${rx[e].indexOf(me) >= 0 ? 'me' : ''}" title="${html(rx[e].map(u => chWho(sid, u).name).join(', '))}">${e}${rx[e].length > 1 ? '<b>' + rx[e].length + '</b>' : ''}</button>`).join('') + '</div>' : '';
         const stk = m.si ? `<div class="chStk"><img data-img-id="${html(m.si)}" ${imageURLs[m.si] ? `src="${imageURLs[m.si]}"` : ''} draggable="false" alt="figurinha"></div>` : '';
-        return `<div class="chMsg${mine ? ' me' : ''}" data-id="${html(m.id)}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub${m.si ? ' stk' : ''}"><button type="button" class="chAct" title="Reagir"><i class="fa-regular fa-face-smile"></i></button><div class="chName">${html(w.name)}</div>${stk}${m.s && typeof fbFace === 'function' ? '<div class="chStk">' + (fbFace(m.s, 64) || html(m.s)) + '</div>' : ''}${m.x ? '<div class="chTx">' + html(m.x) + '</div>' : ''}${rxh}<div class="chTm">${tm}</div></div></div>`;
+        return `<div class="chMsg${mine ? ' me' : ''}" data-id="${html(m.id)}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub${m.si ? ' stk' : ''}"><button type="button" class="chAct" title="Reagir"><i class="fa-regular fa-face-smile"></i></button><div class="chName">${html(w.name)}</div>${stk}${chAudHtml(m)}${m.s && typeof fbFace === 'function' ? '<div class="chStk">' + (fbFace(m.s, 64) || html(m.s)) + '</div>' : ''}${m.x ? '<div class="chTx">' + html(m.x) + '</div>' : ''}${rxh}<div class="chTm">${tm}</div></div></div>`;
       }).join('');
       chReactClose();
       try { hydrateImages(); } catch (e) {}
+      chAudUi();
       if (near) box.scrollTop = box.scrollHeight;
     }
     function chPickToggle(on) {
@@ -10282,14 +10298,90 @@
     }
     function chSend(extra) {
       const b = chBoard(), inp = byId('chatIn'); if (!b || !inp) return;
-      const si = (extra && extra.si) || '', x = si ? '' : inp.value.trim().slice(0, 500), sf = si ? '' : (CH.face || ''); if (!x && !sf && !si) return;
+      const si = (extra && extra.si) || '', au = (extra && extra.a) || '', ex = si || au, x = ex ? '' : inp.value.trim().slice(0, 500), sf = ex ? '' : (CH.face || ''); if (!x && !sf && !ex) return;
       const me = shMe().uid;
-      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; if (si) m.si = si; return m; })).slice(-CH_MAX);
-      if (!si) { inp.value = ''; inp.style.height = 'auto'; chSetFace(''); }
+      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; if (si) m.si = si; if (au) { m.a = au; m.ad = extra.ad | 0; } return m; })).slice(-CH_MAX);
+      if (!ex) { inp.value = ''; inp.style.height = 'auto'; chSetFace(''); }
       chPickToggle(false);
       const ids = {}; b.chat.forEach(m => { ids[m.id] = 1; });
       if (CH.known[b.shared.sid]) CH.known[b.shared.sid] = ids;
       chMarkRead(b); chRender(true); saveData();
+    }
+
+    /* ----- mensagens de voz ----- */
+    const CH_REC_MAX = 60;
+    const chFmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    function chAudHtml(m) {
+      if (!m.a) return '';
+      const on = CH.aid === m.a && CH.au, pl = on && !CH.au.paused, d = m.ad || 0;
+      return `<div class="chAud" data-aid="${html(m.a)}"><button type="button" class="chPl" title="Ouvir"><i class="fa-solid ${pl ? 'fa-pause' : 'fa-play'}"></i></button><input type="range" min="0" max="1000" value="${on && d ? Math.min(1000, Math.round(CH.au.currentTime / d * 1000)) : 0}"><span>${chFmt(on ? CH.au.currentTime : d)}</span></div>`;
+    }
+    function chAudUi() {
+      document.querySelectorAll('#chatMsgs .chAud').forEach(el => {
+        const id = el.dataset.aid, on = CH.aid === id && CH.au, m = ((chBoard() || {}).chat || []).find(x => x.a === id), d = (m && m.ad) || 0;
+        el.querySelector('i').className = 'fa-solid ' + (on && !CH.au.paused ? 'fa-pause' : 'fa-play');
+        const r = el.querySelector('input'); if (document.activeElement !== r) r.value = on && d ? Math.min(1000, Math.round(CH.au.currentTime / d * 1000)) : 0;
+        el.querySelector('span').textContent = chFmt(on ? CH.au.currentTime : d);
+      });
+    }
+    function chAudStop() { if (CH.au) { try { CH.au.pause(); } catch (e) {} CH.au.onended = CH.au.ontimeupdate = CH.au.onpause = CH.au.onplay = null; } CH.au = null; CH.aid = null; }
+    async function chAudToggle(aid) {
+      const b = chBoard(); if (!b) return;
+      if (CH.aid === aid && CH.au) { if (CH.au.paused) CH.au.play().catch(() => {}); else CH.au.pause(); chAudUi(); return; }
+      chAudStop(); CH.aurl = CH.aurl || {};
+      let url = CH.aurl[aid];
+      if (!url) { try { const d = await FB.loadSharedImage(b.shared.sid, aid); if (d) url = CH.aurl[aid] = dataUrlToBlobUrl(d); } catch (e) { console.warn(e); } }
+      if (!url) { showCustomDialog({ title: 'Áudio', message: 'Não consegui carregar esse áudio. Ele pode ter expirado.' }); return; }
+      const au = new Audio(url); CH.au = au; CH.aid = aid;
+      au.ontimeupdate = chAudUi; au.onpause = chAudUi; au.onplay = chAudUi; au.onended = () => { chAudStop(); chAudUi(); };
+      try { await au.play(); } catch (e) { console.warn(e); }
+      chAudUi();
+    }
+    function chAudInit() {
+      const box = byId('chatMsgs');
+      box.addEventListener('click', e => { const p = e.target.closest('.chPl'); if (p) chAudToggle(p.closest('.chAud').dataset.aid); });
+      box.addEventListener('input', e => {
+        const r = e.target.closest('.chAud input'); if (!r) return;
+        const id = r.closest('.chAud').dataset.aid, m = ((chBoard() || {}).chat || []).find(x => x.a === id);
+        if (CH.aid === id && CH.au && m && m.ad) CH.au.currentTime = r.value / 1000 * m.ad;
+      });
+      byId('chatMic').onclick = () => chRecStart();
+      byId('chRecX').onclick = () => chRecStop(false);
+      byId('chRecOk').onclick = () => chRecStop(true);
+    }
+    function chRecUi(on) { byId('chatForm').style.display = on ? 'none' : ''; byId('chatRec').classList.toggle('on', on); }
+    async function chRecStart() {
+      if (CH.rec) return;
+      const fail = (t) => showCustomDialog({ title: 'Áudio', message: t });
+      if (!navigator.mediaDevices || !window.MediaRecorder) { fail('Este navegador não consegue gravar áudio.'); return; }
+      let st; try { st = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { fail('Permita o uso do microfone no navegador para gravar.'); return; }
+      const mt = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+      let mr; try { mr = new MediaRecorder(st, mt ? { mimeType: mt, audioBitsPerSecond: 24000 } : { audioBitsPerSecond: 24000 }); } catch (e) { st.getTracks().forEach(t => t.stop()); fail('Não consegui iniciar a gravação.'); return; }
+      const R = CH.rec = { mr, st, chunks: [], t0: Date.now(), send: false, mt: mr.mimeType || mt, dur: 0 };
+      chAudStop(); chAudUi();
+      mr.ondataavailable = e => { if (e.data && e.data.size) R.chunks.push(e.data); };
+      mr.onstop = () => chRecDone(R);
+      mr.start(250);
+      chRecUi(true); chRecTick(); R.tm = setInterval(chRecTick, 250);
+    }
+    function chRecTick() { const R = CH.rec; if (!R) return; const s = (Date.now() - R.t0) / 1000; byId('chRecT').textContent = chFmt(s); if (s >= CH_REC_MAX) chRecStop(true); }
+    function chRecStop(send) {
+      const R = CH.rec; if (!R || R.stopping) return; R.stopping = true; R.send = send; R.dur = Math.round((Date.now() - R.t0) / 1000);
+      clearInterval(R.tm); chRecUi(false);
+      try { if (R.mr.state !== 'inactive') R.mr.stop(); else chRecDone(R); } catch (e) { chRecDone(R); }
+    }
+    function chRecCancel() { if (CH.rec) chRecStop(false); }
+    async function chRecDone(R) {
+      if (CH.rec === R) CH.rec = null; R.st.getTracks().forEach(t => t.stop());
+      if (!R.send || !R.chunks.length || R.dur < 1) return;
+      const b = chBoard(); if (!b) return;
+      const blob = new Blob(R.chunks, { type: R.mt || 'audio/webm' });
+      const d = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(blob); });
+      if (!d || d.length > 900000) { showCustomDialog({ title: 'Áudio', message: 'Não consegui enviar esse áudio (muito longo ou falhou). Tente um mais curto.' }); return; }
+      const id = 'aud_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      try { await FB.saveSharedImage(b.shared.sid, id, d); } catch (e) { console.error(e); showCustomDialog({ title: 'Áudio', message: 'Não consegui enviar o áudio. Verifique a conexão.' }); return; }
+      (CH.aurl = CH.aurl || {})[id] = dataUrlToBlobUrl(d);
+      chSend({ a: id, ad: R.dur });
     }
     /* ----- curtir / reagir ----- */
     const CH_REACTS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
@@ -10471,7 +10563,7 @@
       if (!SH.on) return;
       sharedBoards().forEach(b => {
         const m = b.chat; if (!m || !m.length) return;
-        if (Date.now() - (m[m.length - 1].t || 0) > CH_TTL) { b.chat = []; CH.known[b.shared.sid] = {}; if (getActiveBoard() === b) { chRender(); chBadge(); } saveData(); }
+        if (Date.now() - (m[m.length - 1].t || 0) > CH_TTL) { m.forEach(x => { if (x.a) { try { FB.deleteSharedImage(b.shared.sid, x.a).catch(() => {}); } catch (e) {} } }); b.chat = []; CH.known[b.shared.sid] = {}; if (getActiveBoard() === b) { chRender(); chBadge(); } saveData(); }
       });
     }
     function chIncoming(sid, b) {
@@ -10493,7 +10585,7 @@
       if (!b && !(window.voiceActive && window.voiceActive())) { const bx = byId('chatBox'); if (bx) bx.style.display = 'none'; CH.open = false; if (bx) { bx.classList.remove('open'); bx.classList.add('closed'); } return; }
       chBuild(); byId('chatBox').style.display = ''; chPlace(); chMuteUi(); chBadge(); if (CH.open) chRender();
     }
-    function chatHide() { const bx = byId('chatBox'); if (bx) bx.remove(); CH.open = false; CH.known = {}; }
+    function chatHide() { try { chRecCancel(); chAudStop(); } catch (e) {} const bx = byId('chatBox'); if (bx) bx.remove(); CH.open = false; CH.known = {}; }
 
     (function () {
       const hi = window.handleSignedIn, ho = window.handleSignedOut, sd = window.saveData, rn = window.renderNotes, ub = window.updateBoardWidgetControls, ra = window.relayoutAll, at = window.applyTheme;
