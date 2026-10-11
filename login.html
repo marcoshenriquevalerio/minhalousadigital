@@ -45,6 +45,17 @@ p.s{color:var(--m);margin-bottom:26px}
 .demo{display:inline-block;margin-bottom:14px;padding:5px 12px;border-radius:99px;background:var(--a);color:#3a2a0a;font-size:13px;font-weight:700}
 .sum{display:flex;justify-content:space-between;padding:14px 16px;margin:6px 0 18px;border-radius:14px;background:#ffffff0d}
 .lk{background:none;border:0;color:var(--m);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;margin-top:14px}.lk:hover{color:var(--g)}
+.ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;overflow:auto;background:rgba(4,12,8,.74);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:fd .3s}
+.ov[hidden]{display:none}@keyframes fd{from{opacity:0}}
+.pm{position:relative;width:min(440px,100%);margin:auto;padding:34px 30px 24px;border-radius:30px;text-align:center;background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c044;box-shadow:0 40px 100px #000b,inset 0 0 90px #9be3c014;animation:up .5s cubic-bezier(.2,.7,.2,1) backwards}
+.pm h2{font-size:clamp(28px,5vw,34px);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:4px 0 0}
+.px{position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:#ffffff12;color:var(--g);font-size:22px;line-height:1;cursor:pointer;transition:.25s}.px:hover{background:#ffffff26}
+.fl{display:block;text-align:left;margin-bottom:12px;font-size:13px;color:var(--m);font-weight:600}
+.fx,.fi{display:block;width:100%;height:48px;margin-top:5px;border-radius:14px;border:1px solid #ffffff2e;background:#ffffff0d;color:var(--g);font-size:16px;font-family:inherit;transition:.25s}
+.fi{padding:0 14px}.fx{padding:0 10px;overflow:hidden}.fx iframe{height:46px!important}
+.fi::placeholder{color:var(--m)}.fi:focus,.fx:focus-within{outline:0;border-color:var(--v);box-shadow:0 0 0 3px #9be3c030}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sec{display:flex;align-items:flex-start;justify-content:center;gap:6px;font-size:12px;margin-top:14px}.sec svg{flex:none;margin-top:2px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin-bottom:16px;border-radius:99px;background:#ffffff0d}
 .tabs button{padding:10px;border:0;border-radius:99px;background:none;color:var(--m);font:inherit;font-weight:700;cursor:pointer;transition:.25s}
 .tabs button.on{background:var(--v);color:#0c1f17}
@@ -84,18 +95,35 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <p class="msg" id="msg2" role="status"></p>
    <button class="lk" data-out type="button">Entrar com outra conta</button>
   </div>
-  <!-- 4. assinatura do Pro (Mercado Pago) -->
-  <div id="vPay" hidden>
+  <!-- 5. confirmando pagamento -->
+  <div id="vWait" hidden>
+   <div class="spin" id="wsp"></div>
+   <h1 style="font-size:clamp(26px,5vw,32px)" id="wt">Confirmando seu pagamento</h1>
+   <p class="s" id="ws" style="margin:10px 0 0">Isso leva só alguns segundos...</p>
+   <div id="wb" hidden style="margin-top:22px;display:grid;gap:10px">
+    <button class="btn" id="wRetry" type="button">Verificar de novo</button>
+    <button class="btn o" id="wGo" type="button" hidden>Entrar na lousa</button>
+   </div>
+  </div>
+ </div>
+<!-- 4. pop-up de assinatura (cartão e Pix, dentro do site) -->
+ <div class="ov" id="vPay" hidden role="dialog" aria-modal="true" aria-label="Assinar o Pro">
+  <div class="pm">
+   <button class="px" id="payBack" type="button" aria-label="Fechar">&times;</button>
    <span class="ch">quase lá</span>
-   <h1 style="font-size:clamp(28px,5vw,36px)">Assinar o Pro</h1>
+   <h2>Assinar o Pro</h2>
    <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
    <div class="sum"><span>Plano Pro, mensal</span><b data-price>R$ 19,90</b></div>
    <div class="tabs" role="tablist"><button type="button" class="on" id="tCard" role="tab">Cartão</button><button type="button" id="tPix" role="tab">Pix</button></div>
    <div id="paneCard">
-   <p class="s" style="font-size:14px;margin-bottom:18px" id="payTxt">Pague com cartão de crédito aqui mesmo. A cobrança é hoje e se renova sozinha todo mês. Cancele quando quiser.</p>
-   <div id="brickBox" style="text-align:left;margin-bottom:6px"></div>
-   <p class="hint" id="secure" hidden>🔒 Pagamento seguro processado pelo Mercado Pago. Os dados do cartão não passam pelo nosso servidor.</p>
-   <button class="btn" id="pay" type="button" style="width:100%" hidden>Continuar para o pagamento</button>
+    <form id="cf" autocomplete="off" novalidate>
+     <label class="fl">Número do cartão<div class="fx" id="cfNum"></div></label>
+     <div class="g2"><label class="fl">Validade<div class="fx" id="cfExp"></div></label><label class="fl">CVV<div class="fx" id="cfCvv"></div></label></div>
+     <label class="fl">Nome no cartão<input class="fi" id="cfName" autocomplete="cc-name" placeholder="Como está no cartão"></label>
+     <label class="fl">CPF do titular<input class="fi" id="cfDoc" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label>
+     <button class="btn" id="cfGo" type="submit" style="width:100%">Assinar</button>
+    </form>
+    <p class="hint">Cobrança hoje e renovação automática todo mês. Cancele quando quiser.</p>
    </div>
    <div id="panePix" hidden>
     <p class="s" style="font-size:14px;margin-bottom:14px">Pague 30 dias de Pro com Pix. Não renova sozinho: quando acabar, é só gerar outro Pix dentro da lousa. Se você já assina no cartão, o cartão deixa de ser cobrado e os dias se somam.</p>
@@ -108,17 +136,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
     </div>
    </div>
    <p class="msg" id="msg3" role="status"></p>
-   <button class="lk" id="payBack" type="button">Voltar aos planos</button>
-  </div>
-  <!-- 5. confirmando pagamento -->
-  <div id="vWait" hidden>
-   <div class="spin" id="wsp"></div>
-   <h1 style="font-size:clamp(26px,5vw,32px)" id="wt">Confirmando seu pagamento</h1>
-   <p class="s" id="ws" style="margin:10px 0 0">Isso leva só alguns segundos...</p>
-   <div id="wb" hidden style="margin-top:22px;display:grid;gap:10px">
-    <button class="btn" id="wRetry" type="button">Verificar de novo</button>
-    <button class="btn o" id="wGo" type="button" hidden>Entrar na lousa</button>
-   </div>
+   <p class="hint sec"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg> Pagamento seguro processado pelo Mercado Pago. Os dados do cartão não passam pelo nosso servidor.</p>
   </div>
  </div>
  <a class="back" href="site.html">&larr; Voltar ao site</a>
@@ -127,7 +145,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
 <script>
 const $=id=>document.getElementById(id),APP='lousa.html',V=['vLogin','vLoad','vPlans','vPay','vWait'];
 const want=new URLSearchParams(location.search).get('plano');
-const show=v=>V.forEach(i=>$(i).hidden=i!==v);
+const show=v=>{V.forEach(i=>$(i).hidden=i!==v);const c=document.querySelector('.cd');if(c)c.style.visibility=v==='vPay'?'hidden':''};
 const say=(id,t)=>$(id).textContent=t||'';
 $('yr').textContent=new Date().getFullYear();
 function authMsg(e){const c=(e&&e.code)||'';
@@ -140,11 +158,11 @@ $('gl').onclick=async()=>{
  if(!window.FB){say('msg','Aguarde um instante e tente de novo.');return}
  say('msg','');
  try{await FB.login()}catch(e){say('msg',authMsg(e))}};
-let PK='',PRICE=19.9,brick=null,brickLoading=false;
+let PK='',PRICE=19.9;
 const RETORNO=new URLSearchParams(location.search).get('retorno')==='1',RENOVAR=new URLSearchParams(location.search).get('renovar')==='1';
 const money=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
 fetch('/api/public').then(r=>r.json()).then(j=>{
- if(j&&j.mpKey)PK=j.mpKey;if(j&&j.price)PRICE=Number(j.price);
+ if(j&&j.mpKey)PK=j.mpKey;if(j&&j.price)PRICE=Number(j.price);setLbl();
  if(j&&j.price){document.querySelectorAll('[data-price]').forEach(e=>e.textContent=money(j.price));$('pPrice').textContent=money(j.price)+'/mês'}
  if(j&&j.cards){$('fSub').textContent=j.cards.free.join(', ');$('pSub').textContent=j.cards.pro.filter(t=>!/^Cancele/.test(t)).join(', ')}}).catch(()=>{});
 function sair(url){ // navega a página inteira (o endereço do site fica fixo)
@@ -161,7 +179,7 @@ addEventListener('fb-auth',async e=>{
  if(tier==='admin'){location.replace('painel.html');return}
  if((tier==='pro'&&!RENOVAR)||(tier==='free'&&want!=='pro')){location.replace(APP);return}
  $('hello').textContent='olá, '+String(u.name||'').split(' ')[0]+'!';
- show(want==='pro'?'vPay':'vPlans');if(want==='pro'){montar();if(RENOVAR){$('payBack').hidden=true}}});
+ show(want==='pro'?'vPay':'vPlans');if(want==='pro')montar()});
 /* depois do checkout: espera o Mercado Pago confirmar */
 async function confirmar(n){
  show('vWait');$('wb').hidden=true;$('wsp').hidden=false;$('wt').textContent='Confirmando seu pagamento';$('ws').textContent='Isso leva só alguns segundos...';
@@ -181,34 +199,39 @@ async function activate(plan,msgId){
  catch(err){console.error(err);show('vPlans');say(msgId,'Não foi possível concluir. Tente de novo.')}}
 $('pFree').onclick=()=>activate('free','msg2');
 $('pPro').onclick=()=>{say('msg3','');show('vPay');montar()};
-$('payBack').onclick=()=>{clearInterval(pixTimer);show('vPlans')};
-/* formulário de cartão dentro do próprio card (Mercado Pago Bricks) */
-function sdk(){return new Promise((ok,no)=>{if(window.MercadoPago)return ok();const s=document.createElement('script');s.src='https://sdk.mercadopago.com/js/v2';s.onload=ok;s.onerror=()=>no(new Error('Não foi possível carregar o formulário de pagamento.'));document.head.appendChild(s)})}
+$('payBack').onclick=()=>{clearInterval(pixTimer);if(RENOVAR||want==='pro'){location.replace(APP);return}show('vPlans')};
+/* cartão dentro do site: campos seguros do Mercado Pago (iframes) com o visual da Lousa */
+function sdk(){return new Promise((ok,no)=>{if(window.MercadoPago)return ok();const s=document.createElement('script');s.src='https://sdk.mercadopago.com/js/v2';s.onload=ok;s.onerror=()=>no(new Error('Não foi possível carregar o formulário de cartão. Use o Pix ou tente de novo.'));document.head.appendChild(s)})}
+let mpi=null,montado=false,montando=false;
+const setLbl=()=>{const b=$('cfGo');if(b&&!b.disabled)b.textContent='Assinar por '+money(PRICE)+'/mês'};
 async function montar(){
- if(brick||brickLoading)return;
- if(!PK){await new Promise(r=>setTimeout(r,1200))} // dá tempo de /api/public responder
- if(!PK){$('pay').hidden=false;return} // sem chave pública: usa o checkout do Mercado Pago (modo antigo)
- brickLoading=true;$('pay').hidden=true;
+ if(montado||montando)return;montando=true;setLbl();
+ if(!PK)await new Promise(r=>setTimeout(r,1500)); // dá tempo de /api/public responder
+ if(!PK){aba(true);say('msg3','O pagamento por cartão ainda não está ativo. Use o Pix.');montando=false;return}
  try{
   await sdk();
-  const mp=new MercadoPago(PK,{locale:'pt-BR'});
-  brick=await mp.bricks().create('cardPayment','brickBox',{
-   initialization:{amount:PRICE,payer:{email:(who&&who.email)||''}},
-   customization:{
-    visual:{hideFormTitle:true,style:{theme:'dark',customVariables:{baseColor:'#9be3c0',formBackgroundColor:'transparent',borderRadiusMedium:'12px',borderRadiusLarge:'14px'}},texts:{formSubmit:'Assinar por '+money(PRICE)+'/mês'}},
-    paymentMethods:{maxInstallments:1,types:{excluded:['debit_card']}}},
-   callbacks:{
-    onReady:()=>{$('secure').hidden=false},
-    onError:e=>{console.error(e)},
-    onSubmit:async d=>{
-     say('msg3','');
-     try{
-      const r=await FB.api('subscribe',{token:d.token,email:d.payer&&d.payer.email});
-      if(r.already){location.replace(APP);return}
-      confirmar(0);
-     }catch(err){console.error(err);say('msg3',err.message||'Não foi possível concluir o pagamento.');throw err}}}});
- }catch(err){console.error(err);brick=null;$('pay').hidden=false;say('msg3',err.message||'')}
- brickLoading=false}
+  mpi=new MercadoPago(PK,{locale:'pt-BR'});
+  const st={color:'#f2efe4',placeholderColor:'#a3b8ac',fontSize:'16px'};
+  mpi.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000',style:st}).mount('cfNum');
+  mpi.fields.create('expirationDate',{placeholder:'MM/AA',style:st}).mount('cfExp');
+  mpi.fields.create('securityCode',{placeholder:'123',style:st}).mount('cfCvv');
+  montado=true;
+ }catch(err){console.error(err);aba(true);say('msg3',err.message||'Não foi possível carregar o formulário de cartão. Use o Pix.')}
+ montando=false}
+$('cfDoc').oninput=e=>{const d=e.target.value.replace(/\D/g,'').slice(0,11);e.target.value=d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
+function erroCartao(err){if(Array.isArray(err))return 'Confira os dados do cartão e tente de novo.';return (err&&err.message)||'Não foi possível concluir o pagamento.'}
+$('cf').onsubmit=async ev=>{
+ ev.preventDefault();if(!montado){say('msg3','O formulário ainda está carregando.');return}
+ const name=$('cfName').value.trim(),doc=$('cfDoc').value.replace(/\D/g,'');
+ if(name.length<3){say('msg3','Digite o nome como está no cartão.');return}
+ if(doc.length!==11){say('msg3','Digite o CPF do titular (11 números).');return}
+ const b=$('cfGo');b.disabled=true;b.textContent='Processando pagamento...';say('msg3','');
+ try{
+  const t=await mpi.fields.createCardToken({cardholderName:name,identificationType:'CPF',identificationNumber:doc});
+  const r=await FB.api('subscribe',{token:t.id,email:who&&who.email});
+  if(r.already){location.replace(APP);return}
+  confirmar(0);
+ }catch(err){console.error(err);say('msg3',erroCartao(err));b.disabled=false;setLbl()}};
 /* abas Cartão / Pix */
 function aba(pix){$('tCard').classList.toggle('on',!pix);$('tPix').classList.toggle('on',pix);$('paneCard').hidden=pix;$('panePix').hidden=!pix;say('msg3','')}
 $('tCard').onclick=()=>aba(false);$('tPix').onclick=()=>aba(true);
@@ -228,14 +251,6 @@ $('pixGo').onclick=async()=>{
     if(c.paid){clearInterval(pixTimer);$('pixSt').textContent='Pagamento confirmado!';confirmar(0)}}catch(e){console.warn(e)}},4000);
  }catch(err){console.error(err);b.disabled=false;say('msg3',err.message||'Não foi possível gerar o Pix.')}};
 $('pixCp').onclick=()=>{const i=$('pixCode');i.select();try{navigator.clipboard.writeText(i.value)}catch(e){document.execCommand('copy')}$('pixCp').textContent='Copiado!';setTimeout(()=>$('pixCp').textContent='Copiar',1800)};
-$('pay').onclick=async()=>{
- const b=$('pay');b.disabled=true;say('msg3','');
- try{
-  const r=await FB.api('subscribe');
-  if(r.already){location.replace(APP);return}
-  if(!r.url)throw new Error('Resposta inválida do pagamento.');
-  say('msg3','Abrindo o Mercado Pago...');sair(r.url);
- }catch(err){console.error(err);b.disabled=false;say('msg3',err.message||'Não foi possível iniciar o pagamento.')}};
 document.querySelector('[data-out]').onclick=()=>{if(window.FB)FB.logout()};
 setTimeout(()=>{if(!window.FB&&!$('vLogin').hidden)say('msg','Não foi possível carregar o login. Confira sua conexão.')},8000);
 /* fundo de estrelas */
