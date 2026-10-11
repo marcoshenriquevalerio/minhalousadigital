@@ -75,6 +75,19 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
 .empty{padding:36px;text-align:center;color:var(--mu)}
 .gate{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
 .gate .box{max-width:420px;margin:0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
+.ov{position:fixed;inset:0;z-index:40;display:grid;place-items:start center;padding:4vh 14px;overflow:auto;background:#050d0aaa;backdrop-filter:blur(4px)}
+.md{width:min(760px,100%);background:var(--sf);border:1px solid var(--ln);border-radius:20px;box-shadow:0 30px 80px #0007;padding:24px;position:relative}
+.md .x{position:absolute;top:12px;right:14px;width:34px;height:34px;border-radius:50%;border:0;background:var(--bg);cursor:pointer;font-size:20px;line-height:1}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}
+.kv div{padding:12px 14px;border-radius:12px;background:var(--bg)}.kv small{display:block;color:var(--mu);font-size:12px;font-weight:600}.kv b{display:block;margin-top:2px}
+.md h3{font-size:15px;margin:20px 0 8px}
+.md table{min-width:0}
+.rcp{width:min(520px,100%);background:#fff;color:#111;border-radius:14px;padding:30px;box-shadow:0 30px 80px #0007}
+.rcp h2{font-size:20px;margin-bottom:2px}.rcp .rk{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #e5e5e5;font-size:14px}.rcp .rk span{color:#666}.rcp .rk b{text-align:right;word-break:break-all}
+.rcp .big{font-size:30px;font-weight:800;margin:14px 0 6px}.rcp small{color:#777;display:block;margin-top:14px;font-size:12px}
+@media print{body>*:not(#rcv){display:none!important}#rcv{position:static!important;background:#fff!important;padding:0!important;backdrop-filter:none!important;display:block!important}.rcp{box-shadow:none!important;margin:0 auto}.noprint{display:none!important}}
 .toast{position:fixed;left:50%;bottom:24px;translate:-50% 0;padding:12px 18px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;box-shadow:0 10px 30px #0004;z-index:50;max-width:92vw}
 .toast.e{background:var(--rd);color:#fff}
 .spin{width:34px;height:34px;margin:0 auto 12px;border-radius:50%;border:3px solid var(--ln);border-top-color:var(--gr);animation:sp .9s linear infinite}@keyframes sp{to{rotate:360deg}}
@@ -227,6 +240,8 @@ ol.how{padding-left:20px;color:var(--mu);font-size:14px;display:grid;gap:4px}
   </section>
  </main>
 </div>
+<div class="ov" id="dmv" hidden><div class="md" id="dm" role="dialog" aria-modal="true" aria-label="Detalhes do assinante"></div></div>
+<div class="ov" id="rcv" hidden><div class="rcp" id="rc" role="dialog" aria-modal="true" aria-label="Comprovante de pagamento"></div></div>
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script>
@@ -319,6 +334,20 @@ $('ub').onclick=rowAct;$('sb').onclick=rowAct;$('mb').onclick=rowAct;
 
 /* assinantes pro: quem paga de verdade, entrada, próxima cobrança e tolerância */
 const isPix=u=>u.sub&&u.sub.method==='pix';
+/* contagem de dias: verde (mais de 7), amarelo (faltam até 7), vermelho (venceu: só restam os 5 dias de tolerância) */
+function cdn(u){const s=u.sub,now=Date.now(),D1=864e5,n=(k,w)=>k+(k===1?' '+w:' '+w+'s');
+ if(!s||s.manual)return null;
+ if(s.status==='pending'){const lim=(s.startedAt||s.createdAt||now)+5*D1,l=Math.ceil((lim-now)/D1);
+  return l>0?{c:'r',t:'1º pagamento pendente · '+n(l,'dia')+' para pagar',l}:{c:'r',t:'Prazo do 1º pagamento acabou',l:0}}
+ const due=isPix(u)?s.pixUntil:s.nextPayment;if(!due)return null;
+ const l=Math.ceil((due-now)/D1);
+ if(s.status==='cancelled'&&!isPix(u))return l>0?{c:'a',t:'Cancelada · Pro acaba em '+n(l,'dia'),l,due}:{c:'r',t:'Cancelada · encerrada',l,due};
+ if(l>7)return {c:'g',t:'Faltam '+n(l,'dia')+' para pagar',l,due};
+ if(l>0)return {c:'a',t:'Faltam '+n(l,'dia')+' para pagar',l,due};
+ if(isPix(u))return {c:'r',t:'Pix venceu há '+n(Math.max(1,-l),'dia'),l,due};
+ const tol=Math.ceil((due+5*D1-now)/D1);
+ return tol>0?{c:'r',t:'Venceu · restam '+n(tol,'dia')+' de tolerância',l,due,tol}:{c:'r',t:'Tolerância esgotada',l,due,tol:0}}
+const cdPill=u=>{const c=cdn(u);return c?'<span class="pill '+c.c+'"><i class="dot"></i>'+esc(c.t)+'</span>':''};
 function bsit(u){
  const b=FB.billing(u.sub),s=u.sub;
  if(isPix(u))return u.pro?'<span class="pill g">Pix · pago até '+dt(s.pixUntil)+'</span>':'<span class="pill r">Pix vencido em '+dt(s.pixUntil)+'</span>';
@@ -343,10 +372,54 @@ function subs(){
  const who=u=>'<div class="u">'+av(u)+'<div><b>'+esc(u.name||u.email)+'</b><small>'+esc(u.email)+'</small></div></div>';
  $('sb').innerHTML=L.map(u=>{const s=u.sub,b=FB.billing(s),btns=[];
   if(s.preapprovalId&&(s.status==='authorized'||s.status==='paused'||s.status==='pending'))btns.push('<button class="btn s d" data-a="cancel" data-id="'+u.uid+'">Cancelar assinatura</button>');
-  const nx=isPix(u)?dt(s.pixUntil)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">renovação por Pix (manual)</small>':b.k==='cancelled'?'-':(s.nextPayment?dt(s.nextPayment)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">cobrança automática</small>':'-');
-  return '<tr><td>'+who(u)+'</td><td>'+(b.entry?dt(b.entry):'-')+(b.lastPaid?'<br><small style="color:var(--mu)">último pagamento '+dt(b.lastPaid)+'</small>':'')+'</td><td>'+nx+'</td><td>'+bsit(u)+'</td><td><div class="acts">'+btns.join('')+'</div></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Ninguém está pagando o Pro ainda.</td></tr>';
+  const nx=(isPix(u)?dt(s.pixUntil)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">Pix, renovação manual</small>':b.k==='cancelled'?'-':(s.nextPayment?dt(s.nextPayment)+' · '+money(s.amount)+'<br><small style="color:var(--mu)">cobrança automática (+5 dias de tolerância)</small>':'-'))+(cdPill(u)?'<div style="margin-top:6px">'+cdPill(u)+'</div>':'');
+  return '<tr class="clk" data-open="'+u.uid+'" title="Ver histórico de pagamentos e termos"><td>'+who(u)+'</td><td>'+(b.entry?dt(b.entry):'-')+(b.lastPaid?'<br><small style="color:var(--mu)">último pagamento '+dt(b.lastPaid)+'</small>':'')+'</td><td>'+nx+'</td><td>'+bsit(u)+'</td><td><div class="acts">'+btns.join('')+'</div></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Ninguém está pagando o Pro ainda.</td></tr>';
  $('mb').innerHTML=manual.map(u=>'<tr><td>'+who(u)+'</td><td><span class="pill g">Pro liberado</span></td><td style="text-align:right"><button class="btn s" data-a="ungrant" data-id="'+u.uid+'">Remover Pro</button></td></tr>').join('')||'<tr><td class="empty">Você não liberou o Pro para ninguém.</td></tr>'}
 $('bq').oninput=subs;
+
+/* detalhe do assinante: termos aceitos, contagem e histórico (clique em uma cobrança para o comprovante) */
+const dtt=ms=>ms?new Date(ms).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+const METH={pix:'Pix',card:'Cartão de crédito'},STAT={approved:['g','Pago'],rejected:['r','Recusado']};
+let DET=null;
+async function openDet(uid){
+ const u=D.users.find(x=>x.uid===uid);if(!u)return;
+ $('dm').innerHTML='<button class="x" data-close aria-label="Fechar">&times;</button><p class="sub" style="margin:0">Carregando...</p>';$('dmv').hidden=false;
+ try{DET=await call('userDetail',{uid});}catch(e){$('dmv').hidden=true;toast(e.message||'Não foi possível abrir.',true);return}
+ const s=DET.sub||{},c=cdn(Object.assign({},u,{sub:Object.assign({},u.sub,s)}));
+ const pg=DET.payments||[],total=pg.filter(p=>p.status==='approved').reduce((a,p)=>a+Number(p.amount||0),0);
+ const due=isPix(u)?s.pixUntil:s.nextPayment;
+ $('dm').innerHTML='<button class="x" data-close aria-label="Fechar">&times;</button>'
+ +'<div class="u" style="margin-bottom:10px">'+av(u)+'<div><b style="font-size:18px">'+esc(DET.name||u.name||DET.email)+'</b><small>'+esc(DET.email)+'</small></div></div>'
+ +(c?'<div>'+cdPill(Object.assign({},u,{sub:Object.assign({},u.sub,s)}))+'</div>':'')
+ +'<div class="kv"><div><small>Forma de pagamento</small><b>'+(s.method==='pix'?'Pix (renovação manual)':'Cartão (renovação automática)')+'</b></div>'
+ +'<div><small>Valor</small><b>'+money(s.amount)+'/mês</b></div>'
+ +'<div><small>Cliente desde</small><b>'+dt(s.startedAt||s.createdAt)+'</b></div>'
+ +'<div><small>Próximo vencimento</small><b>'+(due?dt(due):'-')+'</b></div>'
+ +(!isPix(u)&&due?'<div><small>Tolerância até</small><b>'+dt(due+5*864e5)+'</b></div>':'')
+ +'<div><small>Total pago</small><b>'+money(total)+'</b></div></div>'
+ +'<h3>Termos aceitos</h3>'
+ +(s.termsAcceptedAt?'<p>Aceitou em <b>'+dtt(s.termsAcceptedAt)+'</b> · versão <b>'+esc(s.termsVersion||'-')+'</b> · <a href="termos-'+esc(s.termsVersion)+'.html" target="_blank" rel="noopener" style="color:var(--gr);font-weight:700">Ver os termos que ele aceitou</a></p>'
+  :'<p class="sub" style="margin:0">Sem registro de aceite (assinou antes dos termos existirem).</p>')
+ +'<h3>Histórico de pagamentos</h3>'
+ +(pg.length?'<div class="tw"><table><thead><tr><th>Data</th><th>Forma</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>'
+  +pg.map((p,i)=>{const st=STAT[p.status]||['','-'];return '<tr><td>'+dtt(p.paidAt)+'</td><td>'+(METH[p.method]||esc(p.method))+'</td><td>'+money(p.amount)+'</td><td><span class="pill '+st[0]+'">'+st[1]+'</span></td><td style="text-align:right">'+(p.status==='approved'?'<button class="btn s" data-rcp="'+i+'">Comprovante</button>':'')+'</td></tr>'}).join('')+'</tbody></table></div>'
+  :'<p class="sub" style="margin:0">Nenhum pagamento registrado ainda.</p>')}
+function openRcp(i){
+ const p=DET.payments[i],u=D.users.find(x=>x.uid===DET.uid)||{},s=DET.sub||{};
+ const row=(k,v)=>v?'<div class="rk"><span>'+k+'</span><b>'+esc(v)+'</b></div>':'';
+ $('rc').innerHTML='<h2>Comprovante de pagamento</h2><div style="color:#666;font-size:14px">Lousa Digital · Excellent Services · CPF 482.348.978-02</div>'
+ +'<div class="big">'+money(p.amount)+'</div><div style="color:#1d7a50;font-weight:700;margin-bottom:10px">Pagamento aprovado</div>'
+ +row('Pagador',DET.name||u.name||'')+row('E-mail',DET.email)+row('Forma de pagamento',METH[p.method]||p.method)
+ +row('Data e hora',dtt(p.paidAt))
+ +row('Referente a',p.method==='pix'?'30 dias de Pro, de '+dt(p.periodStart)+' até '+dt(p.periodEnd):'Mensalidade do plano Pro')
+ +row('ID do pagamento (Mercado Pago)',p.mpPaymentId||p.mpChargeId||'')+row('Código interno',p.id)
+ +'<small>Comprovante gerado pelo sistema Lousa Digital com os dados confirmados pelo Mercado Pago. Não substitui nota fiscal.</small>'
+ +'<div class="row noprint" style="margin-top:18px"><button class="btn p" id="rcPrint" type="button" style="background:#1d7a50;border-color:#1d7a50;color:#fff">Imprimir / salvar PDF</button><button class="btn" data-closercp type="button" style="color:#111;background:#fff;border-color:#ccc">Fechar</button></div>';
+ $('rcv').hidden=false;$('rcPrint').onclick=()=>window.print()}
+$('sb').addEventListener('click',e=>{if(e.target.closest('button,a'))return;const r=e.target.closest('[data-open]');if(r)openDet(r.dataset.open)});
+$('dmv').addEventListener('click',e=>{if(e.target===$('dmv')||e.target.closest('[data-close]'))$('dmv').hidden=true;const b=e.target.closest('[data-rcp]');if(b)openRcp(+b.dataset.rcp)});
+$('rcv').addEventListener('click',e=>{if(e.target===$('rcv')||e.target.closest('[data-closercp]'))$('rcv').hidden=true});
+addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('rcv').hidden)$('rcv').hidden=true;else $('dmv').hidden=true}});
 
 /* assinatura */
 $('sp').onclick=async()=>{const ap=$('pa').checked;
