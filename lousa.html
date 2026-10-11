@@ -649,6 +649,10 @@
     .q-btn { min-width: 32px; height: 30px; padding: 0 8px; border-radius: 8px; background: rgba(255,255,255,.12); color: #fde68a; font-weight: 700; font-size: 13px; transition: background .2s ease; }
     .q-btn:hover { background: rgba(255,255,255,.24); }
     .q-btn.active { background: rgba(251,191,36,.5); color: #fff; }
+    /* Ajustes: abas e botões sem espremer; texto nunca sai do botão */
+    #quoteEditor .q-btn { white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+    #quoteEditor .qe-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+    #quoteEditor .qe-tabs .q-btn { flex: 1 1 auto; padding: 0 12px; height: 32px; }
 
     /* ===== Apagador de lousa ===== */
     .eraser { position: absolute; z-index: 1000000; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; filter: drop-shadow(0 5px 5px rgba(0,0,0,.5)); }
@@ -1258,16 +1262,16 @@
     <button onclick="pickFile('stickerFileInput')" class="mt-2 w-full px-3 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Criar adesivo de uma imagem</button>
   </div>
   <!-- Ajustes (engrenagem): aba Frase + aba Apagador -->
-  <div id="quoteEditor" class="hidden fixed wood-frame rounded-xl p-3 shadow-2xl" style="z-index:9990;left:50%;transform:translateX(-50%);width:min(390px,calc(100vw - 16px))">
-    <div class="flex items-center justify-between mb-2 gap-2">
-      <div class="flex items-center gap-1.5">
+  <div id="quoteEditor" class="hidden fixed wood-frame rounded-xl p-3 shadow-2xl" style="z-index:9990;left:50%;transform:translateX(-50%);width:min(450px,calc(100vw - 16px))">
+    <div class="mb-2">
+      <div class="qe-tabs">
         <button class="q-btn px-3" data-qtab="frase" onclick="setSettingsTab('frase')"><i class="fa-solid fa-quote-left mr-1"></i>Frase</button>
         <button class="q-btn px-3" data-qtab="apagador" onclick="setSettingsTab('apagador')"><i class="fa-solid fa-eraser mr-1"></i>Apagador</button>
         <button class="q-btn px-3" data-qtab="giz" onclick="setSettingsTab('giz')"><i class="fa-solid fa-pen mr-1"></i><span id="gizTabLbl">Giz</span></button>
         <button class="q-btn px-3" data-qtab="tela" onclick="setSettingsTab('tela')" title="Guia da tela do celular"><i class="fa-solid fa-mobile-screen-button mr-1"></i>Tela</button>
         <button class="q-btn px-3" data-qtab="fin" onclick="setSettingsTab('fin')" title="Como gráficos e cards calculam"><i class="fa-solid fa-sack-dollar mr-1"></i>Finanças</button>
       </div>
-      <span id="qeHint" class="text-[10px] text-amber-100/60 text-right">arraste a frase para mover</span>
+      <div id="qeHint" class="text-[10px] text-amber-100/60 mt-1.5 px-0.5">arraste a frase para mover</div>
     </div>
 
     <div id="qeFrase">
@@ -9621,7 +9625,7 @@
       b.nextZIndex = Math.max(c.nextZIndex, remote.nextZIndex);
       b.notes = shMergeList(c.notes, remote.notes, base.notes); shFixScores(b.notes, c.notes, remote.notes);
       b.strokes = shMergeList(c.strokes, remote.strokes, base.strokes);
-      b.chat = shMergeList(c.chat, remote.chat, base.chat || {}).sort((x, y) => (x.t || 0) - (y.t || 0)).slice(-200);
+      b.chat = chMergeReacts(shMergeList(c.chat, remote.chat, base.chat || {}), c.chat, remote.chat, shMe().uid).sort((x, y) => (x.t || 0) - (y.t || 0)).slice(-200);
       if (c.kind || remote.kind) b.kind = c.kind || remote.kind;
       let fin = pick('fin');
       if (c.fin && remote.fin) {   // lançamentos mesclados linha a linha
@@ -10081,14 +10085,65 @@
       #chatMsgs{min-height:0}
       #chatEmo{width:36px;height:38px;border-radius:50%;border:0;background:none;color:#8696a0;font-size:21px;cursor:pointer;flex:none}
       #chatEmo:hover,#chatEmo.on{color:#00a884}
-      #chatPick{display:none;height:178px;overflow-y:auto;padding:8px;background:#111b21;border-top:1px solid rgba(255,255,255,.08);grid-template-columns:repeat(5,1fr);gap:4px;overscroll-behavior:contain}
-      #chatPick.on{display:grid}
-      #chatPick button{background:none;border:0;border-radius:10px;padding:4px;cursor:pointer;display:flex;justify-content:center}
-      #chatPick button:hover{background:rgba(255,255,255,.1)}
+      #chatPick{display:none;height:208px;max-height:46%;flex-direction:column;background:#111b21;border-top:1px solid rgba(255,255,255,.08);overflow:hidden}
+      #chatPick.on{display:flex}
+      #chatPickTabs{display:flex;gap:6px;padding:7px 8px 0;flex:none}
+      #chatPickTabs button{border:0;border-radius:999px;padding:4px 12px;background:#202c33;color:#aebac1;font-size:12px;font-weight:600;cursor:pointer}
+      #chatPickTabs button.on{background:#00a884;color:#fff}
+      #chatPickBody{flex:1;min-height:0;overflow-y:auto;padding:8px;display:grid;gap:4px;align-content:start;overscroll-behavior:contain}
+      #chatPickBody button{background:none;border:0;border-radius:10px;padding:4px;cursor:pointer;display:flex;justify-content:center}
+      #chatPickBody button:hover{background:rgba(255,255,255,.1)}
+      #chatPickBody .chNew{flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px dashed rgba(255,255,255,.22);color:#00a884;font-size:12px;min-height:72px}
+      .chMy{position:relative;display:flex}
+      .chMy button{width:100%}
+      .chMy img{width:100%;max-width:68px;aspect-ratio:1;object-fit:contain;display:block}
+      .chMy .x{position:absolute;top:0;right:0;width:20px;height:20px;border-radius:50%;background:rgba(11,20,26,.85);color:#aebac1;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer}
       #chatPrev{display:none;align-items:center;gap:10px;padding:6px 12px;background:#111b21;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:#8696a0}
       #chatPrev.on{display:flex}
       #chatPrev button{margin-left:auto;background:none;border:0;color:#aebac1;cursor:pointer;font-size:15px}
-      .chStk{display:flex;justify-content:center;padding:2px 0 4px}`;
+      .chStk{display:flex;justify-content:center;padding:2px 0 4px}
+      .chStk img{width:132px;max-width:100%;aspect-ratio:1;object-fit:contain;display:block}
+      .chBub.stk{background:transparent!important;box-shadow:none;padding:2px 4px}
+      .chBub.stk .chName,.chBub.stk .chTm{text-shadow:0 1px 2px #000}
+      #chatPanel{position:relative}
+      .chBub{position:relative}
+      .chRx{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+      .chRx button{display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(255,255,255,.14);background:rgba(11,20,26,.55);color:#e9edef;border-radius:999px;padding:1px 7px;font-size:12px;line-height:1.5;cursor:pointer}
+      .chRx button.me{background:rgba(0,168,132,.28);border-color:#00a884}
+      .chRx button b{font-size:11px;font-weight:600}
+      .chAct{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(11,20,26,.75);color:#aebac1;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;display:flex;align-items:center;justify-content:center;padding:0}
+      .chBub:hover .chAct{opacity:1}
+      @media (hover:none){.chAct{opacity:.7}}
+      #chatReact{position:absolute;z-index:8;display:none;gap:2px;padding:5px 6px;border-radius:18px;background:#233138;box-shadow:0 6px 18px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.1);flex-wrap:wrap;justify-content:center;max-width:calc(100% - 12px)}
+      #chatReact.on{display:flex}
+      #chatReact button{background:none;border:0;font-size:22px;line-height:1;width:34px;height:34px;border-radius:50%;cursor:pointer;transition:transform .12s;color:#e9edef;padding:0}
+      #chatReact button:hover{background:rgba(255,255,255,.1);transform:scale(1.15)}
+      #chatReact button.me{background:rgba(0,168,132,.35)}
+      #chatReact button.sv{font-size:12px;width:auto;padding:0 12px;border-radius:999px;white-space:nowrap}
+      .chRz{position:absolute;z-index:6;touch-action:none}
+      .chRz.n{top:0;left:14px;right:14px;height:6px;cursor:ns-resize}
+      .chRz.s{bottom:0;left:14px;right:14px;height:6px;cursor:ns-resize}
+      .chRz.e{right:0;top:14px;bottom:14px;width:5px;cursor:ew-resize}
+      .chRz.w{left:0;top:14px;bottom:14px;width:5px;cursor:ew-resize}
+      .chRz.ne{top:0;right:0;width:14px;height:14px;cursor:nesw-resize}
+      .chRz.nw{top:0;left:0;width:14px;height:14px;cursor:nwse-resize}
+      .chRz.sw{bottom:0;left:0;width:14px;height:14px;cursor:nesw-resize}
+      .chRz.se{bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize}
+      .chRz.se::after{content:'';position:absolute;right:4px;bottom:4px;width:8px;height:8px;border-right:2px solid rgba(255,255,255,.4);border-bottom:2px solid rgba(255,255,255,.4);border-radius:0 0 3px 0}
+      #chatStk{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;background:#0b141a}
+      #chatStk.on{display:flex}
+      #chatStk .sk-h{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#202c33;font-size:14px;font-weight:600;flex:none}
+      #chatStk .sk-h button{background:none;border:0;color:#aebac1;width:30px;height:30px;border-radius:50%;cursor:pointer}
+      #chatStk .sk-b{flex:1;min-height:0;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px}
+      #chatStk .sk-cv{align-self:center;width:min(100%,230px);aspect-ratio:1;border-radius:14px;overflow:hidden;background:repeating-conic-gradient(#1b262c 0 25%,#232f36 0 50%) 0 0/16px 16px;flex:none}
+      #chatStk canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+      #chatStk .sk-hint{text-align:center;font-size:11px;color:#8696a0;margin-top:-4px}
+      #chatStk .sk-row{display:flex;gap:6px;align-items:center;color:#8696a0;flex-wrap:wrap}
+      #chatStk .sk-row input[type=range]{flex:1;min-width:80px;accent-color:#00a884}
+      #chatStk .sk-row button{flex:1 1 auto;border:0;border-radius:999px;padding:7px 12px;background:#202c33;color:#e9edef;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+      #chatStk .sk-row button.on{background:#005c4b;box-shadow:inset 0 0 0 1px #00a884}
+      #chatStk .sk-row button.pri{background:#00a884}
+      #chStkTx{border:0;outline:0;border-radius:18px;padding:8px 13px;background:#2a3942;color:#e9edef;font-size:14px;font-family:inherit}`;
       document.head.appendChild(st);
       const bx = document.createElement('div');
       bx.id = 'chatBox'; bx.className = 'closed'; bx.style.display = 'none';
@@ -10096,8 +10151,18 @@
         <div id="chatPanel"><div id="chatHead"><div class="t">Chat da lousa<small id="chatSub"></small></div>
           <button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
           <div id="chatMsgs"></div>
-          <div id="chatPick"></div><div id="chatPrev"><span id="chatPrevFace"></span><span>Carinha selecionada — envie sozinha ou com texto</span><button type="button" id="chatPrevX" title="Remover"><i class="fa-solid fa-xmark"></i></button></div>
-          <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form></div>`;
+          <div id="chatPick"><div id="chatPickTabs"></div><div id="chatPickBody"></div></div><div id="chatPrev"><span id="chatPrevFace"></span><span>Carinha selecionada — envie sozinha ou com texto</span><button type="button" id="chatPrevX" title="Remover"><i class="fa-solid fa-xmark"></i></button></div>
+          <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form>
+          <div id="chatReact"></div>
+          <div id="chatStk"><div class="sk-h"><span>Nova figurinha</span><button type="button" id="chStkX" title="Fechar"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="sk-b"><div class="sk-cv"><canvas id="chStkCv" width="256" height="256"></canvas></div>
+              <div class="sk-hint">Arraste a foto para enquadrar · use o zoom ou pinça</div>
+              <div class="sk-row"><i class="fa-solid fa-magnifying-glass-minus"></i><input id="chStkZoom" type="range" min="1" max="4" step="0.01" value="1"><i class="fa-solid fa-magnifying-glass-plus"></i></div>
+              <div class="sk-row"><button type="button" data-sh="round" class="on">Arredondada</button><button type="button" data-sh="circle">Círculo</button><button type="button" id="chStkOut" class="on">Contorno branco</button></div>
+              <input id="chStkTx" maxlength="24" placeholder="Texto na figurinha (opcional)" autocomplete="off">
+              <div class="sk-row"><button type="button" id="chStkPick">Trocar foto</button><button type="button" id="chStkSave">Só salvar</button><button type="button" id="chStkSend" class="pri">Salvar e enviar</button></div>
+            </div></div>
+          <input type="file" id="chStkFile" accept="image/*" style="display:none"></div>`;
       document.body.appendChild(bx);
       let pos = null; try { pos = JSON.parse(chLs('lousa_chat_pos')); } catch (e) {}
       CH.x = pos && isFinite(pos.x) ? pos.x : null; CH.y = pos && isFinite(pos.y) ? pos.y : 74;
@@ -10115,11 +10180,20 @@
       byId('chatMute').onclick = () => { chLs('lousa_chat_mute_' + chUid(), chMuted() ? '0' : '1'); chMuteUi(); };
       byId('chatEmo').onclick = () => chPickToggle();
       byId('chatPrevX').onclick = () => chSetFace('');
-      byId('chatPick').onclick = e => { const b = e.target.closest('button[data-f]'); if (b) { chSetFace(b.dataset.f); chPickToggle(false); byId('chatIn').focus(); } };
+      byId('chatPick').onclick = e => {
+        const t = e.target.closest('#chatPickTabs button'); if (t) { CH.tab = t.dataset.t; chPickRender(); return; }
+        const f = e.target.closest('button[data-f]'); if (f) { chSetFace(f.dataset.f); chPickToggle(false); byId('chatIn').focus(); return; }
+        const dl = e.target.closest('[data-del]'); if (dl) { chDelSticker(dl.dataset.del); return; }
+        if (e.target.closest('[data-new]')) { byId('chStkFile').click(); return; }
+        const s = e.target.closest('button[data-si]'); if (s) chSendSticker(s.dataset.si);
+      };
       byId('chatForm').onsubmit = e => { e.preventDefault(); chSend(); };
       byId('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chSend(); } });
       byId('chatIn').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(90, e.target.scrollHeight) + 'px'; });
       window.addEventListener('resize', chPlace);
+      let sz = null; try { sz = JSON.parse(chLs('lousa_chat_size')); } catch (e) {}
+      if (sz && isFinite(sz.w) && isFinite(sz.h)) { CH.w = sz.w; CH.h = sz.h; }
+      chResizeInit(); chReactInit(); chStkInit();
       setInterval(chExpire, 30000);
     }
     function chPlace() {
@@ -10130,17 +10204,17 @@
       if (CH.x == null) CH.x = innerWidth - 48 - 16;
       CH.x = cl(CH.x, 8, innerWidth - 56); CH.y = cl(CH.y, 8, innerHeight - bottomBar - 56);   // posição do botão: nunca é alterada pelo painel
       if (!CH.open) { bx.style.left = CH.x + 'px'; bx.style.top = CH.y + 'px'; return; }
-      const w = Math.min(340, innerWidth - 16), h = Math.min(460, maxH);
+      const lim = chLimits(), w = cl(CH.w || 340, lim.minW, lim.maxW), h = cl(CH.h || 460, lim.minH, lim.maxH); CH.cw = w; CH.ch = h;
       if (CH.px == null) { CH.px = CH.x + 48 - w; CH.py = CH.y; }   // abre a partir do canto do botão
       CH.px = cl(CH.px, 8, innerWidth - w - 8); CH.py = cl(CH.py, 8, innerHeight - bottomBar - h - 8);
       bx.style.left = CH.px + 'px'; bx.style.top = CH.py + 'px';
-      byId('chatPanel').style.height = h + 'px';
+      byId('chatPanel').style.height = h + 'px'; byId('chatPanel').style.width = w + 'px';
     }
     function chMuteUi() { const m = byId('chatMute'); if (m) { const on = chMuted(); m.innerHTML = '<i class="fa-solid ' + (on ? 'fa-bell-slash' : 'fa-bell') + '"></i>'; m.title = on ? 'Notificações silenciadas — ativar' : 'Silenciar notificações'; } }
     function chToggle(open) {
       chBuild();
       if (open && !CH.open) { CH.px = null; CH.pm = false; }
-      if (!open && CH.open && CH.pm) { CH.x = CH.px + Math.min(340, innerWidth - 16) - 48; CH.y = CH.py; chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); }
+      if (!open && CH.open && CH.pm) { CH.x = CH.px + (CH.cw || Math.min(340, innerWidth - 16)) - 48; CH.y = CH.py; chLs('lousa_chat_pos', JSON.stringify({ x: CH.x, y: CH.y })); }
       CH.open = open;
       const bx = byId('chatBox'); bx.classList.toggle('open', open); bx.classList.toggle('closed', !open);
       chPlace(); chMuteUi();
@@ -10165,37 +10239,233 @@
       try { fbEnsureCss(); } catch (e) {}
       const near = scroll || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
       if (!msgs.length) { box.innerHTML = '<div id="chatEmpty"><i class="fa-regular fa-comments" style="font-size:28px;margin-bottom:8px;display:block"></i>Nenhuma mensagem ainda. Diga olá! As mensagens somem sozinhas após 1 hora sem conversa.</div>'; return; }
+      const sid = b.shared.sid;
       box.innerHTML = msgs.map(m => {
-        const w = chWho(b.shared.sid, m.u), mine = m.u === me, d = new Date(m.t || 0);
+        const w = chWho(sid, m.u), mine = m.u === me, d = new Date(m.t || 0);
         const tm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        return `<div class="chMsg${mine ? ' me' : ''}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub"><div class="chName">${html(w.name)}</div>${m.s && typeof fbFace === 'function' ? '<div class="chStk">' + (fbFace(m.s, 64) || html(m.s)) + '</div>' : ''}${m.x ? '<div class="chTx">' + html(m.x) + '</div>' : ''}<div class="chTm">${tm}</div></div></div>`;
+        const rx = {}; Object.keys(m.r || {}).forEach(u => { const e = m.r[u]; if (CH_REACTS.indexOf(e) >= 0) (rx[e] = rx[e] || []).push(u); });
+        const rxh = Object.keys(rx).length ? '<div class="chRx">' + Object.keys(rx).map(e => `<button type="button" data-e="${e}" class="${rx[e].indexOf(me) >= 0 ? 'me' : ''}" title="${html(rx[e].map(u => chWho(sid, u).name).join(', '))}">${e}${rx[e].length > 1 ? '<b>' + rx[e].length + '</b>' : ''}</button>`).join('') + '</div>' : '';
+        const stk = m.si ? `<div class="chStk"><img data-img-id="${html(m.si)}" ${imageURLs[m.si] ? `src="${imageURLs[m.si]}"` : ''} draggable="false" alt="figurinha"></div>` : '';
+        return `<div class="chMsg${mine ? ' me' : ''}" data-id="${html(m.id)}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub${m.si ? ' stk' : ''}"><button type="button" class="chAct" title="Reagir"><i class="fa-regular fa-face-smile"></i></button><div class="chName">${html(w.name)}</div>${stk}${m.s && typeof fbFace === 'function' ? '<div class="chStk">' + (fbFace(m.s, 64) || html(m.s)) + '</div>' : ''}${m.x ? '<div class="chTx">' + html(m.x) + '</div>' : ''}${rxh}<div class="chTm">${tm}</div></div></div>`;
       }).join('');
+      chReactClose();
+      try { hydrateImages(); } catch (e) {}
       if (near) box.scrollTop = box.scrollHeight;
     }
     function chPickToggle(on) {
       const el = byId('chatPick'); if (!el) return;
       on = on === undefined ? !el.classList.contains('on') : on;
-      if (on && !el.dataset.ok && typeof fbFace === 'function') {
-        try { fbEnsureCss(); } catch (e) {}
-        el.innerHTML = Object.keys(FB_FACES).map(k => `<button type="button" data-f="${k}" title="${k}">${fbFace(k, 40) || k}</button>`).join(''); el.dataset.ok = '1';
-      }
+      if (on) chPickRender();
       el.classList.toggle('on', on); byId('chatEmo').classList.toggle('on', on);
       if (on) { byId('chatMsgs').scrollTop = byId('chatMsgs').scrollHeight; }
+    }
+    function chPickRender() {
+      const tabs = byId('chatPickTabs'), body = byId('chatPickBody'); if (!tabs || !body) return;
+      const t = CH.tab || 'faces', list = appData.chatStickers || [];
+      tabs.innerHTML = `<button type="button" data-t="faces" class="${t === 'faces' ? 'on' : ''}">Carinhas</button><button type="button" data-t="stk" class="${t === 'stk' ? 'on' : ''}">Figurinhas</button>`;
+      const sig = t + '|' + (t === 'stk' ? list.map(s => s.id).join(',') : ''); if (body.dataset.sig === sig) return; body.dataset.sig = sig;
+      if (t === 'faces') {
+        try { fbEnsureCss(); } catch (e) {}
+        body.style.gridTemplateColumns = 'repeat(auto-fill,minmax(52px,1fr))';
+        body.innerHTML = typeof fbFace === 'function' ? Object.keys(FB_FACES).map(k => `<button type="button" data-f="${k}" title="${k}">${fbFace(k, 40) || k}</button>`).join('') : '';
+      } else {
+        body.style.gridTemplateColumns = 'repeat(auto-fill,minmax(76px,1fr))';
+        body.innerHTML = '<button type="button" class="chNew" data-new="1" title="Criar figurinha com uma foto"><i class="fa-solid fa-plus"></i><span>Criar</span></button>' +
+          list.map(s => `<div class="chMy"><button type="button" data-si="${html(s.id)}" title="Enviar"><img data-img-id="${html(s.id)}" ${imageURLs[s.id] ? `src="${imageURLs[s.id]}"` : ''} alt=""></button><span class="x" data-del="${html(s.id)}" title="Excluir figurinha"><i class="fa-solid fa-xmark"></i></span></div>`).join('');
+        try { hydrateImages(); } catch (e) {}
+      }
     }
     function chSetFace(f) {
       CH.face = f || '';
       const pv = byId('chatPrev'); pv.classList.toggle('on', !!f);
       byId('chatPrevFace').innerHTML = f ? (fbFace(f, 54) || '') : '';
     }
-    function chSend() {
+    function chSend(extra) {
       const b = chBoard(), inp = byId('chatIn'); if (!b || !inp) return;
-      const x = inp.value.trim().slice(0, 500), sf = CH.face || ''; if (!x && !sf) return;
+      const si = (extra && extra.si) || '', x = si ? '' : inp.value.trim().slice(0, 500), sf = si ? '' : (CH.face || ''); if (!x && !sf && !si) return;
       const me = shMe().uid;
-      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; return m; })).slice(-CH_MAX);
-      inp.value = ''; inp.style.height = 'auto'; chSetFace(''); chPickToggle(false);
+      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; if (si) m.si = si; return m; })).slice(-CH_MAX);
+      if (!si) { inp.value = ''; inp.style.height = 'auto'; chSetFace(''); }
+      chPickToggle(false);
       const ids = {}; b.chat.forEach(m => { ids[m.id] = 1; });
       if (CH.known[b.shared.sid]) CH.known[b.shared.sid] = ids;
       chMarkRead(b); chRender(true); saveData();
+    }
+    /* ----- curtir / reagir ----- */
+    const CH_REACTS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
+    function chReact(mid, em) {
+      const b = chBoard(); if (!b || CH_REACTS.indexOf(em) < 0) return;
+      const me = shMe().uid; let hit = false;
+      b.chat = (b.chat || []).map(m => {
+        if (m.id !== mid) return m; hit = true;
+        const r = Object.assign({}, m.r || {}); if (r[me] === em) delete r[me]; else r[me] = em;
+        const n = Object.assign({}, m); if (Object.keys(r).length) n.r = r; else delete n.r; return n;
+      });
+      if (hit) { chRender(); saveData(); }
+    }
+    /* na mesclagem, cada pessoa só decide a própria reação (as dos outros vêm da nuvem) */
+    function chMergeReacts(merged, localList, remoteList, me) {
+      const L = {}, R = {}; localList.forEach(x => { L[x.id] = x; }); remoteList.forEach(x => { R[x.id] = x; });
+      return merged.map(m => {
+        const l = L[m.id], r = R[m.id]; if (!l || !r) return m;
+        const lr = l.r || {}, rr = r.r || {}, o = {};
+        Object.keys(rr).forEach(u => { if (u !== me) o[u] = rr[u]; });
+        if (lr[me]) o[me] = lr[me];
+        const n = Object.assign({}, m); if (Object.keys(o).length) n.r = o; else delete n.r; return n;
+      });
+    }
+    function chReactClose() { const p = byId('chatReact'); if (p) p.classList.remove('on'); }
+    function chReactOpen(mid, bub) {
+      const pop = byId('chatReact'), pn = byId('chatPanel'), b = chBoard(); if (!pop || !b) return;
+      const m = (b.chat || []).find(x => x.id === mid); if (!m) return;
+      const cur = (m.r || {})[shMe().uid], own = (appData.chatStickers || []).some(s => s.id === m.si);
+      pop.dataset.id = mid;
+      pop.innerHTML = CH_REACTS.map(em => `<button type="button" data-e="${em}" class="${cur === em ? 'me' : ''}">${em}</button>`).join('') + (m.si && !own ? `<button type="button" class="sv" data-sv="${html(m.si)}"><i class="fa-solid fa-plus"></i> Salvar figurinha</button>` : '');
+      pop.classList.add('on');
+      const pr = pn.getBoundingClientRect(), br = bub.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+      let top = br.top - pr.top - h - 4; if (top < 44) top = br.bottom - pr.top + 4;
+      top = Math.max(44, Math.min(top, pr.height - h - 60));
+      pop.style.top = top + 'px'; pop.style.left = Math.max(6, Math.min(br.left - pr.left + (br.width - w) / 2, pr.width - w - 6)) + 'px';
+    }
+    function chReactInit() {
+      const box = byId('chatMsgs'), pop = byId('chatReact');
+      box.addEventListener('click', e => {
+        const a = e.target.closest('.chAct'); if (a) { chReactOpen(a.closest('.chMsg').dataset.id, a.closest('.chBub')); return; }
+        const c = e.target.closest('.chRx button'); if (c) chReact(c.closest('.chMsg').dataset.id, c.dataset.e);
+      });
+      box.addEventListener('dblclick', e => {   // toque duplo = curtir
+        const bub = e.target.closest('.chBub'); if (!bub || e.target.closest('.chRx,.chAct')) return;
+        chReact(bub.closest('.chMsg').dataset.id, '❤️');
+      });
+      pop.addEventListener('click', e => {
+        const bt = e.target.closest('button'); if (!bt) return; const mid = pop.dataset.id;
+        if (bt.dataset.e) chReact(mid, bt.dataset.e); else if (bt.dataset.sv) chSaveSticker(bt.dataset.sv);
+        chReactClose();
+      });
+      byId('chatPanel').addEventListener('pointerdown', e => { if (!e.target.closest('#chatReact,.chAct')) chReactClose(); }, true);
+    }
+    /* ----- redimensionar a janela (bordas e cantos; duplo toque no título volta ao tamanho padrão) ----- */
+    function chLimits() {
+      const tb = byId('topbar'), tr = tb ? tb.getBoundingClientRect() : null;
+      const bottomBar = tr && tr.top > innerHeight / 2 ? innerHeight - tr.top : 0;
+      return { bottomBar, minW: Math.min(260, innerWidth - 16), maxW: innerWidth - 16, minH: Math.min(300, innerHeight - bottomBar - 16), maxH: innerHeight - bottomBar - 16 };
+    }
+    function chResizeInit() {
+      const pn = byId('chatPanel'); let s = null;
+      ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach(k => { const d = document.createElement('div'); d.className = 'chRz ' + k; d.dataset.rz = k; pn.appendChild(d); });
+      pn.addEventListener('pointerdown', e => {
+        const hd = e.target.closest && e.target.closest('.chRz'); if (!hd) return;
+        e.preventDefault(); e.stopPropagation();
+        s = { k: hd.dataset.rz, x: e.clientX, y: e.clientY, px: CH.px, py: CH.py, w: CH.cw, h: CH.ch };
+        try { hd.setPointerCapture(e.pointerId); } catch (er) {}
+      });
+      pn.addEventListener('pointermove', e => {
+        if (!s) return;
+        const dx = e.clientX - s.x, dy = e.clientY - s.y, k = s.k, L = chLimits(), cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        let w = s.w, h = s.h, px = s.px, py = s.py;
+        if (k.indexOf('e') >= 0) w = cl(s.w + dx, L.minW, innerWidth - 8 - s.px);
+        if (k.indexOf('w') >= 0) { w = cl(s.w - dx, L.minW, s.px + s.w - 8); px = s.px + s.w - w; }
+        if (k.indexOf('s') >= 0) h = cl(s.h + dy, L.minH, innerHeight - L.bottomBar - 8 - s.py);
+        if (k.indexOf('n') >= 0) { h = cl(s.h - dy, L.minH, s.py + s.h - 8); py = s.py + s.h - h; }
+        CH.w = w; CH.h = h; CH.px = px; CH.py = py; CH.pm = true; chPlace();
+      });
+      const end = () => { if (!s) return; s = null; chLs('lousa_chat_size', JSON.stringify({ w: CH.w, h: CH.h })); };
+      pn.addEventListener('pointerup', end); pn.addEventListener('pointercancel', end);
+      byId('chatHead').addEventListener('dblclick', e => { if (e.target.closest('button')) return; CH.w = CH.h = null; chLs('lousa_chat_size', ''); chPlace(); });
+    }
+    /* ----- figurinhas com foto ----- */
+    const STK = { img: null, zoom: 1, ox: 0, oy: 0, shape: 'round', outline: true, text: '' };
+    const stkPad = () => (STK.outline ? 8 : 4);
+    function stkInner() { return 256 - stkPad() * 2; }
+    function stkClamp() {
+      if (!STK.img) return;
+      const inner = stkInner(), k = inner / Math.min(STK.img.naturalWidth, STK.img.naturalHeight) * STK.zoom;
+      const lx = Math.max(0, (k * STK.img.naturalWidth - inner) / 2) / inner, ly = Math.max(0, (k * STK.img.naturalHeight - inner) / 2) / inner;
+      STK.ox = Math.max(-lx, Math.min(lx, STK.ox)); STK.oy = Math.max(-ly, Math.min(ly, STK.oy));
+    }
+    function stkPath(x, p, inner) {
+      x.beginPath();
+      if (STK.shape === 'circle') x.arc(128, 128, inner / 2, 0, Math.PI * 2);
+      else if (x.roundRect) x.roundRect(p, p, inner, inner, inner * 0.22); else x.rect(p, p, inner, inner);
+    }
+    function stkDraw() {
+      const cv = byId('chStkCv'); if (!cv || !STK.img) return;
+      const x = cv.getContext('2d'), S = 256, p = stkPad(), inner = stkInner(), im = STK.img;
+      x.clearRect(0, 0, S, S);
+      x.save(); stkPath(x, p, inner); x.clip();
+      const k = inner / Math.min(im.naturalWidth, im.naturalHeight) * STK.zoom, w = im.naturalWidth * k, h = im.naturalHeight * k;
+      x.drawImage(im, p + (inner - w) / 2 + STK.ox * inner, p + (inner - h) / 2 + STK.oy * inner, w, h);
+      x.restore();
+      if (STK.outline) { stkPath(x, p, inner); x.lineWidth = 8; x.strokeStyle = '#fff'; x.stroke(); }
+      if (STK.text) {
+        x.save(); let fs = 34; const f = () => { x.font = '800 ' + fs + 'px system-ui,-apple-system,Segoe UI,sans-serif'; };
+        f(); while (x.measureText(STK.text).width > S - 28 && fs > 14) { fs -= 2; f(); }
+        x.textAlign = 'center'; x.lineJoin = 'round'; x.lineWidth = Math.max(5, fs / 5); x.strokeStyle = '#000'; x.fillStyle = '#fff';
+        x.strokeText(STK.text, S / 2, S - p - 14); x.fillText(STK.text, S / 2, S - p - 14); x.restore();
+      }
+    }
+    function stkZoom(z) { STK.zoom = Math.max(1, Math.min(4, z)); byId('chStkZoom').value = STK.zoom; stkClamp(); stkDraw(); }
+    function chStkFail() { showCustomDialog({ title: 'Figurinha', message: 'Não consegui abrir essa imagem. Tente outra foto.' }); }
+    function chStkLoad(f) {
+      if (!f) return;
+      const rd = new FileReader(); rd.onerror = chStkFail;
+      rd.onload = () => {
+        const im = new Image(); im.onerror = chStkFail;
+        im.onload = () => { STK.img = im; STK.zoom = 1; STK.ox = STK.oy = 0; byId('chStkZoom').value = 1; byId('chatStk').classList.add('on'); chPickToggle(false); stkDraw(); };
+        im.src = rd.result;
+      };
+      rd.readAsDataURL(f);
+    }
+    function chStkInit() {
+      const cv = byId('chStkCv'), pts = new Map(); let pd = 0;
+      byId('chStkFile').onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; chStkLoad(f); };
+      byId('chStkX').onclick = () => byId('chatStk').classList.remove('on');
+      byId('chStkPick').onclick = () => byId('chStkFile').click();
+      byId('chStkZoom').oninput = e => stkZoom(+e.target.value);
+      byId('chStkTx').oninput = e => { STK.text = e.target.value.trim(); stkDraw(); };
+      byId('chStkOut').onclick = e => { STK.outline = !STK.outline; e.currentTarget.classList.toggle('on', STK.outline); stkClamp(); stkDraw(); };
+      byId('chatStk').querySelectorAll('[data-sh]').forEach(b => { b.onclick = () => { STK.shape = b.dataset.sh; byId('chatStk').querySelectorAll('[data-sh]').forEach(o => o.classList.toggle('on', o === b)); stkDraw(); }; });
+      byId('chStkSave').onclick = () => chStkSave(false);
+      byId('chStkSend').onclick = () => chStkSave(true);
+      cv.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (pts.size === 2) { const [a, c] = [...pts.values()]; pd = Math.hypot(a.x - c.x, a.y - c.y); } });
+      cv.addEventListener('pointermove', e => {
+        const p = pts.get(e.pointerId); if (!p || !STK.img) return;
+        const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+        if (pts.size === 2) { const [a, c] = [...pts.values()], d = Math.hypot(a.x - c.x, a.y - c.y); if (pd) stkZoom(STK.zoom * d / pd); pd = d; }
+        else { const f = (256 / cv.clientWidth) / stkInner(); STK.ox += dx * f; STK.oy += dy * f; stkClamp(); stkDraw(); }
+      });
+      const up = e => { pts.delete(e.pointerId); pd = 0; };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      cv.addEventListener('wheel', e => { e.preventDefault(); stkZoom(STK.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+    }
+    async function chStkSave(send) {
+      if (!STK.img || !currentUser) return;
+      const cv = byId('chStkCv'); let d = cv.toDataURL('image/webp', 0.9); if (d.indexOf('data:image/webp') !== 0) d = cv.toDataURL('image/png');
+      const id = 'cst_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      try { await FB.saveImage(id, d); } catch (e) { console.error(e); chStkFail(); return; }
+      imageURLs[id] = dataUrlToBlobUrl(d);
+      appData.chatStickers = (appData.chatStickers || []).concat([{ id }]); saveData();
+      byId('chatStk').classList.remove('on'); byId('chStkTx').value = ''; STK.text = '';
+      CH.tab = 'stk';
+      if (send) await chSendSticker(id); else chPickToggle(true);
+    }
+    async function chSendSticker(id) {
+      const b = chBoard(); if (!b) return;
+      try { await FB.ensureSharedImage(b.shared.sid, id); } catch (e) { console.warn(e); }   // garante que os outros consigam ver a imagem
+      chSend({ si: id });
+    }
+    function chDelSticker(id) {
+      showCustomDialog({ title: 'Excluir figurinha', message: 'Excluir esta figurinha das suas figurinhas?', onConfirm: () => {
+        appData.chatStickers = (appData.chatStickers || []).filter(s => s.id !== id); saveData(); removeImage(id); chPickRender();
+      } });
+    }
+    async function chSaveSticker(id) {
+      const list = appData.chatStickers || []; if (list.some(s => s.id === id)) return;
+      let d = null; try { d = await FB.loadImage(id); } catch (e) {}
+      if (!d) return;
+      try { await FB.saveImage(id, d); } catch (e) { console.warn(e); return; }
+      if (!imageURLs[id]) imageURLs[id] = dataUrlToBlobUrl(d);
+      appData.chatStickers = list.concat([{ id }]); saveData();
     }
     function chExpire() {
       if (!SH.on) return;
