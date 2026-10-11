@@ -10155,20 +10155,25 @@
       #chRecInfo i{color:#ef4444;animation:chBlink 1s ease-in-out infinite}
       @keyframes chBlink{50%{opacity:.25}}
       #chatPanel.tabVoz #chatRec{display:none!important}
-      .chAud{display:flex;align-items:center;gap:8px;min-width:170px;padding:2px 0}
+      .chAud{display:flex;align-items:center;gap:8px;min-width:210px;padding:2px 0}
       .chAud button{width:34px;height:34px;border-radius:50%;border:0;background:#00a884;color:#fff;cursor:pointer;flex:none;padding:0}
-      .chAud input{flex:1;min-width:60px;accent-color:#53bdeb}
+      .chWv{flex:1;min-width:90px;height:26px;display:flex;align-items:center;gap:2px;cursor:pointer;touch-action:none}
+      .chWv i{flex:1;min-width:2px;border-radius:2px;background:rgba(255,255,255,.35)}
+      .chWv i.on{background:#53bdeb}
+      #chRecWv{display:flex;align-items:center;gap:2px;height:28px;flex:1;min-width:0;overflow:hidden;justify-content:flex-end}
+      #chRecWv i{width:3px;flex:none;border-radius:2px;background:#e9edef}
+      .chDel{font-style:italic;color:#8696a0;font-size:12.5px}
       .chAud span{font-size:11px;color:#aebac1;min-width:32px;text-align:right}`;
       document.head.appendChild(st);
       const bx = document.createElement('div');
       bx.id = 'chatBox'; bx.className = 'closed'; bx.style.display = 'none';
       bx.innerHTML = `<div id="chatFab" title="Chat da lousa (arraste para mover)"><i class="fa-solid fa-comments"></i><span id="chatBadge"></span></div>
         <div id="chatPanel"><div id="chatHead"><div class="t">Chat da lousa<small id="chatSub"></small></div>
-          <button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
+          <button id="chatClear" title="Limpar minha conversa (só para mim)"><i class="fa-solid fa-broom"></i></button><button id="chatMute" title="Silenciar notificações"><i class="fa-solid fa-bell"></i></button><button id="chatClose" title="Minimizar"><i class="fa-solid fa-xmark"></i></button></div>
           <div id="chatMsgs"></div>
           <div id="chatPick"><div id="chatPickTabs"></div><div id="chatPickBody"></div></div><div id="chatPrev"><span id="chatPrevFace"></span><span>Carinha selecionada — envie sozinha ou com texto</span><button type="button" id="chatPrevX" title="Remover"><i class="fa-solid fa-xmark"></i></button></div>
           <form id="chatForm"><button type="button" id="chatEmo" title="Carinhas animadas"><i class="fa-regular fa-face-smile"></i></button><textarea id="chatIn" rows="1" maxlength="500" placeholder="Digite uma mensagem"></textarea><button id="chatMic" type="button" title="Gravar áudio"><i class="fa-solid fa-microphone"></i></button><button id="chatSend" type="submit" title="Enviar"><i class="fa-solid fa-paper-plane"></i></button></form>
-          <div id="chatRec"><button type="button" id="chRecX" title="Cancelar"><i class="fa-solid fa-trash"></i></button><div id="chRecInfo"><i class="fa-solid fa-circle"></i><span>Gravando</span><b id="chRecT">0:00</b></div><button type="button" id="chRecOk" title="Enviar áudio"><i class="fa-solid fa-paper-plane"></i></button></div>
+          <div id="chatRec"><button type="button" id="chRecX" title="Cancelar"><i class="fa-solid fa-trash"></i></button><div id="chRecInfo"><i class="fa-solid fa-circle"></i><b id="chRecT">0:00</b><div id="chRecWv"></div></div><button type="button" id="chRecOk" title="Enviar áudio"><i class="fa-solid fa-paper-plane"></i></button></div>
           <div id="chatReact"></div>
           <div id="chatStk"><div class="sk-h"><span>Nova figurinha</span><button type="button" id="chStkX" title="Fechar"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="sk-b"><div class="sk-cv"><canvas id="chStkCv" width="256" height="256"></canvas></div>
@@ -10250,7 +10255,7 @@
     }
     function chRender(scroll) {
       const b = chBoard(), box = byId('chatMsgs'); if (!b || !box || !CH.open) return;
-      const me = shMe().uid, msgs = b.chat || [], inf = SH.info[b.shared.sid];
+      const me = shMe().uid, msgs = chVisible(b), inf = SH.info[b.shared.sid];
       byId('chatSub').textContent = (inf && inf.members ? inf.members.length + ' participantes · ' : '') + 'some após 1h sem conversa';
       try { fbEnsureCss(); } catch (e) {}
       const near = scroll || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
@@ -10259,6 +10264,7 @@
       box.innerHTML = msgs.map(m => {
         const w = chWho(sid, m.u), mine = m.u === me, d = new Date(m.t || 0);
         const tm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        if (m.d) return `<div class="chMsg${mine ? ' me' : ''}" data-id="${html(m.id)}">${ntAvatar(w.photo, w.name, 30)}<div class="chBub"><div class="chName">${html(w.name)}</div><div class="chTx chDel"><i class="fa-solid fa-ban"></i> Mensagem apagada</div><div class="chTm">${tm}</div></div></div>`;
         const rx = {}; Object.keys(m.r || {}).forEach(u => { const e = m.r[u]; if (CH_REACTS.indexOf(e) >= 0) (rx[e] = rx[e] || []).push(u); });
         const rxh = Object.keys(rx).length ? '<div class="chRx">' + Object.keys(rx).map(e => `<button type="button" data-e="${e}" class="${rx[e].indexOf(me) >= 0 ? 'me' : ''}" title="${html(rx[e].map(u => chWho(sid, u).name).join(', '))}">${e}${rx[e].length > 1 ? '<b>' + rx[e].length + '</b>' : ''}</button>`).join('') + '</div>' : '';
         const stk = m.si ? `<div class="chStk"><img data-img-id="${html(m.si)}" ${imageURLs[m.si] ? `src="${imageURLs[m.si]}"` : ''} draggable="false" alt="figurinha"></div>` : '';
@@ -10301,7 +10307,7 @@
       const b = chBoard(), inp = byId('chatIn'); if (!b || !inp) return;
       const si = (extra && extra.si) || '', au = (extra && extra.a) || '', ex = si || au, x = ex ? '' : inp.value.trim().slice(0, 500), sf = ex ? '' : (CH.face || ''); if (!x && !sf && !ex) return;
       const me = shMe().uid;
-      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; if (si) m.si = si; if (au) { m.a = au; m.ad = extra.ad | 0; } return m; })).slice(-CH_MAX);
+      b.chat = (b.chat || []).concat([{ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), u: me, t: Date.now(), x }].map(m => { if (sf) m.s = sf; if (si) m.si = si; if (au) { m.a = au; m.ad = extra.ad | 0; if (extra.aw) m.aw = String(extra.aw).slice(0, 64); } return m; })).slice(-CH_MAX);
       if (!ex) { inp.value = ''; inp.style.height = 'auto'; chSetFace(''); }
       chPickToggle(false);
       const ids = {}; b.chat.forEach(m => { ids[m.id] = 1; });
@@ -10312,16 +10318,23 @@
     /* ----- mensagens de voz ----- */
     const CH_REC_MAX = 60;
     const chFmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    function chWvBars(m) {
+      let w = m.aw && /^[0-9]{10,64}$/.test(m.aw) ? m.aw : '';
+      if (!w) { let h = 7; for (const c of String(m.a)) h = (h * 31 + c.charCodeAt(0)) >>> 0; for (let i = 0; i < 40; i++) { h = (h * 1103515245 + 12345) >>> 0; w += 2 + (h >>> 16) % 7; } }
+      return w.split('').map(d => `<i style="height:${3 + (+d) * 2}px"></i>`).join('');
+    }
     function chAudHtml(m) {
       if (!m.a) return '';
-      const on = CH.aid === m.a && CH.au, pl = on && !CH.au.paused, d = m.ad || 0;
-      return `<div class="chAud" data-aid="${html(m.a)}"><button type="button" class="chPl" title="Ouvir"><i class="fa-solid ${pl ? 'fa-pause' : 'fa-play'}"></i></button><input type="range" min="0" max="1000" value="${on && d ? Math.min(1000, Math.round(CH.au.currentTime / d * 1000)) : 0}"><span>${chFmt(on ? CH.au.currentTime : d)}</span></div>`;
+      const on = CH.aid === m.a && CH.au, pl = on && !CH.au.paused, d = m.ad || 0, k = on && d ? CH.au.currentTime / d : 0;
+      const bars = chWvBars(m), n = (bars.match(/<i /g) || []).length, lit = Math.round(k * n); let i = 0;
+      return `<div class="chAud" data-aid="${html(m.a)}"><button type="button" class="chPl" title="Ouvir"><i class="fa-solid ${pl ? 'fa-pause' : 'fa-play'}"></i></button><div class="chWv">${bars.replace(/<i /g, () => (i++ < lit ? '<i class="on" ' : '<i '))}</div><span>${chFmt(on ? CH.au.currentTime : d)}</span></div>`;
     }
     function chAudUi() {
       document.querySelectorAll('#chatMsgs .chAud').forEach(el => {
         const id = el.dataset.aid, on = CH.aid === id && CH.au, m = ((chBoard() || {}).chat || []).find(x => x.a === id), d = (m && m.ad) || 0;
-        el.querySelector('i').className = 'fa-solid ' + (on && !CH.au.paused ? 'fa-pause' : 'fa-play');
-        const r = el.querySelector('input'); if (document.activeElement !== r) r.value = on && d ? Math.min(1000, Math.round(CH.au.currentTime / d * 1000)) : 0;
+        el.querySelector('.chPl i').className = 'fa-solid ' + (on && !CH.au.paused ? 'fa-pause' : 'fa-play');
+        const bars = el.querySelectorAll('.chWv i'), lit = on && d ? Math.round(CH.au.currentTime / d * bars.length) : 0;
+        bars.forEach((b, i) => b.classList.toggle('on', i < lit));
         el.querySelector('span').textContent = chFmt(on ? CH.au.currentTime : d);
       });
     }
@@ -10339,16 +10352,33 @@
       chAudUi();
     }
     function chAudInit() {
-      const box = byId('chatMsgs');
+      const box = byId('chatMsgs'); let sk = null;
+      const seek = e => {
+        if (!sk) return; const id = sk.closest('.chAud').dataset.aid, m = ((chBoard() || {}).chat || []).find(x => x.a === id);
+        if (!(CH.aid === id && CH.au && m && m.ad)) return;
+        const r = sk.getBoundingClientRect(); CH.au.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * m.ad; chAudUi();
+      };
       box.addEventListener('click', e => { const p = e.target.closest('.chPl'); if (p) chAudToggle(p.closest('.chAud').dataset.aid); });
-      box.addEventListener('input', e => {
-        const r = e.target.closest('.chAud input'); if (!r) return;
-        const id = r.closest('.chAud').dataset.aid, m = ((chBoard() || {}).chat || []).find(x => x.a === id);
-        if (CH.aid === id && CH.au && m && m.ad) CH.au.currentTime = r.value / 1000 * m.ad;
-      });
+      box.addEventListener('pointerdown', e => { const w = e.target.closest('.chWv'); if (!w) return; sk = w; try { w.setPointerCapture(e.pointerId); } catch (er) {} seek(e); });
+      box.addEventListener('pointermove', e => { if (sk) seek(e); });
+      box.addEventListener('pointerup', () => { sk = null; }); box.addEventListener('pointercancel', () => { sk = null; });
       byId('chatMic').onclick = () => chRecStart();
       byId('chRecX').onclick = () => chRecStop(false);
       byId('chRecOk').onclick = () => chRecStop(true);
+      byId('chatClear').onclick = () => chClearMine();
+    }
+    function chRecLevel(R) {
+      if (!R.an) return;
+      R.an.getByteTimeDomainData(R.buf); let q = 0; for (let i = 0; i < R.buf.length; i++) { const v = (R.buf[i] - 128) / 128; q += v * v; }
+      R.lv.push(Math.min(1, Math.sqrt(Math.sqrt(q / R.buf.length)) * 1.5));
+      const el = byId('chRecWv'); if (!el) return; const k = Math.max(10, Math.floor(el.clientWidth / 5));
+      el.innerHTML = R.lv.slice(-k).map(v => `<i style="height:${3 + Math.round(v * 22)}px"></i>`).join('');
+    }
+    function chWvPack(lv) {
+      if (!lv || lv.length < 4) return '';
+      const N = 40, out = [];
+      for (let i = 0; i < N; i++) { const a = Math.floor(i * lv.length / N), b = Math.max(a + 1, Math.floor((i + 1) * lv.length / N)); let t = 0, c = 0; for (let j = a; j < b && j < lv.length; j++) { t += lv[j]; c++; } out.push(c ? t / c : 0); }
+      const mx = Math.max(...out, 0.05); return out.map(v => Math.max(0, Math.min(9, Math.round(v / mx * 9)))).join('');
     }
     function chRecUi(on) { byId('chatForm').style.display = on ? 'none' : ''; byId('chatRec').classList.toggle('on', on); }
     async function chRecStart() {
@@ -10364,16 +10394,18 @@
       mr.onstop = () => chRecDone(R);
       mr.start(250);
       chRecUi(true); chRecTick(); R.tm = setInterval(chRecTick, 250);
+      R.lv = [];
+      try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { R.ac = new AC(); R.ac.resume && R.ac.resume(); const src = R.ac.createMediaStreamSource(st); R.an = R.ac.createAnalyser(); R.an.fftSize = 512; R.buf = new Uint8Array(R.an.fftSize); src.connect(R.an); R.lt = setInterval(() => chRecLevel(R), 90); } } catch (e) { console.warn(e); }
     }
     function chRecTick() { const R = CH.rec; if (!R) return; const s = (Date.now() - R.t0) / 1000; byId('chRecT').textContent = chFmt(s); if (s >= CH_REC_MAX) chRecStop(true); }
     function chRecStop(send) {
       const R = CH.rec; if (!R || R.stopping) return; R.stopping = true; R.send = send; R.dur = Math.round((Date.now() - R.t0) / 1000);
-      clearInterval(R.tm); chRecUi(false);
+      clearInterval(R.tm); clearInterval(R.lt); chRecUi(false); byId('chRecWv').innerHTML = '';
       try { if (R.mr.state !== 'inactive') R.mr.stop(); else chRecDone(R); } catch (e) { chRecDone(R); }
     }
     function chRecCancel() { if (CH.rec) chRecStop(false); }
     async function chRecDone(R) {
-      if (CH.rec === R) CH.rec = null; R.st.getTracks().forEach(t => t.stop());
+      if (CH.rec === R) CH.rec = null; R.st.getTracks().forEach(t => t.stop()); try { if (R.ac) R.ac.close(); } catch (e) {}
       if (!R.send || !R.chunks.length || R.dur < 1) return;
       const b = chBoard(); if (!b) return;
       const blob = new Blob(R.chunks, { type: R.mt || 'audio/webm' });
@@ -10382,7 +10414,33 @@
       const id = 'aud_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
       try { await FB.saveSharedImage(b.shared.sid, id, d); } catch (e) { console.error(e); showCustomDialog({ title: 'Áudio', message: 'Não consegui enviar o áudio. Verifique a conexão.' }); return; }
       (CH.aurl = CH.aurl || {})[id] = dataUrlToBlobUrl(d);
-      chSend({ a: id, ad: R.dur });
+      chSend({ a: id, ad: R.dur, aw: chWvPack(R.lv) });
+    }
+    /* ----- apagar / limpar ----- */
+    const chClearKey = (sid) => 'lousa_chat_clear_' + chUid() + '_' + sid;
+    const chHideKey = (sid) => 'lousa_chat_hide_' + chUid() + '_' + sid;
+    function chVisible(b) {   // o que eu escolhi limpar/ocultar vale só para mim
+      const sid = b.shared.sid, ca = +chLs(chClearKey(sid)) || 0; let hid = {};
+      try { (JSON.parse(chLs(chHideKey(sid))) || []).forEach(i => { hid[i] = 1; }); } catch (e) {}
+      return (b.chat || []).filter(m => (m.t || 0) > ca && !hid[m.id]);
+    }
+    function chClearMine() {
+      const b = chBoard(); if (!b) return;
+      showCustomDialog({ title: 'Limpar conversa', message: 'Limpar a conversa só para você? Os outros participantes continuam vendo tudo.', onConfirm: () => {
+        chLs(chClearKey(b.shared.sid), String(Date.now())); chLs(chHideKey(b.shared.sid), '[]'); chAudStop(); chRender(true);
+      } });
+    }
+    function chDelMe(mid) {
+      const b = chBoard(); if (!b) return; let a = []; try { a = JSON.parse(chLs(chHideKey(b.shared.sid))) || []; } catch (e) {}
+      a.push(mid); chLs(chHideKey(b.shared.sid), JSON.stringify(a.slice(-300))); chRender();
+    }
+    function chDelAll(mid) {
+      const b = chBoard(); if (!b) return; const m = (b.chat || []).find(x => x.id === mid); if (!m || m.u !== shMe().uid) return;
+      showCustomDialog({ title: 'Apagar mensagem', message: 'Apagar esta mensagem para todos?', onConfirm: () => {
+        if (m.a) { if (CH.aid === m.a) chAudStop(); try { FB.deleteSharedImage(b.shared.sid, m.a).catch(() => {}); } catch (e) {} }
+        b.chat = (b.chat || []).map(x => x.id === mid ? { id: x.id, u: x.u, t: x.t, d: 1 } : x);
+        chRender(); saveData();
+      } });
     }
     /* ----- curtir / reagir ----- */
     const CH_REACTS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
@@ -10390,7 +10448,7 @@
       const b = chBoard(); if (!b || CH_REACTS.indexOf(em) < 0) return;
       const me = shMe().uid; let hit = false;
       b.chat = (b.chat || []).map(m => {
-        if (m.id !== mid) return m; hit = true;
+        if (m.id !== mid || m.d) return m; hit = true;
         const r = Object.assign({}, m.r || {}); if (r[me] === em) delete r[me]; else r[me] = em;
         const n = Object.assign({}, m); if (Object.keys(r).length) n.r = r; else delete n.r; return n;
       });
@@ -10401,6 +10459,7 @@
       const L = {}, R = {}; localList.forEach(x => { L[x.id] = x; }); remoteList.forEach(x => { R[x.id] = x; });
       return merged.map(m => {
         const l = L[m.id], r = R[m.id]; if (!l || !r) return m;
+        if (l.d || r.d) { const t = l.d ? l : r; return { id: t.id, u: t.u, t: t.t, d: 1 }; }   // apagada para todos: vale sempre
         const lr = l.r || {}, rr = r.r || {}, o = {};
         Object.keys(rr).forEach(u => { if (u !== me) o[u] = rr[u]; });
         if (lr[me]) o[me] = lr[me];
@@ -10413,7 +10472,7 @@
       const m = (b.chat || []).find(x => x.id === mid); if (!m) return;
       const cur = (m.r || {})[shMe().uid], own = (appData.chatStickers || []).some(s => s.id === m.si);
       pop.dataset.id = mid;
-      pop.innerHTML = CH_REACTS.map(em => `<button type="button" data-e="${em}" class="${cur === em ? 'me' : ''}">${em}</button>`).join('') + (m.si && !own ? `<button type="button" class="sv" data-sv="${html(m.si)}"><i class="fa-solid fa-plus"></i> Salvar figurinha</button>` : '');
+      pop.innerHTML = CH_REACTS.map(em => `<button type="button" data-e="${em}" class="${cur === em ? 'me' : ''}">${em}</button>`).join('') + (m.si && !own ? `<button type="button" class="sv" data-sv="${html(m.si)}"><i class="fa-solid fa-plus"></i> Salvar figurinha</button>` : '') + (m.u === shMe().uid ? '<button type="button" class="sv" data-act="all"><i class="fa-solid fa-trash"></i> Apagar para todos</button>' : '') + '<button type="button" class="sv" data-act="me"><i class="fa-regular fa-eye-slash"></i> Apagar para mim</button>';
       pop.classList.add('on');
       const pr = pn.getBoundingClientRect(), br = bub.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
       let top = br.top - pr.top - h - 4; if (top < 44) top = br.bottom - pr.top + 4;
@@ -10432,7 +10491,7 @@
       });
       pop.addEventListener('click', e => {
         const bt = e.target.closest('button'); if (!bt) return; const mid = pop.dataset.id;
-        if (bt.dataset.e) chReact(mid, bt.dataset.e); else if (bt.dataset.sv) chSaveSticker(bt.dataset.sv);
+        if (bt.dataset.e) chReact(mid, bt.dataset.e); else if (bt.dataset.sv) chSaveSticker(bt.dataset.sv); else if (bt.dataset.act === 'all') chDelAll(mid); else if (bt.dataset.act === 'me') chDelMe(mid);
         chReactClose();
       });
       byId('chatPanel').addEventListener('pointerdown', e => { if (!e.target.closest('#chatReact,.chAct')) chReactClose(); }, true);
