@@ -55,6 +55,7 @@ p.s{color:var(--m);margin-bottom:26px}
 .fi{padding:0 14px}.fx{padding:0 10px;overflow:hidden}.fx iframe{height:46px!important}
 .fi::placeholder{color:var(--m)}.fi:focus,.fx:focus-within{outline:0;border-color:var(--v);box-shadow:0 0 0 3px #9be3c030}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tos{display:flex;gap:10px;align-items:flex-start;text-align:left;margin:4px 0 14px;font-size:13px;color:var(--m);cursor:pointer}.tos input{flex:none;width:18px;height:18px;margin-top:2px;accent-color:#9be3c0}
 .sec{display:flex;align-items:flex-start;justify-content:center;gap:6px;font-size:12px;margin-top:14px}.sec svg{flex:none;margin-top:2px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin-bottom:16px;border-radius:99px;background:#ffffff0d}
 .tabs button{padding:10px;border:0;border-radius:99px;background:none;color:var(--m);font:inherit;font-weight:700;cursor:pointer;transition:.25s}
@@ -82,6 +83,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
     Continuar com Google</button>
    <p class="msg" id="msg" role="status"></p>
    <p class="hint">Já tem conta? É só entrar. Novo por aqui? Entre e escolha seu plano.</p>
+   <p class="hint" style="font-size:12.5px">Ao continuar, você concorda com os <a href="termos.html" target="_blank" rel="noopener">Termos de Uso e a Política de Privacidade</a>.</p>
   </div>
   <!-- 2. verificando -->
   <div id="vLoad" hidden><div class="spin"></div><p class="s" style="margin:0">Verificando sua conta...</p></div>
@@ -114,6 +116,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--a);outline-offset:3
    <h2>Assinar o Pro</h2>
    <svg class="ul" viewBox="0 0 300 22" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 14C70 3 140 20 210 10S280 8 296 11"/></svg>
    <div class="sum"><span>Plano Pro, mensal</span><b data-price>R$ 19,90</b></div>
+   <label class="tos"><input type="checkbox" id="tos"><span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos de Uso e a Política de Privacidade</a>, inclusive o prazo de 7 dias para desistir.</span></label>
    <div class="tabs" role="tablist"><button type="button" class="on" id="tCard" role="tab">Cartão</button><button type="button" id="tPix" role="tab">Pix</button></div>
    <div id="paneCard">
     <form id="cf" autocomplete="off" novalidate>
@@ -221,14 +224,14 @@ async function montar(){
 $('cfDoc').oninput=e=>{const d=e.target.value.replace(/\D/g,'').slice(0,11);e.target.value=d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
 function erroCartao(err){if(Array.isArray(err))return 'Confira os dados do cartão e tente de novo.';return (err&&err.message)||'Não foi possível concluir o pagamento.'}
 $('cf').onsubmit=async ev=>{
- ev.preventDefault();if(!montado){say('msg3','O formulário ainda está carregando.');return}
+ ev.preventDefault();if(!$('tos').checked){say('msg3','Aceite os Termos de Uso para continuar.');return}if(!montado){say('msg3','O formulário ainda está carregando.');return}
  const name=$('cfName').value.trim(),doc=$('cfDoc').value.replace(/\D/g,'');
  if(name.length<3){say('msg3','Digite o nome como está no cartão.');return}
  if(doc.length!==11){say('msg3','Digite o CPF do titular (11 números).');return}
  const b=$('cfGo');b.disabled=true;b.textContent='Processando pagamento...';say('msg3','');
  try{
   const t=await mpi.fields.createCardToken({cardholderName:name,identificationType:'CPF',identificationNumber:doc});
-  const r=await FB.api('subscribe',{token:t.id,email:who&&who.email});
+  const r=await FB.api('subscribe',{token:t.id,email:who&&who.email,terms:true});
   if(r.already){location.replace(APP);return}
   confirmar(0);
  }catch(err){console.error(err);say('msg3',erroCartao(err));b.disabled=false;setLbl()}};
@@ -238,9 +241,10 @@ $('tCard').onclick=()=>aba(false);$('tPix').onclick=()=>aba(true);
 /* Pix: gera o QR Code e fica conferindo no Mercado Pago até ser pago de verdade */
 let pixTimer=0;
 $('pixGo').onclick=async()=>{
+ if(!$('tos').checked){say('msg3','Aceite os Termos de Uso para continuar.');return}
  const b=$('pixGo');b.disabled=true;say('msg3','');
  try{
-  const r=await FB.api('pix',{action:'create'});
+  const r=await FB.api('pix',{action:'create',terms:true});
   if(r.already){location.replace(APP);return}
   $('pixImg').src='data:image/png;base64,'+r.qrImage;$('pixCode').value=r.qr;$('pixBox').hidden=false;b.hidden=true;
   const t0=Date.now();clearInterval(pixTimer);
