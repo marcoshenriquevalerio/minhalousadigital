@@ -10,6 +10,7 @@ module.exports = wrap(async (req, res) => {
   if (cur && cur.manual === true) return res.status(200).json({ already: true });
   if (cur && cur.status === "authorized") return res.status(200).json({ already: true });
   const input = body(req), token = String(input.token || "").trim();
+  if (!token) { const e = new Error("Pagamento por cartão indisponível no momento. Use o Pix."); e.status = 400; throw e; }
   const b = await getBilling();
   const now = Date.now();
   // Já pagou por Pix e ainda tem dias? O cartão só começa a cobrar quando esses dias acabarem.
