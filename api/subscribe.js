@@ -11,6 +11,7 @@ module.exports = wrap(async (req, res) => {
   if (cur && cur.status === "authorized") return res.status(200).json({ already: true });
   const input = body(req), token = String(input.token || "").trim();
   if (!token) { const e = new Error("Pagamento por cartão indisponível no momento. Use o Pix."); e.status = 400; throw e; }
+  if (input.terms !== true) { const e = new Error("Aceite os Termos de Uso para continuar."); e.status = 400; throw e; }
   const b = await getBilling();
   const now = Date.now();
   // Já pagou por Pix e ainda tem dias? O cartão só começa a cobrar quando esses dias acabarem.
@@ -29,6 +30,7 @@ module.exports = wrap(async (req, res) => {
     }, token ? { card_token_id: token } : {})
   });
   const base = {
+    termsAcceptedAt: now, termsVersion: "2026-10-10",
     preapprovalId: p.id, amount: b.price, payerEmail: u.email, name: u.name, updatedAt: now,
     initPoint: p.init_point || "", cancelReason: "", cancelledAt: 0
   };

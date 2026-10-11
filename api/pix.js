@@ -20,6 +20,7 @@ module.exports = wrap(async (req, res) => {
   }
   const s = (await subRef(u.uid).get()).data();
   if (s && s.manual === true) return res.status(200).json({ already: true });
+  if (b.terms !== true) { const e = new Error("Aceite os Termos de Uso para continuar."); e.status = 400; throw e; }
   const bill = await getBilling();
   const exp = Date.now() + 30 * 60000;
   const p = await mp("/v1/payments", {
@@ -37,6 +38,6 @@ module.exports = wrap(async (req, res) => {
   });
   const td = (p.point_of_interaction && p.point_of_interaction.transaction_data) || {};
   if (!td.qr_code) { const e = new Error("Não foi possível gerar o Pix agora. Tente de novo."); e.status = 502; throw e; }
-  await pixRef(p.id).set({ uid: u.uid, email: u.email, amount: bill.price, createdAt: Date.now(), expiresAt: exp, applied: false });
+  await pixRef(p.id).set({ uid: u.uid, email: u.email, amount: bill.price, createdAt: Date.now(), expiresAt: exp, applied: false, termsAcceptedAt: Date.now(), termsVersion: "2026-10-10" });
   res.status(200).json({ id: String(p.id), qr: td.qr_code, qrImage: td.qr_code_base64 || "", amount: bill.price, expiresAt: exp, days: PIX_DAYS });
 });
