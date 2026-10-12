@@ -1711,7 +1711,7 @@
 
   <!-- NOTIFICAÇÕES -->
   <div id="notifPanel" class="hidden wood-frame rounded-xl p-3 shadow-2xl">
-    <div class="font-chalk text-xl text-amber-200 mb-2"><i class="fa-solid fa-bell mr-2"></i>Notificações</div>
+    <div class="flex items-center justify-between gap-2 mb-2"><div class="font-chalk text-xl text-amber-200"><i class="fa-solid fa-bell mr-2"></i>Notificações</div><button id="notifClear" type="button" class="sh-btn hidden" onclick="shClearAll()" title="Limpar todas as notificações"><i class="fa-solid fa-broom mr-1"></i>Limpar todas</button></div>
     <div id="notifList"></div>
   </div>
 
@@ -9984,6 +9984,7 @@
     }
     function renderNotif() {
       const items = shNotifItems();
+      const cb = byId('notifClear'); if (cb) cb.classList.toggle('hidden', !items.some(x => x.kind === 'out' || x.kind === 'inCancel'));
       byId('notifList').innerHTML = items.length ? items.map(x => {
         const i = x.i;
         if (x.kind === 'update') return `<div class="nt-row flex items-center gap-2" style="cursor:pointer" onclick="updOpen()"><div style="width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#9be3c026;flex:none"><i class="fa-solid fa-rotate" style="color:#9be3c0"></i></div><div class="text-sm flex-1"><b>${html(i.title || 'Nova atualização da Lousa')}</b><br><small class="opacity-70">Toque para atualizar quando quiser</small></div><i class="fa-solid fa-chevron-right opacity-60"></i></div>`;
@@ -9995,10 +9996,16 @@
         return `<div class="nt-row flex items-center gap-2">${x.kind === 'out' ? ntAvatar(i.toPhoto, i.toUsername || i.toEmail, 32) : ntAvatar(i.fromPhoto, i.fromName || i.fromEmail, 32)}<div class="text-sm flex-1">${txt}</div><button class="sh-btn" onclick="shDismiss('${i.id}')" title="Dispensar"><i class="fa-solid fa-xmark"></i></button></div>`;
       }).join('') : '<p class="text-sm text-amber-100/70 p-2">Nenhuma notificação.</p>';
     }
+    function shClearAll() {   // limpa os avisos que já foram respondidos; convites pendentes e o aviso de atualização continuam
+      const d = shDismissed();
+      shNotifItems().forEach(x => { if (x.kind === 'out' || x.kind === 'inCancel') d.push(x.i.id); });
+      try { localStorage.setItem(dismissKey(), JSON.stringify(d.slice(-200))); } catch (e) {}
+      updateBell(); renderNotif();
+    }
     function shDismiss(id) { const d = shDismissed(); d.push(id); try { localStorage.setItem(dismissKey(), JSON.stringify(d.slice(-200))); } catch (e) {} updateBell(); renderNotif(); }
     function toggleNotif(e) { if (e) e.stopPropagation(); const p = byId('notifPanel'); if (p.classList.contains('hidden')) { renderNotif(); p.classList.remove('hidden'); } else p.classList.add('hidden'); }
     function closeNotif() { byId('notifPanel').classList.add('hidden'); }
-    document.addEventListener('click', (e) => { const p = byId('notifPanel'); if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !e.target.closest('#bellBtn')) closeNotif(); });
+    document.addEventListener('click', (e) => { const p = byId('notifPanel'); if (!e.target.isConnected) return; if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !e.target.closest('#bellBtn')) closeNotif(); });
 
     /* ----- ligar tudo ao ciclo de login/salvamento ----- */
     function cloudView() {   // na sua conta ficam só "atalhos" das lousas compartilhadas; o conteúdo vive em shared/{id}
@@ -11180,6 +11187,70 @@
       saveData(); renderNotes();
     }
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOv('boardListModal'); });
+  </script>
+
+  <script>
+    /* Copiar e colar peças (Ctrl+C / Ctrl+V): clique 3 vezes na peça para ativá-la, copie e cole uma duplicata.
+       Funciona entre lousas. Se houver texto selecionado, o Ctrl+C/V segue normal (texto). */
+    (function () {
+      const KEY = 'lousa_clip';
+      let clip = null, pasteN = 0, tt = null;
+      function toast(msg, warn) {
+        let t = byId('clipToast');
+        if (!t) {
+          t = document.createElement('div'); t.id = 'clipToast'; t.setAttribute('role', 'status');
+          t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translate(-50%,14px);z-index:10100;padding:10px 18px;border-radius:99px;background:#1c1917;color:#fde68a;border:1.5px solid #fbbf24;font:700 14px Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;display:flex;align-items:center;gap:8px';
+          document.body.appendChild(t);
+        }
+        t.innerHTML = '<i class="fa-solid ' + (warn ? 'fa-circle-exclamation' : 'fa-circle-check') + '"></i><span></span>';
+        t.lastChild.textContent = msg; t.style.color = warn ? '#fecaca' : '#fde68a'; t.style.borderColor = warn ? '#f87171' : '#fbbf24';
+        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translate(-50%,0)'; });
+        clearTimeout(tt); tt = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translate(-50%,14px)'; }, 1800);
+      }
+      function hasTextSel() {
+        const a = document.activeElement;
+        if (a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && /^(text|search|url|tel|email|number|password)?$/.test(a.type || '')))) { try { if (a.selectionStart !== a.selectionEnd) return true; } catch (e) {} }
+        try { return String(window.getSelection() || '').trim() !== ''; } catch (e) { return false; }
+      }
+      document.addEventListener('copy', (e) => {
+        if (hasTextSel() || !selectedNoteId || !e.clipboardData) return;
+        const board = getActiveBoard(), n = board && board.notes.find(x => x.id === selectedNoteId);
+        if (!n) return;
+        if (n.type === 'widget' && n.wk === 'poolscore') { e.preventDefault(); toast('Este item não pode ser copiado', true); return; }
+        const tok = 'LOUSA_ITEM_' + Date.now();
+        clip = { tok, note: JSON.parse(JSON.stringify(n)) }; pasteN = 0;
+        try { localStorage.setItem(KEY, JSON.stringify(clip)); } catch (err) {}
+        e.preventDefault(); e.clipboardData.setData('text/plain', tok);   // marca a área de transferência: o colar reconhece que é uma peça
+        toast('Item copiado');
+      });
+      document.addEventListener('paste', async (e) => {
+        const txt = e.clipboardData ? String(e.clipboardData.getData('text/plain') || '') : '';
+        if (txt.indexOf('LOUSA_ITEM_') !== 0) return;   // texto/imagem comuns seguem o caminho normal
+        e.preventDefault();
+        if (!clip || clip.tok !== txt) { try { const c = JSON.parse(localStorage.getItem(KEY) || 'null'); if (c && c.tok === txt) clip = c; } catch (err) {} }
+        if (!clip || clip.tok !== txt) return;
+        const board = getActiveBoard(), src = clip.note;
+        if (!board || !appReady) return;
+        if (typeof isFinType === 'function' && isFinType(src.type) && board.kind !== 'finance') { toast('Itens de finanças só podem ser colados em uma lousa de finanças', true); return; }
+        const copy = JSON.parse(JSON.stringify(src));
+        copy.id = 'note_' + Date.now() + Math.floor(Math.random() * 1000);
+        if (src.imageId) {   // imagem: ganha uma cópia própria dos dados, para apagar uma sem afetar a outra
+          let d = null; try { d = await FB.loadImage(src.imageId); } catch (err) {}
+          if (!d) { toast('Não foi possível copiar a imagem', true); return; }
+          const nid = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+          try { await FB.saveImage(nid, d); } catch (err) { console.warn(err); }
+          imageURLs[nid] = dataUrlToBlobUrl(d); copy.imageId = nid;
+        }
+        pasteN++;
+        const mn = byId('boardCanvas'), cw = mn ? mn.offsetWidth : 1000, ch = mn ? mn.offsetHeight : 600, w = copy.width || 120, h = copy.height || 80;
+        copy.x = Math.max(0, Math.min((src.x || 0) + 32 * pasteN, cw - w));
+        copy.y = Math.max(0, Math.min((src.y || 0) + 32 * pasteN, ch - Math.min(h, ch)));
+        board.nextZIndex = (board.nextZIndex || 5) + 1; copy.zIndex = board.nextZIndex;
+        if (copy.type === 'sticker') lastStickerId = copy.id;
+        board.notes.push(copy); selectedNoteId = copy.id;
+        saveData(); renderNotes(); toast('Item colado');
+      });
+    })();
   </script>
 
   <script>
