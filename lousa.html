@@ -1479,7 +1479,7 @@
             <button id="finTableFootBtn" class="fsb" onclick="finTableToggleFoot()"></button>
           </div>
         </div>
-        <div>
+        <div id="finTableCatsBox">
           <div class="fin-lbl">Categorias de destino</div>
           <div id="finDestChips" class="flex flex-wrap gap-1.5 mb-2"></div>
           <div class="flex gap-2">
@@ -6489,6 +6489,7 @@
       }
       extra.push(`<button onclick="finChangeSize('${note.id}', -2)" class="chalk-btn text-[11px] font-bold px-1 rounded transition" title="Diminuir letra">A-</button><button onclick="finChangeSize('${note.id}', 2)" class="chalk-btn text-[13px] font-bold px-1 rounded transition" title="Aumentar letra">A+</button>`);
       if (note.type === 'fintable') extra.push(`<button onclick="openFinTableModal('${note.id}')" class="chalk-btn text-[12px] px-1 rounded transition" title="Configurar tabela (nome, rodapé, categorias)"><i class="fa-solid fa-sliders"></i></button>`);
+      if (note.type === 'invtable') extra.push(`<button onclick="openFinTableModal('${note.id}')" class="chalk-btn text-[12px] px-1 rounded transition" title="Configurar tabela (nome, título, rodapé)"><i class="fa-solid fa-sliders"></i></button>`);
       if (note.type === 'invtable') { const nl = (note.links || []).length; extra.push(`<button onclick="openInvLinks('${note.id}')" class="chalk-btn text-[12px] px-1 rounded transition" title="Ligar às finanças (de onde sai o dinheiro investido)" ${nl ? 'style="color:#fbbf24"' : ''}><i class="fa-solid fa-link"></i>${nl ? `<span class="text-[10px] ml-0.5">${nl}</span>` : ''}</button>`); }
       const inner = note.type === 'fintable' ? finTableInner(note) : note.type === 'invtable' ? invTableInner(note) : note.type === 'fincards' ? finCardsInner(note) : finChartInner(note);
       return `
@@ -6710,18 +6711,20 @@
     }
     function openFinTableModal(editId) {
       if (!editId && !finIsFinance()) return;
-      const n = editId ? findNote(editId) : null, count = finNotes('fintable').length;
+      const n = editId ? (findNote(editId) || findPieceAnywhere(editId)) : null, count = finNotes('fintable').length;
+      const isInv = !!(n && n.type === 'invtable');
+      const cb = byId('finTableCatsBox'); if (cb) cb.style.display = isInv ? 'none' : '';
       finTableDraft = {
         editId: n ? n.id : null,
         hideFoot: n ? !!n.hideFoot : false,
         hideTitle: n ? !!n.noTitle : false
       };
-      byId('finTableName').value = n ? (n.title == null ? '💰 Controle financeiro' : n.title) : (count ? 'Tabela ' + (count + 1) : 'Controle financeiro');
+      byId('finTableName').value = n ? (n.title == null ? (isInv ? '📈 Investimentos' : '💰 Controle financeiro') : n.title) : (count ? 'Tabela ' + (count + 1) : 'Controle financeiro');
       byId('finTableModalTitle').innerText = n ? 'Configurar tabela' : 'Nova tabela';
       byId('finTableOkBtn').innerText = n ? 'Aplicar' : 'Criar tabela';
       byId('finNewDest').value = '';
       finSyncTableModal();
-      finRenderDestChips();
+      if (!isInv) finRenderDestChips();
       byId('finTableModal').classList.remove('hidden');
       setTimeout(() => { const i = byId('finTableName'); if (i) { i.focus(); i.select(); } }, 30);
     }
@@ -6741,11 +6744,12 @@
     function confirmFinTable() {
       const d = finTableDraft; if (!d) return;
       const pend = byId('finNewDest').value.trim();
-      if (pend) finAddDest();   // categoria digitada e não confirmada também entra
+      const cur = d.editId ? (findNote(d.editId) || findPieceAnywhere(d.editId)) : null;
+      if (pend && !(cur && cur.type === 'invtable')) finAddDest();   // categoria digitada e não confirmada também entra
       const name = byId('finTableName').value.trim();
       if (d.editId) {
-        const n = findNote(d.editId);
-        if (n) { n.title = name || 'Tabela'; n.hideFoot = d.hideFoot; n.noTitle = d.hideTitle; finDropMask(n); saveData(); finRenderPiece(n); }
+        const n = cur;
+        if (n) { n.title = name || (n.type === 'invtable' ? '📈 Investimentos' : 'Tabela'); n.hideFoot = d.hideFoot; n.noTitle = d.hideTitle; finDropMask(n); saveData(); finRenderPiece(n); }
       } else {
         const fin = finData();
         if (!fin.rows.length) {
@@ -11175,7 +11179,7 @@
         ${rows.length ? rows.map(r => rowHtml(n, r)).join('') : `<div class="fin-empty" data-ink>Nenhuma retirada ainda. Toque em “+ Nova retirada”.</div>`}
       </div>
       <button class="fin-add chalk-ink font-chalk" style="font-size:${fs}px" onclick="invAddRow('${n.id}')"><span>＋</span> Nova retirada</button>
-      <div id="finfoot_${n.id}" class="fin-foot chalk-ink font-chalk" data-ink style="font-size:${Math.max(12, Math.round(fs * 0.8))}px">${invFootHtml(n)}</div>`;
+${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-chalk" data-ink style="font-size:${Math.max(12, Math.round(fs * 0.8))}px">${invFootHtml(n)}</div>`}`;
   };
 
   window.invAddRow = function (nid) {
