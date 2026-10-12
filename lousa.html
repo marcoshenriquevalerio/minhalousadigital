@@ -11257,13 +11257,14 @@
     const BL_COL = { yellow: '#fde68a', pink: '#fbcfe8', blue: '#bfdbfe', green: '#bbf7d0', orange: '#fed7aa', purple: '#e9d5ff' };
     /* Foto real de cada lousa: tirada da tela quando a pessoa a usa (html2canvas) e guardada neste aparelho */
     const blKey = (id) => 'lousa_thumb_' + (currentUser ? currentUser.uid : '') + '_' + id;
-    function blGet(id) { try { return localStorage.getItem(blKey(id)) || ''; } catch (e) { return ''; } }
+    function blGet(id) { return ''; }   // capturas html2canvas saíam pretas: usa só o desenho em escala
     function blLib() {
       if (window.html2canvas) return Promise.resolve();
       return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     }
     let blBusy = false;
     async function blSnap() {
+      return false;
       if (blBusy || !currentUser || !appReady || document.hidden) return false;
       const b = getActiveBoard(), el = byId('boardViewport');
       if (!b || !el || el.offsetWidth < 80 || el.offsetHeight < 80) return false;
