@@ -240,12 +240,6 @@
     .nav-del:hover { background: rgba(153,27,27,0.7); }
     .nav-name { color: #fef3c7; }
     .nav-count { color: rgba(252,211,77,0.6); }
-    .bl-row { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(253,230,138,.25); color:#fef3c7; cursor:pointer; }
-    .bl-row:hover { background:rgba(180,83,9,.45); }
-    .bl-row.is-cur { border-color:#fbbf24; box-shadow:0 0 0 1px #fbbf24; }
-    .bl-row .bl-n { width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(253,230,138,.15); font-size:12px; font-weight:700; flex:0 0 24px; }
-    .bl-row .bl-name { flex:1; font-size:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .bl-row small { font-size:11px; opacity:.7; }
 
     /* Linha de giz sob o título */
     .chalk-line {
@@ -1066,11 +1060,12 @@
     <div id="moreGroup" class="tb-group">
       <div class="mg-title">Mais opções</div>
       <div class="nav-pill">
-        <button id="btnBoardsList" onclick="openBoardsList()" class="nav-btn" title="Ver todas as lousas"><i class="fa-solid fa-table-cells-large text-xs"></i></button>
+        <button id="btnPrevBoard" onclick="navigateBoard(-1)" class="nav-btn" title="Lousa anterior"><i class="fa-solid fa-chevron-left text-xs"></i></button>
         <div class="flex flex-col items-center px-1 min-w-[64px]">
           <span id="widgetBoardName" onclick="renameCurrentBoard()" class="nav-name font-chalk font-bold whitespace-nowrap cursor-pointer" title="Clique para renomear a lousa">Lousa 1</span>
           <span id="widgetBoardCount" class="nav-count text-[10px] font-semibold leading-none">1 de 1</span>
         </div>
+        <button id="btnNextBoard" onclick="navigateBoard(1)" class="nav-btn" title="Próxima lousa"><i class="fa-solid fa-chevron-right text-xs"></i></button>
         <button onclick="createNewBoard()" class="nav-btn nav-add" title="Nova lousa"><i class="fa-solid fa-plus text-xs"></i></button>
         <button id="btnNewFin" onclick="createFinanceBoard()" class="nav-btn nav-add" title="Nova lousa de finanças"><i class="fa-solid fa-sack-dollar text-xs"></i></button>
         <button id="btnShareBoard" onclick="openShareModal()" class="nav-btn" title="Compartilhar esta lousa"><i class="fa-solid fa-user-plus text-xs"></i></button>
@@ -1605,17 +1600,6 @@
   </div>
 
   <!-- COMPARTILHAR LOUSA -->
-  <!-- LISTA DE TODAS AS LOUSAS -->
-  <div id="boardsListModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('boardsListModal')">
-    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
-        <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-table-cells-large mr-2"></i>Minhas lousas</h3>
-        <button onclick="closeOv('boardsListModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-      <div id="boardsListBody" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2"></div>
-    </div>
-  </div>
-
   <!-- ESTILO DE SETAS E FORMAS (pop-up central) -->
   <div id="shapeStyleModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10060" onclick="if(event.target===this) closeShapeStyle()">
     <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1938,8 +1922,12 @@
       document.getElementById('widgetBoardName').innerText = currentBoard.name;
       document.getElementById('widgetBoardCount').innerText = `${currentIdx + 1} de ${total}`;
 
+      const btnPrev = document.getElementById('btnPrevBoard');
+      const btnNext = document.getElementById('btnNextBoard');
       const btnDelete = document.getElementById('btnDeleteBoard');
 
+      btnPrev.disabled = (currentIdx === 0);
+      btnNext.disabled = (currentIdx === total - 1);
       btnDelete.style.display = total > 1 ? 'flex' : 'none';
     }
 
@@ -11085,31 +11073,14 @@
         saveData(); renderNotes();
       };
 
-      window.openBoardsList = function () {
-        sync();
-        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const cur = appData.activeBoardIndex;
-        byId('boardsListBody').innerHTML = appData.boards.map((b, i) => {
-          const tag = b.kind === 'finance' ? 'Finanças' : (b.shared ? 'Compartilhada' : 'Lousa');
-          return `<button data-bl="${i}" class="bl-row${i === cur ? ' is-cur' : ''}"><span class="bl-n">${i + 1}</span><span class="bl-name font-chalk">${esc(b.name)}</span><small>${tag}</small></button>`;
-        }).join('') || '<div class="text-stone-400 text-sm">Nenhuma lousa.</div>';
-        byId('boardsListBody').onclick = (e) => {
-          const r = e.target.closest('[data-bl]'); if (!r) return;
-          const i = +r.dataset.bl, b = appData.boards[i];
-          navLast[navFilter] = appData.activeBoardIndex;
-          navFilter = match(b, 'finance') ? 'finance' : match(b, 'shared') ? 'shared' : '';
-          appData.activeBoardIndex = i; selectedNoteId = null;
-          saveData(); renderNotes(); closeOv('boardsListModal');
-        };
-        openOv('boardsListModal');
-      };
-
       const ub = window.updateBoardWidgetControls;
       window.updateBoardWidgetControls = function () {
         ub.apply(this, arguments);
         sync();
         const l = list(navFilter), p = l.indexOf(appData.activeBoardIndex);
         byId('widgetBoardCount').innerText = (p + 1) + ' de ' + l.length;
+        byId('btnPrevBoard').disabled = p <= 0;
+        byId('btnNextBoard').disabled = p >= l.length - 1;
         paint();
         const tx = byId('sharedBadgeText');   // em telas mais estreitas o selo mostra só o ícone + número, para não quebrar o cabeçalho
         if (tx && window.innerWidth < 1500 && /\d/.test(tx.textContent)) tx.textContent = tx.textContent.replace(/^Compartilhada\s*·?\s*/, '');
