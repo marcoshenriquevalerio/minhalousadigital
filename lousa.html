@@ -824,6 +824,19 @@
     #moreDot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
     #notifPanel { position: fixed; z-index: 10040; top: 58px; right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; }
     .nt-row { background: rgba(0,0,0,.28); border: 1px solid rgba(251,191,36,.25); border-radius: 10px; padding: 9px 10px; margin-bottom: 7px; color: #fef3c7; }
+    .bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    .bl-card { position: relative; text-align: left; padding: 8px; border-radius: 16px; background: #1c1917; border: 1.5px solid #44403c; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; color: #e7e5e4; }
+    .bl-card:hover { transform: translateY(-3px); border-color: #fbbf24; box-shadow: 0 10px 26px rgba(0,0,0,.5); }
+    .bl-card.on { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.25); }
+    .bl-th { aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #1f4a35, #0d241a 75%); border: 1px solid #ffffff14; display: grid; place-items: center; }
+    .bl-th svg { width: 100%; height: 100%; display: block; }
+    .bl-empty { display: grid; justify-items: center; gap: 4px; color: #ffffff55; font-size: 12px; }
+    .bl-empty i { font-size: 20px; }
+    .bl-meta { padding: 8px 4px 2px; display: grid; gap: 2px; }
+    .bl-meta b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bl-meta span { font-size: 11.5px; color: #a8a29e; }
+    .bl-meta span i { color: #fbbf24; margin-right: 3px; }
+    .bl-now { position: absolute; top: 14px; right: 14px; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: #fbbf24; color: #1c1917; }
     .sh-row { display: flex; align-items: center; gap: 10px; background: #1c1917; border: 1px solid #44403c; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; font-size: 13px; color: #e7e5e4; }
     .sh-row small { color: #a8a29e; font-size: 11px; }
     .sh-btn { padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; background: #44403c; color: #e7e5e4; transition: background .15s ease; white-space: nowrap; }
@@ -1629,9 +1642,9 @@
 
   <!-- MINHAS LOUSAS -->
   <div id="boardListModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('boardListModal')">
-    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
-        <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-table-cells-large mr-2"></i>Minhas lousas</h3>
+        <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-table-cells-large mr-2"></i>Minhas lousas <small id="boardListCount" style="font-size:13px;color:#a8a29e;font-family:inherit;font-weight:600"></small></h3>
         <button onclick="closeOv('boardListModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div id="boardListBody" class="flex-1 overflow-y-auto p-4"></div>
@@ -11064,14 +11077,59 @@
 
   <script>
     /* Minhas lousas: lista com todas (normais, finanças e compartilhadas); um toque abre a escolhida */
+    const BL_COL = { yellow: '#fde68a', pink: '#fbcfe8', blue: '#bfdbfe', green: '#bbf7d0', orange: '#fed7aa', purple: '#e9d5ff' };
+    function blThumb(b) {   // miniatura: desenha as peças da lousa em escala, centralizadas
+      const ns = (b.notes || []).filter(n => n && isFinite(n.x) && isFinite(n.y));
+      const est = (n) => {
+        if (n.height) return n.height;
+        const w = n.width || 200;
+        if (n.type === 'checklist') return 56 + ((n.items || []).length) * 30;
+        if (n.type === 'chalktext') return (n.fontSize || 32) * 1.7;
+        if (n.type === 'image') return w / (n.aspect || 1.4);
+        if (n.type === 'sticker') return w;
+        if (n.type === 'widget') return Math.min(w, 160);
+        return Math.max(110, Math.min(260, 70 + String(n.content || '').length * 0.9));
+      };
+      const base = '<div class="bl-th">';
+      if (!ns.length) return base + '<div class="bl-empty"><i class="fa-regular fa-note-sticky"></i><span>vazia</span></div></div>';
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      ns.forEach(n => { const w = n.width || 200; x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x + w); y1 = Math.max(y1, n.y + est(n)); });
+      const pad = 40; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+      let W = x1 - x0, H = y1 - y0; const r = 16 / 10;
+      if (W / H < r) { const nw = H * r; x0 -= (nw - W) / 2; W = nw; } else { const nh = W / r; y0 -= (nh - H) / 2; H = nh; }
+      const sw = Math.max(W, H) / 160;   // espessura de traço proporcional
+      let g = '';
+      ns.slice().sort((p, q) => (p.zIndex || 0) - (q.zIndex || 0)).forEach(n => {
+        const w = n.width || 200, h = est(n), x = n.x, y = n.y, t = n.type;
+        if (t === 'text' || t === 'checklist') {
+          g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${sw * 3}" fill="${BL_COL[n.color] || '#fde68a'}" opacity=".95"/>`;
+          const lines = t === 'checklist' ? Math.min(5, (n.items || []).length || 2) : 3;
+          for (let k = 0; k < lines; k++) g += `<rect x="${x + w * .1}" y="${y + h * .18 + k * h * .17}" width="${w * (k === lines - 1 ? .45 : .75)}" height="${sw * 2.2}" rx="${sw}" fill="#44403c" opacity=".45"/>`;
+        } else if (t === 'chalktext') {
+          g += `<rect x="${x}" y="${y + h * .3}" width="${w * .85}" height="${sw * 3}" rx="${sw * 1.5}" fill="#f5f5f4" opacity=".85"/><rect x="${x}" y="${y + h * .62}" width="${w * .55}" height="${sw * 3}" rx="${sw * 1.5}" fill="#f5f5f4" opacity=".6"/>`;
+        } else if (t === 'image') {
+          g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${sw * 2}" fill="#57534e" stroke="#d6d3d1" stroke-width="${sw}"/><path d="M${x + w * .12} ${y + h * .8} L${x + w * .4} ${y + h * .45} L${x + w * .6} ${y + h * .7} L${x + w * .75} ${y + h * .55} L${x + w * .9} ${y + h * .8}Z" fill="#a8a29e"/>`;
+        } else if (t === 'sticker') {
+          g += `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2.3}" fill="#fbbf24" opacity=".9"/>`;
+        } else if (t === 'shape') {
+          g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${sw * 2}" fill="none" stroke="#f5f5f4" stroke-width="${sw * 1.4}" opacity=".85"/>`;
+        } else if (t === 'widget') {
+          g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${sw * 3}" fill="#0f766e" opacity=".9"/><circle cx="${x + w / 2}" cy="${y + h / 2}" r="${Math.min(w, h) * .28}" fill="none" stroke="#99f6e4" stroke-width="${sw * 1.5}"/>`;
+        } else {
+          g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${sw * 3}" fill="${b.kind === 'finance' ? '#34d399' : '#fcd34d'}" opacity=".55"/>`;
+        }
+      });
+      return base + `<svg viewBox="${x0} ${y0} ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g}</svg></div>`;
+    }
     function openBoardList() {
       const cur = appData.activeBoardIndex;
-      byId('boardListBody').innerHTML = appData.boards.map((b, i) => {
-        const ic = b.kind === 'finance' ? 'fa-sack-dollar' : (b.shared ? 'fa-user-group' : 'fa-chalkboard');
-        const tag = b.kind === 'finance' ? 'finanças' : (b.shared ? 'compartilhada' : 'lousa');
+      byId('boardListCount').textContent = appData.boards.length + (appData.boards.length === 1 ? ' lousa' : ' lousas');
+      byId('boardListBody').innerHTML = '<div class="bl-grid">' + appData.boards.map((b, i) => {
+        const tag = b.kind === 'finance' ? '<i class="fa-solid fa-sack-dollar"></i> Finanças' : (b.shared ? '<i class="fa-solid fa-user-group"></i> Compartilhada' : '<i class="fa-solid fa-chalkboard"></i> Lousa');
         const n = (b.notes || []).length;
-        return `<button class="sh-row w-full text-left" style="cursor:pointer;${i === cur ? 'border-color:#fbbf24;background:#292524' : ''}" onclick="goBoard(${i})"><i class="fa-solid ${ic}" style="width:20px;text-align:center;color:#fbbf24"></i><span class="flex-1" style="min-width:0"><b class="block truncate">${html(b.name || 'Lousa')}</b><small>${tag} · ${n} ${n === 1 ? 'item' : 'itens'}</small></span>${i === cur ? '<small style="color:#fbbf24">aberta</small>' : '<i class="fa-solid fa-chevron-right opacity-60"></i>'}</button>`;
-      }).join('');
+        let th = ''; try { th = blThumb(b); } catch (e) { th = '<div class="bl-th"></div>'; }
+        return `<button type="button" class="bl-card${i === cur ? ' on' : ''}" onclick="goBoard(${i})">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</button>`;
+      }).join('') + '</div>';
       openOv('boardListModal');
     }
     function goBoard(i) {
