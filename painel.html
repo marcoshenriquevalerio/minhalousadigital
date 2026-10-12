@@ -136,6 +136,7 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
    <button data-v="vPrice"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg>Assinatura</button>
    <button data-v="vPlans"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="1.8" fill="currentColor"/><circle cx="15" cy="12" r="1.8" fill="currentColor"/><circle cx="10" cy="17" r="1.8" fill="currentColor"/></svg>Recursos dos planos</button>
    <button data-v="vMp"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>Mercado Pago</button>
+   <button data-v="vUpd"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 1112 0v6l1.5 2h-15zM10 21h4"/></svg>Avisar atualização</button>
    <button data-v="vTeam"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Equipe</button>
   </nav>
   <div class="side-b">
@@ -230,6 +231,18 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
    </div>
   </section>
 
+  <!-- AVISAR ATUALIZAÇÃO -->
+  <section id="vUpd" hidden>
+   <h1>Avisar atualização</h1><p class="sub">Envia um aviso para todos que usam a lousa. Ele chega no sino de notificações, sem abrir nada na tela da pessoa. Ao tocar, abre o pop-up para atualizar (ou adiar por 10 minutos).</p>
+   <div class="box" style="max-width:640px">
+    <label class="f">Título do pop-up<input id="ut" maxlength="80" placeholder="Existem atualizações recentes da Lousa Digital"></label>
+    <label class="f">Mensagem<textarea id="um" maxlength="300" rows="3" placeholder="Carregue para usar a versão mais nova. Tudo o que você criou continua salvo." style="width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--ln,#ffffff22);border-radius:10px;padding:10px;resize:vertical"></textarea></label>
+    <div class="row"><button class="btn p" id="us" type="button">Enviar notificação a todos</button><button class="btn d" id="uc" type="button">Cancelar aviso</button></div>
+    <p class="sub" id="uSt" style="margin:14px 0 0;font-size:14px"></p>
+    <p class="sub" style="margin:8px 0 0;font-size:13px">Dica: envie depois de publicar os arquivos novos no GitHub e a Vercel terminar o deploy. Quem abrir o pop-up e tocar em atualizar recebe a versão nova.</p>
+   </div>
+  </section>
+
   <!-- EQUIPE -->
   <section id="vTeam" hidden>
    <h1>Equipe</h1><p class="sub">Quem pode abrir este painel. As contas autorizadas entram direto aqui ao fazer login.</p>
@@ -283,6 +296,7 @@ function plano(u){
  if(s&&s.status==='cancelled')return u.pro?'<span class="pill a">Cancelado (vale até '+dt(s.nextPayment)+')</span>':'<span class="pill">Cancelado</span>';
  return '<span class="pill">Grátis</span>'}
 function render(){
+ try{upd()}catch(e){}
  const S=D.stats;
  $('sMrr').textContent=money(S.mrr);$('sAtivos').textContent=S.active;$('sUsers').textContent=S.users;$('sOnline').textContent=S.online;$('sPend').textContent=S.pending;
  $('meName').textContent=(D.users.find(u=>u.email===D.me.email)||{}).name||D.me.email;$('meMail').textContent=D.me.email;$('meAv').textContent=D.me.email[0].toUpperCase();
@@ -463,6 +477,12 @@ $('tm').onclick=async()=>{$('mpRes').textContent='Testando...';
  try{const r=await call('testMp');$('mpRes').textContent='Conectado à conta '+(r.nickname||r.email||'do Mercado Pago')+'.'}
  catch(e){$('mpRes').textContent='Falhou: '+e.message}};
 $('cu').onclick=()=>{$('wu').select();try{navigator.clipboard.writeText($('wu').value);toast('Endereço copiado')}catch(e){document.execCommand('copy');toast('Endereço copiado')}};
+
+/* avisar atualização */
+function upd(){const u=D.update;$('uSt').textContent=u?'Aviso ativo desde '+new Date(u.at).toLocaleString('pt-BR')+(u.by?' (por '+u.by+')':'')+'.':'Nenhum aviso ativo agora.';$('uc').hidden=!u}
+$('us').onclick=async()=>{if(!confirm('Enviar o aviso de atualização para todos os usuários?'))return;
+ const r=await run($('us'),()=>call('pushUpdate',{title:$('ut').value,message:$('um').value}),'Notificação enviada');if(r)load().catch(()=>{})};
+$('uc').onclick=async()=>{const r=await run($('uc'),()=>call('clearUpdate'),'Aviso cancelado');if(r)load().catch(()=>{})};
 
 /* equipe */
 function team(){

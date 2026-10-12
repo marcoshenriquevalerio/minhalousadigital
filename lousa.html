@@ -9921,6 +9921,28 @@
     }
 
     /* ----- notificações (sino) ----- */
+    /* ----- aviso de atualização enviado pelo painel (chega no sino, sem som e sem pop-up sozinho) ----- */
+    const UPD = { cur: null };
+    function updVisible() {
+      const u = UPD.cur; if (!u || !u.id || !currentUser) return false;
+      try {
+        if (localStorage.getItem('lousa_upd_done') === u.id) return false;
+        if (Date.now() < Number(localStorage.getItem('lousa_upd_snooze_' + u.id) || 0)) return false;   // adiado por 10 min
+      } catch (e) {}
+      return true;
+    }
+    function updOpen() {
+      closeNotif();
+      try { parent.postMessage({ type: 'lousa-upd-open', update: UPD.cur }, location.origin); } catch (e) {}
+    }
+    function updPoll() {
+      fetch('/api/public', { cache: 'no-store' }).then(r => r.json()).then(j => { UPD.cur = (j && j.update) || null; updateBell(); }).catch(() => {});
+    }
+    addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.type === 'lousa-upd-refresh') { updateBell(); if (!byId('notifPanel').classList.contains('hidden')) renderNotif(); } });
+    setTimeout(updPoll, 3000);
+    setInterval(() => { updPoll(); updateBell(); }, 60000);   // confere a cada 1 min e traz de volta o aviso adiado
+    addEventListener('focus', updPoll);
+
     const dismissKey = () => 'lousa_dismissed_' + (currentUser ? currentUser.uid : '');
     function shDismissed() { try { return JSON.parse(localStorage.getItem(dismissKey()) || '[]'); } catch (e) { return []; } }
     function shNotifItems() {
@@ -9928,6 +9950,7 @@
       SH.inc.filter(i => i.status === 'pending').forEach(i => items.push({ kind: 'invite', i, t: i.createdAt }));
       SH.out.filter(i => i.status !== 'pending' && dis.indexOf(i.id) < 0 && now - (i.updatedAt || 0) < week).forEach(i => items.push({ kind: 'out', i, t: i.updatedAt }));
       SH.inc.filter(i => i.status === 'cancelled' && dis.indexOf(i.id) < 0 && now - (i.updatedAt || 0) < week).forEach(i => items.push({ kind: 'inCancel', i, t: i.updatedAt }));
+      if (updVisible()) items.push({ kind: 'update', i: UPD.cur, t: UPD.cur.at });
       return items.sort((a, b) => (b.t || 0) - (a.t || 0));
     }
     function updateBell() {
@@ -9939,6 +9962,7 @@
       const items = shNotifItems();
       byId('notifList').innerHTML = items.length ? items.map(x => {
         const i = x.i;
+        if (x.kind === 'update') return `<div class="nt-row flex items-center gap-2" style="cursor:pointer" onclick="updOpen()"><div style="width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#9be3c026;flex:none"><i class="fa-solid fa-rotate" style="color:#9be3c0"></i></div><div class="text-sm flex-1"><b>${html(i.title || 'Nova atualização da Lousa')}</b><br><small class="opacity-70">Toque para atualizar quando quiser</small></div><i class="fa-solid fa-chevron-right opacity-60"></i></div>`;
         if (x.kind === 'invite') return `<div class="nt-row"><div class="flex items-center gap-2">${ntAvatar(i.fromPhoto, i.fromName || i.fromEmail, 38)}<div class="text-sm flex-1"><b>${html(i.fromName || i.fromEmail)}</b> quer usar a lousa <b>“${html(i.boardName)}”</b> junto com você.<br><small class="opacity-70">${html(i.fromEmail)} · ${i.kind === 'finance' ? 'lousa de finanças' : 'lousa'}</small></div></div>
           <div class="flex gap-2 mt-2"><button class="sh-btn ok" onclick="shAccept('${i.id}')"><i class="fa-solid fa-check mr-1"></i>Aceitar</button><button class="sh-btn danger" onclick="shReject('${i.id}')"><i class="fa-solid fa-xmark mr-1"></i>Recusar</button></div></div>`;
         const txt = x.kind === 'out'
@@ -10007,7 +10031,7 @@
       }
       try { if (navigator.vibrate) navigator.vibrate([90, 60, 90]); } catch (e) {}
     }
-    function shNotifKeys() { return shNotifItems().filter(x => !(x.kind === 'out' && x.i.status === 'cancelled')).map(x => x.kind + ':' + x.i.id + ':' + x.i.status); }
+    function shNotifKeys() { return shNotifItems().filter(x => x.kind !== 'update' && !(x.kind === 'out' && x.i.status === 'cancelled')).map(x => x.kind + ':' + x.i.id + ':' + x.i.status); }
     function shNotifSound() {
       if (!SHN.inOk || !SHN.outOk) return;
       const keys = shNotifKeys();

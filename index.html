@@ -40,25 +40,26 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0c1f17
  <div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg></div>
  <div class="k">novidades no ar</div>
  <h2 id="updT">Existem atualizações recentes da Lousa Digital</h2>
- <div id="updA"><p>Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.</p>
-  <button class="go" id="updGo" type="button">Carregar novas atualizações</button><br><button class="lt" id="updLt" type="button">Agora não</button></div>
+ <div id="updA"><p id="updMsg">Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.</p>
+  <button class="go" id="updGo" type="button">Carregar novas atualizações</button><br><button class="lt" id="updLt" type="button">Adiar por 10 minutos</button></div>
  <div id="updB" hidden><p id="updP">Preparando a atualização...</p><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="updF"></i></div></div>
 </div></div>
 <script>
-/* Avisa quando existe versão nova publicada. Só aparece se a versão aberta ficou para trás. */
+/* Aviso de atualização MANUAL: só abre quando a pessoa toca na notificação dentro da lousa (enviada pelo painel).
+   Nada aparece sozinho por cima do que ela está fazendo. */
 (function(){
- var cur=null,open=false,stale=false,snooze=0,$=function(i){return document.getElementById(i)};
- function ver(){return fetch('/api/version',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){return j&&j.v||null}).catch(function(){return null})}
- function check(){ver().then(function(v){
-  if(!v)return;
-  if(cur===null){cur=v;return}               // versão com a qual esta página foi aberta
-  if(v!==cur){stale=true;tryShow()}})}
- // só avisa na tela de login ou dentro da lousa (não na página de vendas, termos etc.)
- function inApp(){try{var l=document.getElementById('app').contentWindow.location;return /^(login|lousa)(\.html)?$/.test(l.pathname.split('/').pop()||'')}catch(e){return false}}
- function tryShow(){if(stale&&!open&&Date.now()>snooze&&inApp())show()}
- function show(){open=true;$('updA').hidden=false;$('updB').hidden=true;$('upd').hidden=false;$('updGo').focus()}
- $('updLt').onclick=function(){$('upd').hidden=true;open=false;snooze=Date.now()+10*60000};   // volta a avisar em 10 min
+ var cur=null,$=function(i){return document.getElementById(i)};
+ function show(u){
+  cur=u||{};
+  $('updT').textContent=cur.title||'Existem atualizações recentes da Lousa Digital';
+  $('updMsg').textContent=cur.message||'Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.';
+  $('updA').hidden=false;$('updB').hidden=true;$('upd').hidden=false;$('updGo').focus()}
+ $('updLt').onclick=function(){      // adiar: só 10 minutos, depois a notificação volta ao sino
+  try{if(cur&&cur.id)localStorage.setItem('lousa_upd_snooze_'+cur.id,String(Date.now()+10*60000))}catch(e){}
+  $('upd').hidden=true;
+  try{$('app').contentWindow.postMessage({type:'lousa-upd-refresh'},location.origin)}catch(e){}};
  $('updGo').onclick=function(){
+  try{if(cur&&cur.id)localStorage.setItem('lousa_upd_done',cur.id)}catch(e){}
   $('updA').hidden=true;$('updB').hidden=false;
   var f=$('updF'),p=$('updP'),bar=document.querySelector('#upd .bar'),t0=Date.now(),D=2600;
   (function tick(){
@@ -66,10 +67,9 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0c1f17
    f.style.width=n+'%';bar.setAttribute('aria-valuenow',n);
    p.textContent=n<100?'Atualizando... '+n+'%':'Pronto! Abrindo a versão nova...';
    if(x<1)requestAnimationFrame(tick);else setTimeout(function(){location.reload()},350)})()};
- check();setInterval(function(){check();tryShow()},30000);   // confere a cada 30 s
- document.addEventListener('DOMContentLoaded',function(){document.getElementById('app').addEventListener('load',function(){setTimeout(tryShow,700)})});
- addEventListener('focus',check);
- document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+ addEventListener('message',function(e){
+  if(e.origin!==location.origin||!e.data)return;
+  if(e.data.type==='lousa-upd-open')show(e.data.update)});
 })();
 </script>
 <iframe id="app" title="Lousa Digital"

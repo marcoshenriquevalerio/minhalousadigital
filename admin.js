@@ -16,10 +16,7 @@ async function listAll() {
   const subs = {};
   (await db.collection("subscriptions").get()).forEach((d) => (subs[d.id] = d.data()));
   const admins = await getAdmins();
-  // Quem escolheu um plano (Grátis ou Pro): users/{uid}/plan/me com status "active"
-  const chose = new Set();
-  (await db.collectionGroup("plan").get()).forEach((d) => { const x = d.data(); if (x && x.status === "active" && d.ref.parent.parent) chose.add(d.ref.parent.parent.id); });
-  const all = users.map((u) => {
+  return users.map((u) => {
     const s = subs[u.uid] || null, email = lc(u.email);
     return {
       uid: u.uid, email, name: u.displayName || "", photo: u.photoURL || "",
@@ -29,23 +26,15 @@ async function listAll() {
       disabled: !!u.disabled,
       admin: email === OWNER || admins.includes(email),
       sub: s ? { status: s.status || "", method: s.method || "", pixUntil: s.pixUntil || 0, amount: s.amount || 0, nextPayment: s.nextPayment || 0, manual: !!s.manual, preapprovalId: s.preapprovalId || "", startedAt: s.startedAt || 0, createdAt: s.createdAt || 0, lastPaidAt: s.lastPaidAt || 0, cancelReason: s.cancelReason || "", cancelledAt: s.cancelledAt || 0 } : null,
-      pro: proActive(s),
-      _chose: chose.has(u.uid)
+      pro: proActive(s)
     };
   });
-  // Só aparece quem de fato virou cliente: escolheu um plano, tem/teve pagamento, foi liberado, é admin ou está bloqueado.
-  // Quem só entrou com o Google e saiu (ou tentou pagar e nunca pagou) fica oculto.
-  const keep = (x) => {
-    if (x.admin || x.disabled || x._chose) return true;
-    const s = x.sub;
-    if (!s) return false;
-    if (s.manual || s.lastPaidAt > 0 || s.pixUntil > 0) return true;
-    return ["authorized", "paused", "pending"].includes(s.status);
-  };
-  const shown = all.filter(keep);
-  shown.hidden = all.length - shown.length;
-  shown.forEach((x) => delete x._chose);
-  return shown;
+}
+
+async function getUpdate() {
+  const d = await cfgRef("update").get();
+  const u = d.exists ? d.data() : {};
+  return u.id ? { id: u.id, title: u.title || "", message: u.message || "", at: u.at || 0, by: u.by || "" } : null;
 }
 
 const actions = {
@@ -57,7 +46,6 @@ const actions = {
       me: { email: u.email, owner: u.owner },
       stats: {
         users: users.length,
-        hidden: users.hidden || 0,
         pro: users.filter((x) => x.pro).length,
         active: active.length,
         pending: users.filter((x) => x.sub && x.sub.status === "pending").length,
@@ -70,7 +58,8 @@ const actions = {
       plans,
       catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
       mp: { hasToken: !!m.accessToken, tokenMask: mask(m.accessToken), hasSecret: !!m.webhookSecret, publicKey: m.publicKey || "", live: /^APP_USR-/.test(m.accessToken), webhookUrl: SITE + "/api/webhook" },
-      admins: [OWNER].concat(admins.filter((e) => e !== OWNER))
+      admins: [OWNER].concat(admins.filter((e) => e !== OWNER)),
+      update: await getUpdate()
     };
   },
 
@@ -84,7 +73,7 @@ const actions = {
     }
     if (typeof b.publicKey === "string" && b.publicKey.trim()) {
       const k = b.publicKey.trim();
-      if (!/^(APP_USR|TEST)-[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(k)) bad("Essa não parece ser a Public Key. Ela tem o formato APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (curta, com 5 blocos separados por hífen). O Access Token é a chave comprida, que vai no outro campo.");
+      if (!/^(APP_USR|TEST)-/.test(k)) bad("A Public Key do Mercado Pago começa com APP_USR- (produção) ou TEST-.");
       upd.publicKey = k;
     }
     if (typeof b.webhookSecret === "string" && b.webhookSecret.trim()) upd.webhookSecret = b.webhookSecret.trim();
@@ -181,6 +170,20 @@ const actions = {
       } : null,
       payments
     };
+  },
+
+  // Envia o aviso "atualize a lousa" para todo mundo. Chega no sino de notificações (sem tela por cima).
+  async pushUpdate(u, b) {
+    const title = String(b.title || "").trim().slice(0, 80) || "Existem atualizações recentes da Lousa Digital";
+    const message = String(b.message || "").trim().slice(0, 300) || "Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.";
+    const id = String(Date.now());
+    await cfgRef("update").set({ id, title, message, at: Date.now(), by: u.email });
+    return { ok: true, update: { id, title, message, at: Date.now(), by: u.email } };
+  },
+
+  async clearUpdate() {
+    await cfgRef("update").set({ id: "", clearedAt: Date.now() });
+    return { ok: true };
   },
 
   async addAdmin(u, b) {
