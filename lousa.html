@@ -829,6 +829,7 @@
     .bl-card:hover { transform: translateY(-3px); border-color: #fbbf24; box-shadow: 0 10px 26px rgba(0,0,0,.5); }
     .bl-card.on { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.25); }
     .bl-th { aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #1f4a35, #0d241a 75%); border: 1px solid #ffffff14; display: grid; place-items: center; }
+    .bl-th img { width: 100%; height: 100%; display: block; object-fit: contain; }
     .bl-th svg { width: 100%; height: 100%; display: block; }
     .bl-empty { display: grid; justify-items: center; gap: 4px; color: #ffffff55; font-size: 12px; }
     .bl-empty i { font-size: 20px; }
@@ -11078,7 +11079,42 @@
   <script>
     /* Minhas lousas: lista com todas (normais, finanças e compartilhadas); um toque abre a escolhida */
     const BL_COL = { yellow: '#fde68a', pink: '#fbcfe8', blue: '#bfdbfe', green: '#bbf7d0', orange: '#fed7aa', purple: '#e9d5ff' };
-    function blThumb(b) {   // miniatura: desenha as peças da lousa em escala, centralizadas
+    /* Foto real de cada lousa: tirada da tela quando a pessoa a usa (html2canvas) e guardada neste aparelho */
+    const blKey = (id) => 'lousa_thumb_' + (currentUser ? currentUser.uid : '') + '_' + id;
+    function blGet(id) { try { return localStorage.getItem(blKey(id)) || ''; } catch (e) { return ''; } }
+    function blLib() {
+      if (window.html2canvas) return Promise.resolve();
+      return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    }
+    let blBusy = false;
+    async function blSnap() {
+      if (blBusy || !currentUser || !appReady || document.hidden) return false;
+      const b = getActiveBoard(), el = byId('boardViewport');
+      if (!b || !el || el.offsetWidth < 80 || el.offsetHeight < 80) return false;
+      blBusy = true;
+      try {
+        if (!(b.notes && b.notes.length) && !(b.strokes && b.strokes.length)) { try { localStorage.removeItem(blKey(b.id)); } catch (e) {} return true; }   // vazia: usa o aviso "vazia"
+        await blLib();
+        const cv = await window.html2canvas(el, { scale: Math.min(1, 560 / el.offsetWidth), backgroundColor: '#0d241a', useCORS: true, logging: false });
+        const d = cv.toDataURL('image/jpeg', 0.66);
+        try { localStorage.setItem(blKey(b.id), d); } catch (e) { /* sem espaço: segue com o desenho */ }
+        return true;
+      } catch (e) { console.warn('miniatura:', e); return false; }
+      finally { blBusy = false; }
+    }
+    (function () {   // atualiza a foto da lousa aberta quando a pessoa para de mexer
+      let t = null;
+      const rn = window.renderNotes;
+      window.renderNotes = function () {
+        const r = rn.apply(this, arguments);
+        clearTimeout(t);
+        t = setTimeout(() => { if (byId('boardListModal').classList.contains('hidden')) blSnap(); }, 3000);
+        return r;
+      };
+    })();
+    function blThumb(b) {   // miniatura: foto real da lousa; se ainda não existe, um desenho em escala
+      const shot = blGet(b.id);
+      if (shot && (b.notes || []).length) return '<div class="bl-th"><img alt="" src="' + shot + '"></div>';
       const ns = (b.notes || []).filter(n => n && isFinite(n.x) && isFinite(n.y));
       const est = (n) => {
         if (n.height) return n.height;
@@ -11131,6 +11167,11 @@
         return `<button type="button" class="bl-card${i === cur ? ' on' : ''}" onclick="goBoard(${i})">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</button>`;
       }).join('') + '</div>';
       openOv('boardListModal');
+      blSnap().then((ok) => {   // tira a foto atual da lousa aberta e troca na hora
+        if (!ok || byId('boardListModal').classList.contains('hidden')) return;
+        const card = byId('boardListBody').querySelector('.bl-card.on'), b = appData.boards[cur];
+        if (card && b) { const th = card.querySelector('.bl-th'); if (th) th.outerHTML = blThumb(b); }
+      });
     }
     function goBoard(i) {
       closeOv('boardListModal');
