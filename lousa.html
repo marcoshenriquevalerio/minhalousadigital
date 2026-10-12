@@ -733,7 +733,7 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: 1.45em 7.4em 5.8em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em; gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: 1.45em 7.4em 6.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em; gap: 6px; align-items: center; }
     .fin-head { padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
     .fin-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
     .fin-row { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.14); }
@@ -1538,6 +1538,7 @@
               <button class="fsb" data-fin-met data-v="cum" onclick="finDraftMetric('cum')">Saldo acumulado</button>
               <button class="fsb" data-fin-met data-v="pin" onclick="finDraftMetric('pin')">A receber (pendente)</button>
               <button class="fsb" data-fin-met data-v="pout" onclick="finDraftMetric('pout')">A pagar (pendente)</button>
+              <button class="fsb" data-fin-met data-v="inv" onclick="finDraftMetric('inv')">Investimento</button>
             </div>
           </div>
           <div data-for="bar">
@@ -5471,7 +5472,7 @@
        APAGADOR DE LOUSA
        ========================================================================= */
     const ERASER_BASE_W = 96, ERASER_RATIO = 0.46, ERASER_MARGIN = 10;
-    const ERASABLE = ['checklist', 'chalktext', 'shape', 'fintable', 'fincards', 'finchart'];   // post-its, imagens e adesivos nunca são apagados
+    const ERASABLE = ['checklist', 'chalktext', 'shape', 'fintable', 'fincards', 'finchart', 'invtable'];   // post-its, imagens e adesivos nunca são apagados
     const maskStore = {};          // id da peça -> { canvas, ctx, w, h, src }
     const maskDirty = {};          // peças com máscara a atualizar no próximo frame
     let eraserDrag = null, eraserPlace = false, eraserLastTap = 0, puffAt = 0, maskRaf = 0;
@@ -5995,12 +5996,12 @@
        Os lançamentos ficam em board.fin.rows; Tabela, Cards e Gráficos são
        "visões" da lousa: mudou a tabela, tudo é recalculado.
        ========================================================================= */
-    const FIN_TYPES = ['fintable', 'fincards', 'finchart'];
+    const FIN_TYPES = ['fintable', 'fincards', 'finchart', 'invtable'];
     function isFinType(t) { return FIN_TYPES.indexOf(t) >= 0; }
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? 520 : 260, 170];
+      return [note.type === 'fintable' ? 520 : note.type === 'invtable' ? 380 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -6020,6 +6021,7 @@
       bal:  { label: 'Saldo',           color: 'blue',  dash: false },
       cum:  { label: 'Saldo acumulado', color: 'white', dash: false },
       pin:  { label: 'A receber',       color: 'green', dash: true },
+      inv:  { label: 'Investimento', color: 'yellow', dash: false },
       pout: { label: 'A pagar',         color: 'pink',  dash: true }
     };
     const FIN_X = { date: 'Data (dia)', month: 'Mês', dest: 'Destino', cat: 'Categoria' };
@@ -6119,11 +6121,11 @@
 
     /* totais em centavos (evita erro de arredondamento) */
     function finTotals(rows) {
-      const t = { in: 0, out: 0, pin: 0, pout: 0, nIn: 0, nOut: 0, nPin: 0, nPout: 0 };
+      const t = { in: 0, out: 0, pin: 0, pout: 0, nIn: 0, nOut: 0, nPin: 0, nPout: 0, inv: 0, pinv: 0, nInv: 0 };
       rows.forEach(r => {
         const c = Math.round((r.value || 0) * 100);
         if (r.cat === 'in') { if (r.done) { t.in += c; t.nIn++; } else { t.pin += c; t.nPin++; } }
-        else { if (r.done) { t.out += c; t.nOut++; } else { t.pout += c; t.nPout++; } }
+        else { if (r.done) { t.out += c; t.nOut++; } else { t.pout += c; t.nPout++; } if (r.cat === 'inv') { if (r.done) { t.inv += c; t.nInv++; } else t.pinv += c; } }
       });
       return t;
     }
@@ -6169,11 +6171,11 @@
         let key, label, sort;
         if (cfg.x === 'date') { key = r.date || '—'; label = finDM(r.date); sort = key; }
         else if (cfg.x === 'month') { key = (r.date || '').slice(0, 7) || '—'; label = finMonthShort(key); sort = key; }
-        else if (cfg.x === 'cat') { key = r.cat === 'in' ? 'in' : 'out'; label = r.cat === 'in' ? 'Entrada' : 'Saída'; sort = r.cat === 'in' ? '0' : '1'; }
+        else if (cfg.x === 'cat') { const ck = r.cat === 'in' ? 'in' : (r.cat === 'inv' ? 'inv' : 'out'); key = ck; label = ck === 'in' ? 'Entrada' : (ck === 'inv' ? 'Investimento' : 'Saída'); sort = ck === 'in' ? '0' : (ck === 'out' ? '1' : '2'); }
         else { key = finRowKey(r); label = finRowLabel(r); sort = label; }
-        const g = map[key] || (map[key] = { key, label, sort, in: 0, out: 0, pin: 0, pout: 0 });
+        const g = map[key] || (map[key] = { key, label, sort, in: 0, out: 0, pin: 0, pout: 0, inv: 0 });
         const c = Math.round((r.value || 0) * 100);
-        if (r.cat === 'in') { if (r.done) g.in += c; else g.pin += c; } else { if (r.done) g.out += c; else g.pout += c; }
+        if (r.cat === 'in') { if (r.done) g.in += c; else g.pin += c; } else { if (r.done) g.out += c; else g.pout += c; if (r.cat === 'inv' && r.done) g.inv += c; }
       });
       return map;
     }
@@ -6181,10 +6183,10 @@
       const map = finGroupMap(finRowsFor(cfg.period), cfg);
       finTerms(finCtxNote).forEach(tm => {   // ligações com operação: combina ponto a ponto do eixo
         const m2 = finGroupMap(finRowsOfBoard(tm.board, cfg.period), cfg);
-        Object.keys(m2).forEach(k => { if (!map[k]) map[k] = Object.assign({}, m2[k], { in: 0, out: 0, pin: 0, pout: 0 }); });
+        Object.keys(m2).forEach(k => { if (!map[k]) map[k] = Object.assign({}, m2[k], { in: 0, out: 0, pin: 0, pout: 0, inv: 0 }); });
         Object.keys(map).forEach(k => {
-          const o = m2[k] || { in: 0, out: 0, pin: 0, pout: 0 };
-          ['in', 'out', 'pin', 'pout'].forEach(f => { map[k][f] = finApply(tm.op, map[k][f], o[f]); });
+          const o = m2[k] || { in: 0, out: 0, pin: 0, pout: 0, inv: 0 };
+          ['in', 'out', 'pin', 'pout', 'inv'].forEach(f => { map[k][f] = finApply(tm.op, map[k][f] || 0, o[f] || 0); });
         });
       });
       let arr = Object.keys(map).map(k => map[k]);
@@ -6329,13 +6331,13 @@
         return;
       }
       const sc = layer.querySelector('.fin-scroll'), st = sc ? sc.scrollTop : 0;
-      layer.innerHTML = finTableInner(note);
+      layer.innerHTML = note.type === 'invtable' ? invTableInner(note) : finTableInner(note);
       const sc2 = layer.querySelector('.fin-scroll'); if (sc2) sc2.scrollTop = st;
     }
 
     function finRefreshViews() {
       finNotes().forEach(n => {
-        if (n.type === 'fintable') finUpdateFoot(n);
+        if (n.type === 'fintable' || n.type === 'invtable') finUpdateFoot(n);
         else finRenderPiece(n);
       });
     }
@@ -6347,11 +6349,12 @@
       const col = (id, txt) => `<span style="color:${finHex(id)}">${txt}</span>`;
       let h = col('green', '↑ Entradas ' + finBRL(t.in / 100)) + col('pink', '↓ Saídas ' + finBRL(t.out / 100)) +
         col(bal < 0 ? 'pink' : 'blue', '= Saldo ' + finBRL(bal));
+      if (t.inv) h += col('yellow', '📈 Investido ' + finBRL(t.inv / 100));
       if (t.pin || t.pout) h += col('yellow', '⏳ Pendente: ' + (t.pin ? 'receber ' + finBRL(t.pin / 100) : '') + (t.pin && t.pout ? ' · ' : '') + (t.pout ? 'pagar ' + finBRL(t.pout / 100) : ''));
       return h;
     }
     function finUpdateFoot(note) {
-      const f = document.getElementById('finfoot_' + note.id); if (f) f.innerHTML = finFootHtml();
+      const f = document.getElementById('finfoot_' + note.id); if (f) f.innerHTML = note.type === 'invtable' ? invFootHtml(note) : finFootHtml();
     }
 
     function finTitleInput(note, def) {
@@ -6363,13 +6366,13 @@
     }
 
     function finRowHtml(r) {
-      const isIn = r.cat === 'in';
+      const isIn = r.cat === 'in', isInv = r.cat === 'inv';
       const anim = finLastToggled === r.id && r.done;
       return `<div class="fin-row fin-cols ${r.done ? '' : 'is-pending'}" data-row="${r.id}">
         <button class="chalk-check ${r.done ? 'is-done' : ''} ${anim ? 'animate' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleRow('${r.id}')"
                 title="${r.done ? 'Confirmado — já soma nos cards e gráficos' : 'Pendente — marque para somar'}">${FIN_CHECK_SVG}</button>
         <div data-cell="date" data-ink><input type="date" class="fin-in" value="${escapeHtml(r.date || '')}" onchange="finSetField('${r.id}','date',this)"></div>
-        <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar Entrada / Saída">${isIn ? '↑ Entrada' : '↓ Saída'}</button></div>
+        <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : isInv ? 'yellow' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar: Entrada → Saída → Investimento">${isIn ? '↑ Entrada' : isInv ? '📈 Invest.' : '↓ Saída'}</button></div>
         <div data-cell="dest" data-ink><input type="text" list="finDestList" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="finSetField('${r.id}','dest',this)"></div>
         <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
@@ -6404,7 +6407,8 @@
         { key: 'out',  emoji: '💸', title: 'Saídas',   val: finBRL(t.out / 100), color: 'pink',   sub: plural(t.nOut, 'lançamento', 'lançamentos') },
         { key: 'bal',  emoji: '⚖️', title: 'Saldo',    val: finBRL(bal), color: bal < 0 ? 'pink' : 'blue', sub: 'previsto ' + finBRL(forecast) },
         { key: 'pin',  emoji: '⏳', title: 'A receber', val: finBRL(t.pin / 100),  color: 'yellow', sub: plural(t.nPin, 'pendente', 'pendentes') },
-        { key: 'pout', emoji: '🧾', title: 'A pagar',   val: finBRL(t.pout / 100), color: 'yellow', sub: plural(t.nPout, 'pendente', 'pendentes') }
+        { key: 'pout', emoji: '🧾', title: 'A pagar',   val: finBRL(t.pout / 100), color: 'yellow', sub: plural(t.nPout, 'pendente', 'pendentes') },
+        { key: 'inv',  emoji: '📈', title: 'Investimento', val: finBRL(t.inv / 100), color: 'yellow', sub: plural(t.nInv, 'aplicação', 'aplicações') + (t.pinv ? ' · a investir ' + finBRL(t.pinv / 100) : '') }
       ];
       const destCard = (g) => {
         const net = (g.t.in - g.t.out) / 100;
@@ -6485,7 +6489,8 @@
       }
       extra.push(`<button onclick="finChangeSize('${note.id}', -2)" class="chalk-btn text-[11px] font-bold px-1 rounded transition" title="Diminuir letra">A-</button><button onclick="finChangeSize('${note.id}', 2)" class="chalk-btn text-[13px] font-bold px-1 rounded transition" title="Aumentar letra">A+</button>`);
       if (note.type === 'fintable') extra.push(`<button onclick="openFinTableModal('${note.id}')" class="chalk-btn text-[12px] px-1 rounded transition" title="Configurar tabela (nome, rodapé, categorias)"><i class="fa-solid fa-sliders"></i></button>`);
-      const inner = note.type === 'fintable' ? finTableInner(note) : note.type === 'fincards' ? finCardsInner(note) : finChartInner(note);
+      if (note.type === 'invtable') { const nl = (note.links || []).length; extra.push(`<button onclick="openInvLinks('${note.id}')" class="chalk-btn text-[12px] px-1 rounded transition" title="Ligar às finanças (de onde sai o dinheiro investido)" ${nl ? 'style="color:#fbbf24"' : ''}><i class="fa-solid fa-link"></i>${nl ? `<span class="text-[10px] ml-0.5">${nl}</span>` : ''}</button>`); }
+      const inner = note.type === 'fintable' ? finTableInner(note) : note.type === 'invtable' ? invTableInner(note) : note.type === 'fincards' ? finCardsInner(note) : finChartInner(note);
       return `
         <div class="chalk-frame fin-frame rounded-lg p-3" style="color:${getChalkHex(note)}">
           ${chalkBarHtml(note, extra.join(''))}
@@ -6539,7 +6544,7 @@
     }
     function finToggleCat(id) {
       const r = finRow(id); if (!r) return;
-      r.cat = r.cat === 'in' ? 'out' : 'in';
+      r.cat = r.cat === 'in' ? 'out' : (r.cat === 'out' ? 'inv' : 'in');
       saveData(); finRefreshAll();
     }
     function finSetField(id, field, el) {
@@ -6605,7 +6610,7 @@
     function finCreatePiece(type, extra) {
       if (!finIsFinance()) return null;
       const board = getActiveBoard();
-      const sizes = { fintable: [680, 400], fincards: [640, 430], finchart: [500, 330] };
+      const sizes = { fintable: [680, 400], fincards: [640, 430], finchart: [500, 330], invtable: [520, 360] };
       const mn = byId('boardCanvas');
       const cw = mn ? mn.offsetWidth : 1000, ch = mn ? mn.offsetHeight : 600;
       const single = type === 'fincards' && !!(extra && extra.only);
@@ -6630,7 +6635,7 @@
       saveData(); renderNotes();
       return note;
     }
-    function finOpenTable() { openFinTableModal(); }
+    function finOpenTable() { openOv('finKindModal'); }
     function finOpenCards() { openFinCardModal(); }
 
     /* ---------- cards individuais ---------- */
@@ -11080,6 +11085,170 @@
     })();
   </script>
 
+  <style>
+  .inv-cols { display: grid; grid-template-columns: 1.45em 7.4em minmax(4em, 1fr) minmax(5.6em, 8em) 1em; gap: 6px; align-items: center; }
+</style>
+
+<!-- FINANÇAS: escolher o tipo de tabela -->
+<div id="finKindModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:9995" onclick="if(event.target===this) closeOv('finKindModal')">
+  <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+      <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-table-list mr-2"></i>Qual tabela adicionar?</h3>
+      <button onclick="closeOv('finKindModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="p-5 space-y-3">
+      <button class="fin-rep-opt" onclick="finPickKind('fin')"><b>💰 Finanças</b><span>Lançamentos de entrada, saída e investimento.</span></button>
+      <button class="fin-rep-opt" onclick="finPickKind('inv')"><b>📈 Investimento</b><span>Data, destino e valor retirado. O que for marcado ✓ sai do que você investiu nas finanças ligadas.</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- INVESTIMENTO: ligar às lousas de finanças -->
+<div id="invLinkModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('invLinkModal')">
+  <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+      <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-link mr-2"></i>Ligar às finanças</h3>
+      <button onclick="closeOv('invLinkModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5">
+      <div id="invLinkBody"></div>
+      <p class="text-[11px] text-stone-400 mt-2 leading-snug">O valor disponível é a soma dos lançamentos <b>📈 Investimento</b> marcados ✓ nas lousas ligadas. Sem ligação não há de onde tirar: as retiradas marcadas deixam o saldo negativo.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   INVESTIMENTOS: tabela de retiradas ligada às lousas de finanças
+   + correção da miniatura preta em "Minhas lousas"
+   ========================================================================= */
+(function () {
+  /* miniaturas tiradas por html2canvas saíam pretas: usa só o desenho em escala */
+  try { Object.keys(localStorage).filter(function (k) { return k.indexOf('lousa_thumb_') === 0; }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+  window.blSnap = async function () { return false; };
+
+  let last = null, linkId = null;
+  const cents = (r) => Math.round((r.value || 0) * 100);
+  const rowsOf = (n) => { if (!Array.isArray(n.rows)) n.rows = []; return n.rows; };
+  const linkedBoards = (n) => { const ids = n.links || []; return finBoards().filter(b => ids.indexOf(b.id) >= 0); };
+  const investedOf = (b) => { let c = 0; finData(b).rows.forEach(r => { if (r.cat === 'inv' && r.done && !finIsBlank(r)) c += cents(r); }); return c; };
+  const newId = () => 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  const note = (id) => findPieceAnywhere(id);
+  const rerender = (n) => { finDropMask(n); finRenderPiece(n); };
+
+  window.invPool = (n) => linkedBoards(n).reduce((a, b) => a + investedOf(b), 0);
+  window.invUsed = (n) => rowsOf(n).reduce((a, r) => a + (r.done ? cents(r) : 0), 0);
+
+  window.invFootHtml = function (n) {
+    const pool = invPool(n), used = invUsed(n), bal = pool - used;
+    const pend = rowsOf(n).reduce((a, r) => a + (!r.done ? cents(r) : 0), 0);
+    const c = (id, t) => `<span style="color:${finHex(id)}">${t}</span>`;
+    let h = c('yellow', '📈 Investido ' + finBRL(pool / 100)) + c('pink', '↓ Retirado ' + finBRL(used / 100)) +
+      c(bal < 0 ? 'pink' : 'green', '= Saldo ' + finBRL(bal / 100));
+    if (pend) h += c('white', '⏳ A retirar ' + finBRL(pend / 100));
+    if (!(n.links || []).length) h += c('yellow', '🔗 sem ligação: não há de onde tirar');
+    return h;
+  };
+
+  function rowHtml(n, r) {
+    const anim = last === r.id && r.done;
+    return `<div class="fin-row inv-cols ${r.done ? '' : 'is-pending'}" data-irow="${r.id}">
+      <button class="chalk-check ${r.done ? 'is-done' : ''} ${anim ? 'animate' : ''}" style="width:1.3em;height:1.3em" onclick="invToggleRow('${n.id}','${r.id}')" title="${r.done ? 'Retirado — sai do investimento' : 'Pendente — marque para tirar do investimento'}">${FIN_CHECK_SVG}</button>
+      <div data-ink><input type="date" class="fin-in" value="${escapeHtml(r.date || '')}" onchange="invSet('${n.id}','${r.id}','date',this)"></div>
+      <div data-ink><input type="text" list="invDL_${n.id}" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="invSet('${n.id}','${r.id}','dest',this)"></div>
+      <div data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00" onfocus="this.select()" oninput="invLive('${n.id}','${r.id}',this)" onchange="invCommit('${n.id}','${r.id}',this)" onkeydown="invKey(event,'${n.id}','${r.id}')"></div>
+      <button class="item-remove chalk-del" onclick="invDel('${n.id}','${r.id}')" title="Excluir retirada"><i class="fa-solid fa-xmark text-xs"></i></button>
+    </div>`;
+  }
+
+  window.invTableInner = function (n) {
+    const rows = rowsOf(n), fs = n.fs || 18, allDone = rows.length > 0 && rows.every(r => r.done);
+    const dests = Array.from(new Set(rows.map(r => finCleanDest(r.dest)).filter(Boolean)));
+    return `
+      <datalist id="invDL_${n.id}">${dests.map(d => `<option value="${escapeHtml(d)}"></option>`).join('')}</datalist>
+      ${finTitleInput(n, '📈 Investimentos')}
+      <div class="fin-head inv-cols font-chalk chalk-ink" style="font-size:${fs}px">
+        <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="invToggleAll('${n.id}')" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
+        <span data-ink>Data</span><span data-ink>Destino</span><span data-ink>Valor</span><span></span>
+      </div>
+      <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px">
+        ${rows.length ? rows.map(r => rowHtml(n, r)).join('') : `<div class="fin-empty" data-ink>Nenhuma retirada ainda. Toque em “+ Nova retirada”.</div>`}
+      </div>
+      <button class="fin-add chalk-ink font-chalk" style="font-size:${fs}px" onclick="invAddRow('${n.id}')"><span>＋</span> Nova retirada</button>
+      <div id="finfoot_${n.id}" class="fin-foot chalk-ink font-chalk" data-ink style="font-size:${Math.max(12, Math.round(fs * 0.8))}px">${invFootHtml(n)}</div>`;
+  };
+
+  window.invAddRow = function (nid) {
+    const n = note(nid); if (!n) return;
+    const row = { id: newId(), date: finToday(), dest: '', value: null, done: false };
+    rowsOf(n).push(row); saveData(); rerender(n);
+    const wr = byId(nid), sc = wr && wr.querySelector('.fin-scroll'); if (sc) sc.scrollTop = sc.scrollHeight;
+    const inp = wr && wr.querySelector(`[data-irow="${row.id}"] input[type=text]`); if (inp) inp.focus();
+  };
+  window.invToggleRow = function (nid, rid) {
+    const n = note(nid); if (!n) return;
+    const r = rowsOf(n).find(x => x.id === rid); if (!r) return;
+    r.done = !r.done; last = r.done ? rid : null; saveData(); rerender(n); last = null;
+  };
+  window.invToggleAll = function (nid) {
+    const n = note(nid); if (!n) return; const rows = rowsOf(n); if (!rows.length) return;
+    const all = rows.every(r => r.done); rows.forEach(r => { r.done = !all; }); saveData(); rerender(n);
+  };
+  window.invSet = function (nid, rid, field, el) {
+    const n = note(nid); if (!n) return; const r = rowsOf(n).find(x => x.id === rid); if (!r) return;
+    if (field === 'dest') { r.dest = finCleanDest(el.value); el.value = r.dest; } else r[field] = el.value;
+    saveData();
+  };
+  window.invLive = function (nid, rid, el) {
+    const n = note(nid); if (!n) return; const r = rowsOf(n).find(x => x.id === rid); if (!r) return;
+    r.value = finParseMoney(el.value) || null; saveData(); finUpdateFoot(n);
+  };
+  window.invCommit = function (nid, rid, el) {
+    const n = note(nid); if (!n) return; const r = rowsOf(n).find(x => x.id === rid); if (!r) return;
+    r.value = finParseMoney(el.value) || null; el.value = r.value ? 'R$ ' + finFmtNum(r.value) : '';
+    saveData(); finUpdateFoot(n);
+  };
+  window.invKey = function (e, nid, rid) {
+    if (e.key !== 'Enter') return; e.preventDefault();
+    const n = note(nid); if (!n) return; const rows = rowsOf(n);
+    invCommit(nid, rid, e.target);
+    if (rows.length && rows[rows.length - 1].id === rid) invAddRow(nid); else e.target.blur();
+  };
+  window.invDel = function (nid, rid) {
+    const n = note(nid); if (!n) return;
+    n.rows = rowsOf(n).filter(r => r.id !== rid); saveData(); rerender(n);
+  };
+
+  /* ligação com as lousas de finanças */
+  function renderLinks() {
+    const n = note(linkId); if (!n) return closeOv('invLinkModal');
+    const mine = n.links || [], bs = finBoards();
+    byId('invLinkBody').innerHTML = bs.length ? bs.map(b => {
+      const on = mine.indexOf(b.id) >= 0;
+      return `<button class="lk-row ${on ? 'on' : ''}" onclick="invToggleLink('${b.id}')">
+        <i class="fa-solid ${on ? 'fa-link' : 'fa-link-slash'}"></i>
+        <span class="flex-1 text-left"><b>${escapeHtml(b.name)}</b><br><small>investido (marcado ✓): ${finBRL(investedOf(b) / 100)}${b.shared ? ' · compartilhada' : ''}</small></span>
+        <span class="lk-state">${on ? 'Ligada' : 'Separada'}</span></button>`;
+    }).join('') : '<p class="text-sm text-stone-300">Você ainda não tem lousa de finanças.</p>';
+  }
+  window.openInvLinks = function (id) { linkId = id; renderLinks(); openOv('invLinkModal'); };
+  window.invToggleLink = function (bid) {
+    const n = note(linkId); if (!n) return;
+    const L = (n.links || []).slice(), i = L.indexOf(bid);
+    if (i >= 0) L.splice(i, 1); else L.push(bid);
+    n.links = L; saveData(); renderLinks(); renderNotes();
+  };
+
+  /* botão "Tabela": escolher Finanças ou Investimento */
+  window.finPickKind = function (k) {
+    closeOv('finKindModal');
+    if (k === 'fin') { openFinTableModal(); return; }
+    const cnt = finNotes('invtable').length;
+    finCreatePiece('invtable', { title: cnt ? '📈 Investimentos ' + (cnt + 1) : '📈 Investimentos', rows: [{ id: newId(), date: finToday(), dest: '', value: null, done: false }], links: [] });
+  };
+})();
+</script>
+
   <script type="module" src="firebase.js"></script>
   <script type="module" src="social.js"></script>
 
@@ -11676,7 +11845,7 @@
 
     /* ---------- dados ---------- */
     /* ---------- opções escolhidas na janela do relatório ---------- */
-    const KPI_DEFS = [['in', 'Entradas'], ['out', 'Saídas'], ['bal', 'Saldo'], ['pin', 'A receber'], ['pout', 'A pagar'], ['fc', 'Previsto']];
+    const KPI_DEFS = [['in', 'Entradas'], ['out', 'Saídas'], ['bal', 'Saldo'], ['pin', 'A receber'], ['pout', 'A pagar'], ['fc', 'Previsto'], ['inv', 'Investido']];
     const PANEL_DEFS = [['dest', 'Para onde vai o dinheiro'], ['flow', 'Fluxo mensal'], ['prog', 'Andamento'], ['boards', 'Comparativo por lousa']];
     let OPT = null;
     function defOpts() {
@@ -11686,7 +11855,7 @@
       const has = a => a && a.length;
       if (!f || (!has(f.months) && !has(f.cats) && !has(f.descs) && !has(f.dests))) return null;
       return r => (!has(f.months) || f.months.indexOf((r.date || '').slice(0, 7)) >= 0) &&
-        (!has(f.cats) || f.cats.indexOf(r.cat === 'in' ? 'in' : 'out') >= 0) &&
+        (!has(f.cats) || f.cats.indexOf(r.cat === 'in' ? 'in' : (r.cat === 'inv' ? 'inv' : 'out')) >= 0) &&
         (!has(f.descs) || f.descs.indexOf(finNorm(r.desc)) >= 0) &&
         (!has(f.dests) || f.dests.indexOf(finNorm(r.dest)) >= 0);
     }
@@ -11699,7 +11868,7 @@
       if (!OPT || !OPT.pred) return '';
       const f = OPT.f, out = [];
       if (f.months.length) out.push('Mês: ' + f.months.map(finMonthShort).join(', '));
-      if (f.cats.length) out.push('Categoria: ' + f.cats.map(k => k === 'in' ? 'Entradas' : 'Saídas').join(', '));
+      if (f.cats.length) out.push('Categoria: ' + f.cats.map(k => k === 'in' ? 'Entradas' : (k === 'inv' ? 'Investimentos' : 'Saídas')).join(', '));
       if (f.descs.length) out.push('Descrição: ' + f.descs.map(k => labelFor('desc', k)).join(', '));
       if (f.dests.length) out.push('Destino: ' + f.dests.map(k => labelFor('dest', k)).join(', '));
       return out.join(' · ');
@@ -11785,7 +11954,8 @@
         bal: kpi('SALDO', money(bal), bal < 0 ? 'no vermelho' : 'no azul', bal < 0 ? C.out : C.bal),
         pin: kpi('A RECEBER', money(t.pin), pl(t.nPin, 'pendente', 'pendentes'), C.warn),
         pout: kpi('A PAGAR', money(t.pout), pl(t.nPout, 'pendente', 'pendentes'), '#ff9d5c'),
-        fc: kpi('PREVISTO', money(fc), 'saldo + pendências', C.vio)
+        fc: kpi('PREVISTO', money(fc), 'saldo + pendências', C.vio),
+        inv: kpi('INVESTIDO', money(t.inv), pl(t.nInv, 'aplicação', 'aplicações'), C.vio)
       };
       const keys = (OPT || defOpts()).kpis.filter(k => all[k]);
       return keys.length ? `<div class="kpis">` + keys.map(k => all[k]).join('') + `</div>` : '';
@@ -11897,7 +12067,7 @@
       let i = 0, pg = 0;
       const rowHtml = r => {
         const inn = r.cat === 'in', col = inn ? C.in : C.out;
-        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
+        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? '📈 Investimento' : inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
       };
       const totals = `<div class="tot"><div><small>ENTRADAS</small><b style="color:${C.in}">${money(s.t.in)}</b></div><div><small>SAÍDAS</small><b style="color:${C.out}">${money(s.t.out)}</b></div><div><small>SALDO</small><b style="color:${s.bal < 0 ? C.out : C.bal}">${money(s.bal)}</b></div></div>`;
       if (!rows.length) return [{ label: s.b.name || 'Finanças', html: `<div class="sec"><span>LANÇAMENTOS</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="empty">${OPT && OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento nesta lousa ainda.'}</div>` }];
@@ -11990,7 +12160,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
         list.forEach(s => s.rows.forEach(r => rows.push({ r, b: s.b.name || 'Finanças' })));
         rows.sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
         const tr = x => { const r = x.r, inn = r.cat === 'in', col = inn ? C.in : C.out;
-          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
+          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? '📈 Investimento' : inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
         const bal = t.in - t.out;
         table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
           ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
@@ -12056,7 +12226,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
         : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado à lousa ainda. Monte um em “Gráficos”.</span>';
       byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos', RS.table);
       byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
-      byId('finRepFCats').innerHTML = chip('cats', 'in', '↑ Entradas', RS.f.cats.in) + chip('cats', 'out', '↓ Saídas', RS.f.cats.out);
+      byId('finRepFCats').innerHTML = chip('cats', 'in', '↑ Entradas', RS.f.cats.in) + chip('cats', 'out', '↓ Saídas', RS.f.cats.out) + chip('cats', 'inv', '📈 Investimentos', RS.f.cats.inv);
       byId('finRepFDescs').innerHTML = AV.descs.map(x => chip('descs', x.k, x.l, RS.f.descs[x.k])).join('');
       const dbx = byId('finRepFDescsBox'); if (dbx) dbx.style.display = (finGroupBy() === 'desc' || AV.descs.length < 2) ? 'none' : '';
       byId('finRepFDests').innerHTML = AV.dests.map(x => chip('dests', x.k, x.l, RS.f.dests[x.k])).join('');
@@ -12070,7 +12240,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
         charts: AV.charts.filter(n => RS.charts[n.id]).map(n => n.id),
         cards: AV.cards.filter(n => RS.cards[n.id]).map(n => n.id),
         table: !!RS.table,
-        f: { months: on(RS.f.months, AV.months), cats: on(RS.f.cats, ['in', 'out']), descs: on(RS.f.descs, AV.descs.map(x => x.k)), dests: on(RS.f.dests, AV.dests.map(x => x.k)) }
+        f: { months: on(RS.f.months, AV.months), cats: on(RS.f.cats, ['in', 'out', 'inv']), descs: on(RS.f.descs, AV.descs.map(x => x.k)), dests: on(RS.f.dests, AV.dests.map(x => x.k)) }
       };
     }
     function finRepCount() {
