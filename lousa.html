@@ -11839,8 +11839,8 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
      ========================================================================= */
   (function () {
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const C = { in: '#a8e6a1', out: '#ffb4c8', bal: '#bfe3ff', warn: '#ffe58a', vio: '#d4c2ff' };
-    const SWAP = [['#c9f5cf', C.in], ['#ffc4de', C.out], ['#bfe9ff', C.bal], ['#fff0a0', C.warn], ['#f5f7f8', '#f1f4ea']];
+    const C = { in: '#16a34a', out: '#e11d48', bal: '#2563eb', warn: '#d97706', vio: '#7c3aed' };
+    const SWAP = [['#c9f5cf', C.in], ['#ffc4de', C.out], ['#bfe9ff', C.bal], ['#fff0a0', C.warn], ['#f5f7f8', '#334155']];
     const money = c => finBRL((c || 0) / 100);            // centavos -> "R$ 1.234,56"
     const pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, Math.round(a * 100 / b))) : 0;
     const TYPE_NAME = { bar: 'Barras', line: 'Linha', pie: 'Pizza', donut: 'Rosca', progress: 'Progresso', thermo: 'Termômetro', treemap: 'Mapa de blocos', radar: 'Radar', funnel: 'Funil' };
@@ -11914,7 +11914,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       let t = n.only ? (n.onlyLabel || (function () { try { const c = finCardForKey(n); return c && c.title; } catch (e) { return ''; } })() || 'Card') : (n.title || 'Resumo financeiro');
       return String(t).replace(/^[^\p{L}\p{N}]+/u, '').trim() || 'Card';
     }
-    const CCOL = { green: C.in, pink: C.out, blue: C.bal, yellow: C.warn, white: '#e8f0ff' };
+    const CCOL = { green: C.in, pink: C.out, blue: C.bal, yellow: C.warn, white: '#475569' };
     function cardPages(s) {
       const items = [];
       s.cards.forEach(n => {
@@ -11988,11 +11988,11 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       const max = Math.max(1, ...data.map(d => Math.max(d.i, d.o))), W = 320, H = 250, base = 220, bw = Math.min(22, Math.floor((W - 20) / data.length / 2.6));
       const step = (W - 20) / data.length;
       let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.in}"/><stop offset="1" stop-color="${C.in}" stop-opacity=".25"/></linearGradient><linearGradient id="go" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.out}"/><stop offset="1" stop-color="${C.out}" stop-opacity=".25"/></linearGradient></defs>`;
-      for (let g = 0; g <= 3; g++) { const y = base - (base - 14) * g / 3; s += `<line x1="10" x2="${W - 10}" y1="${y}" y2="${y}" stroke="#7aa2ff" stroke-opacity=".12"/>`; }
+      for (let g = 0; g <= 3; g++) { const y = base - (base - 14) * g / 3; s += `<line x1="10" x2="${W - 10}" y1="${y}" y2="${y}" stroke="#94a3b8" stroke-opacity=".35"/>`; }
       data.forEach((d, i) => {
         const cx = 10 + step * i + step / 2, hi = Math.round((base - 14) * d.i / max), ho = Math.round((base - 14) * d.o / max);
         s += `<rect x="${cx - bw - 1}" y="${base - hi}" width="${bw}" height="${hi}" rx="4" fill="url(#gi)"/><rect x="${cx + 1}" y="${base - ho}" width="${bw}" height="${ho}" rx="4" fill="url(#go)"/>` +
-          `<text x="${cx}" y="${base + 18}" text-anchor="middle" font-size="11" fill="#9db0d8">${esc(finMonthShort(d.k))}</text>`;
+          `<text x="${cx}" y="${base + 18}" text-anchor="middle" font-size="11" fill="#64748b">${esc(finMonthShort(d.k))}</text>`;
       });
       s += `</svg><div class="lg"><span style="--c:${C.in}">Entradas</span><span style="--c:${C.out}">Saídas</span></div>`;
       return h + s + `</div>`;
@@ -12093,52 +12093,50 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
 
     /* ---------- documento ---------- */
     const CSS = `@page{size:A4;margin:9mm 0}*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#14271e}.page{background-color:#1f3d2f}body{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;color:#f1f4ea;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.bar{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;padding:10px 14px;background:#16301f;border-bottom:1px solid #3f6a52;font-size:13px;color:#c8d8c4}
-.bar button{font:inherit;font-weight:700;color:#16301f;background:linear-gradient(135deg,#e9e3b0,#a9d6a0);border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
-.page{position:relative;width:210mm;min-height:296mm;margin:16px auto;padding:26px 34px 18px;display:flex;flex-direction:column;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.55);
-background:radial-gradient(760px 460px at 108% -6%,rgba(255,255,255,.07),transparent 62%),radial-gradient(700px 480px at -12% 108%,rgba(180,230,160,.17),transparent 62%),#1f3d2f}
+html,body{background:#eef1ef}body{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bar{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb;font-size:13px;color:#475569}
+.bar button{font:inherit;font-weight:700;color:#fff;background:#1f6b45;border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
+.page{position:relative;width:210mm;min-height:296mm;margin:16px auto;padding:30px 36px 18px;display:flex;flex-direction:column;border-radius:6px;box-shadow:0 6px 28px rgba(15,40,28,.14);background:#fff}
 .page:last-child{break-after:auto;page-break-after:auto}
-.page::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(235,245,225,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(235,245,225,.04) 1px,transparent 1px);background-size:28px 28px}
-.page>*{position:relative}
-.hd{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid rgba(235,245,225,.16)}
-.brand{display:flex;align-items:center;gap:10px;font-family:'Caveat','Patrick Hand',cursive;font-size:11px;letter-spacing:3px;color:#f1f4ea}
-.logo{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e9e3b0,#a9d6a0 60%,#a8e6a1);box-shadow:0 0 14px rgba(235,245,225,.6);position:relative}.logo::after{content:'';position:absolute;inset:5px;border-radius:3px;background:#1f3d2f}
-.hd-r{font-size:10px;letter-spacing:2px;color:#a3bba0;text-align:right}.hd-r span{display:block;color:#c8d8c4;letter-spacing:1px;margin-top:2px}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid #e5e7eb}
+.wm{position:relative;display:inline-block;font-family:'Caveat','Patrick Hand',cursive;font-weight:700;font-size:44px;line-height:1;color:#1d6b46;letter-spacing:.5px;padding-bottom:12px}
+.wm .scr{position:absolute;left:-4px;right:-6px;bottom:0;width:calc(100% + 10px);height:14px;overflow:visible}
+.tag{margin-top:7px;font-size:10.5px;letter-spacing:.4px;color:#64748b}
+.hd-r{font-size:10px;letter-spacing:2.5px;color:#64748b;text-align:right;font-weight:600}.hd-r span{display:block;color:#1f2937;letter-spacing:1px;margin-top:4px;font-weight:500;font-size:11px}
 .bd{flex:1;min-height:0}
-.ft{display:flex;justify-content:space-between;font-size:10px;color:#93ad92;padding-top:10px;border-top:1px solid rgba(235,245,225,.12);letter-spacing:.5px}
-.eyebrow{font-family:'Caveat','Patrick Hand',cursive;font-size:10px;letter-spacing:2px;color:#e9e3b0}
-h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:linear-gradient(100deg,#fff 20%,#f4f1d2 60%,#cfe8b8);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-size:11px;color:#b4c9b0;margin-bottom:12px}.blk{margin-bottom:14px}.card,.mc,.kpi,.tot,.tb tr{break-inside:avoid;page-break-inside:avoid}.sec,.tb thead{break-after:avoid}.tb thead{display:table-header-group}
+.ft{display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;padding-top:10px;border-top:1px solid #e5e7eb;letter-spacing:.5px}.ft b{font-family:'Caveat','Patrick Hand',cursive;font-size:15px;font-weight:700;color:#1d6b46;letter-spacing:.3px}
+.eyebrow{font-size:10px;letter-spacing:3px;color:#b7791f;font-weight:600}
+h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f}
+.sub{font-size:11px;color:#64748b;margin-bottom:14px}.blk{margin-bottom:14px}.card,.mc,.kpi,.tot,.tb tr{break-inside:avoid;page-break-inside:avoid}.sec,.tb thead{break-after:avoid}.tb thead{display:table-header-group}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.kpi{position:relative;padding:9px 12px 8px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(235,245,225,.18);overflow:hidden}
-.kpi i{position:absolute;left:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,var(--c),transparent)}
-.kpi small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#b4c9b0}
-.kpi b{display:block;font-size:19px;margin:4px 0 1px;color:var(--c);text-shadow:0 0 18px color-mix(in srgb,var(--c) 45%,transparent);white-space:nowrap}
-.kpi em{font-style:normal;font-size:10.5px;color:#a3bba0}
+.kpi{position:relative;padding:11px 12px 9px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;overflow:hidden}
+.kpi i{position:absolute;left:0;top:0;height:3px;width:100%;background:var(--c)}
+.kpi small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#64748b;font-weight:600}
+.kpi b{display:block;font-size:19px;margin:4px 0 1px;color:var(--c);white-space:nowrap}
+.kpi em{font-style:normal;font-size:10.5px;color:#64748b}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.panel{padding:14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(235,245,225,.16)}
-.panel h3{font-size:12px;letter-spacing:1px;margin-bottom:10px;color:#f1f4ea;font-weight:600}.panel h3 span{color:#93ad92;font-weight:400}
+.panel{padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb}
+.panel h3{font-size:12px;letter-spacing:1px;margin-bottom:10px;color:#1f2937;font-weight:600}.panel h3 span{color:#94a3b8;font-weight:400}
 .hb{margin-bottom:9px}.hb-t{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;margin-bottom:4px}.hb-t b{font-weight:600}
-.hb-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:3px}.hb-bar.big{height:11px}
-.hb-bar u{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 40%,transparent),var(--c));box-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
-.panel small{font-size:9.5px;color:#a3bba0}
+.hb-bar{height:7px;border-radius:99px;background:#e8ecf0;overflow:hidden;margin-bottom:3px}.hb-bar.big{height:11px}
+.hb-bar u{display:block;height:100%;border-radius:99px;background:var(--c)}
+.panel small{font-size:9.5px;color:#64748b}
 .pgs{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .cmp{margin-bottom:10px}
-.lg{display:flex;gap:14px;font-size:10px;color:#c8d8c4;margin-top:4px}.lg span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--c);margin-right:5px}
-.empty{font-size:12px;color:#a3bba0;padding:18px 4px;text-align:center}
-.sec{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}.sec span{font-family:'Caveat','Patrick Hand',cursive;font-size:10px;letter-spacing:2px;color:#e9e3b0}.sec b{font-size:18px;font-weight:600;color:#fff}
+.lg{display:flex;gap:14px;font-size:10px;color:#475569;margin-top:4px}.lg span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--c);margin-right:5px}
+.empty{font-size:12px;color:#64748b;padding:18px 4px;text-align:center}
+.sec{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}.sec span{font-size:10px;letter-spacing:2.5px;color:#b7791f;font-weight:600}.sec b{font-size:18px;font-weight:600;color:#14291f}
 .crow{display:flex;gap:10px;margin-bottom:10px}
-.card{flex:1;min-width:0;padding:12px 14px 10px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(235,245,225,.16)}
-.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}.card-h b{font-size:13px;font-weight:600;color:#fff}.card-h span{font-size:9.5px;color:#a3bba0;text-align:right}
-.chart{color:#f1f4ea;height:215px;overflow:visible;padding:10px 0 0}.chart svg{display:block;max-width:100%}.chart svg text{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;font-weight:500}
-.tb{width:100%;border-collapse:collapse;font-size:11.5px}.tb th{text-align:left;font-size:9.5px;letter-spacing:2px;color:#b4c9b0;font-weight:600;padding:5px 8px;border-bottom:1px solid rgba(235,245,225,.3)}
-.tb td{padding:0 8px;height:23px;border-bottom:1px solid rgba(235,245,225,.09)}.tb tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
-.tb .v{text-align:right;font-weight:600;white-space:nowrap}.tb .d{color:#c8d8c4;white-space:nowrap}
-.st{display:inline-block;font-size:9.5px;padding:2px 9px;border-radius:99px;letter-spacing:.5px}.st.ok{color:#a8e6a1;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35)}.st.pe{color:#ffd75e;border:1px dashed rgba(255,215,94,.6)}
-.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.tot div{padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(235,245,225,.2)}.tot small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#b4c9b0}.tot b{font-size:19px}
-.tb .ds{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dbe8d4}.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mc{position:relative;padding:9px 12px 8px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(235,245,225,.18);overflow:hidden}.mc i{position:absolute;left:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,var(--c),transparent)}.mc small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#b4c9b0}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:var(--c);white-space:nowrap}.mc em{display:block;font-style:normal;font-size:10px;color:#a3bba0}.mc u{display:block;text-decoration:none;font-size:9.5px;color:#fbbf24;margin-top:4px}.flt{font-size:10.5px;color:#cfe0c8;margin:-12px 0 16px;line-height:1.4}
-@media print{.bar{display:none}.page{margin:0;border-radius:0;box-shadow:none;min-height:0;padding:0 34px}html,body{background:#1f3d2f}}`;
+.card{flex:1;min-width:0;padding:12px 14px 10px;border-radius:12px;background:#fff;border:1px solid #e5e7eb}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}.card-h b{font-size:13px;font-weight:600;color:#14291f}.card-h span{font-size:9.5px;color:#64748b;text-align:right}
+.chart{color:#1f2937;height:215px;overflow:visible;padding:10px 0 0}.chart svg{display:block;max-width:100%}.chart svg text{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;font-weight:500}
+.tb{width:100%;border-collapse:collapse;font-size:11.5px}.tb th{text-align:left;font-size:9.5px;letter-spacing:2px;color:#64748b;font-weight:600;padding:6px 8px;border-bottom:1.5px solid #cbd5e1}
+.tb td{padding:0 8px;height:23px;border-bottom:1px solid #eef0f3}.tb tbody tr:nth-child(even){background:#f8fafc}
+.tb .v{text-align:right;font-weight:600;white-space:nowrap}.tb .d{color:#475569;white-space:nowrap}
+.st{display:inline-block;font-size:9.5px;padding:2px 9px;border-radius:99px;letter-spacing:.5px}.st.ok{color:#15803d;background:#dcfce7;border:1px solid #86efac}.st.pe{color:#b45309;border:1px dashed #f59e0b}
+.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.tot div{padding:8px 12px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb}.tot small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#64748b}.tot b{font-size:19px}
+.tb .ds{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569}.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mc{position:relative;padding:11px 12px 9px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;overflow:hidden}.mc i{position:absolute;left:0;top:0;height:3px;width:100%;background:var(--c)}.mc small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#64748b;font-weight:600}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:var(--c);white-space:nowrap}.mc em{display:block;font-style:normal;font-size:10px;color:#64748b}.mc u{display:block;text-decoration:none;font-size:9.5px;color:#b45309;margin-top:4px}.flt{font-size:10.5px;color:#475569;margin:-12px 0 16px;line-height:1.4}
+@media print{.bar{display:none}.page{margin:0;border-radius:0;box-shadow:none;min-height:0;padding:0 36px}html,body{background:#fff}}`;
 
     function buildReport(scope, auto, opt) {
       OPT = Object.assign(defOpts(), opt || {});
@@ -12187,7 +12185,7 @@ h1{font-size:28px;line-height:1.08;margin:8px 0 6px;font-weight:700;background:l
       }
       const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO</div><h1>${esc(name)}</h1><div class="sub">${periodTxt(all)} · ${pl(all.length, 'lançamento', 'lançamentos')}${fl ? ' · Filtros: ' + esc(fl) : ''}</div>` +
         (cards ? `<div class="blk">${cards}</div>` : '') + (table ? `<div class="blk">${table}</div>` : '') + (charts ? `<div class="blk">${charts}</div>` : '');
-      const doc = `<section class="page"><header class="hd"><div class="brand"><span class="logo"></span>LOUSA DIGITAL</div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span></footer></section>`;
+      const doc = `<section class="page"><header class="hd"><div class="hd-l"><div class="wm">Lousa Digital<svg class="scr" viewBox="0 0 260 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9.5C34 4 66 11.5 104 6.5S178 3.5 220 7.5s30 1 37-1.5" fill="none" stroke="#f6c945" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.5C60 8.5 118 12 176 9" fill="none" stroke="#f6c945" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tag">Sua lousa de giz, feita para o futuro.</div></div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span><b>Lousa Digital</b></footer></section>`;
       const title = multi ? 'Relatório geral de finanças' : 'Relatório — ' + name;
       const tail = auto ? `<script>window.addEventListener('load',function(){var go=function(){setTimeout(function(){window.print()},350)};try{Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,2500)})]).then(go)}catch(e){go()}})<\/script>` : '';
       return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>${CSS}</style></head><body>` +
