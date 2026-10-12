@@ -31,6 +31,12 @@ async function listAll() {
   });
 }
 
+async function getUpdate() {
+  const d = await cfgRef("update").get();
+  const u = d.exists ? d.data() : {};
+  return u.id ? { id: u.id, title: u.title || "", message: u.message || "", at: u.at || 0, by: u.by || "" } : null;
+}
+
 const actions = {
   async overview(u) {
     const [users, billing, m, admins, plans] = await Promise.all([listAll(), getBilling(), getMp(), getAdmins(), getPlans()]);
@@ -52,7 +58,8 @@ const actions = {
       plans,
       catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
       mp: { hasToken: !!m.accessToken, tokenMask: mask(m.accessToken), hasSecret: !!m.webhookSecret, publicKey: m.publicKey || "", live: /^APP_USR-/.test(m.accessToken), webhookUrl: SITE + "/api/webhook" },
-      admins: [OWNER].concat(admins.filter((e) => e !== OWNER))
+      admins: [OWNER].concat(admins.filter((e) => e !== OWNER)),
+      update: await getUpdate()
     };
   },
 
@@ -163,6 +170,20 @@ const actions = {
       } : null,
       payments
     };
+  },
+
+  // Envia o aviso "atualize a lousa" para todo mundo. Chega no sino de notificações (sem tela por cima).
+  async pushUpdate(u, b) {
+    const title = String(b.title || "").trim().slice(0, 80) || "Existem atualizações recentes da Lousa Digital";
+    const message = String(b.message || "").trim().slice(0, 300) || "Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.";
+    const id = String(Date.now());
+    await cfgRef("update").set({ id, title, message, at: Date.now(), by: u.email });
+    return { ok: true, update: { id, title, message, at: Date.now(), by: u.email } };
+  },
+
+  async clearUpdate() {
+    await cfgRef("update").set({ id: "", clearedAt: Date.now() });
+    return { ok: true };
   },
 
   async addAdmin(u, b) {
