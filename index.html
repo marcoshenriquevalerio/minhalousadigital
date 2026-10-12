@@ -5,73 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lousa Digital</title>
 <meta name="theme-color" content="#0c1f17">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;height:100%;background:#0c1f17;overflow:hidden}
 iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0c1f17}
-/* aviso de atualização */
-#upd{position:fixed;inset:0;z-index:99;display:grid;place-items:center;padding:18px;background:rgba(4,12,8,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:17px/1.55 'Bricolage Grotesque',system-ui,sans-serif;color:#f2efe4;animation:ufd .35s ease}
-#upd[hidden]{display:none}
-@keyframes ufd{from{opacity:0}}
-@keyframes ups{from{opacity:0;transform:translateY(34px) scale(.94)}60%{transform:translateY(-4px) scale(1.01)}}
-@keyframes usp{to{rotate:360deg}}
-@keyframes ugl{50%{box-shadow:0 40px 100px #000b,0 0 70px #9be3c040,inset 0 0 90px #9be3c01f}}
-#upd .c{position:relative;width:min(430px,100%);padding:38px 32px 28px;border-radius:30px;text-align:center;background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c044;box-shadow:0 40px 100px #000b,inset 0 0 90px #9be3c014;animation:ups .7s cubic-bezier(.2,.8,.2,1) backwards,ugl 4s ease-in-out infinite;overflow:hidden}
-#upd .c::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent 0 70%,#9be3c01c 85%,transparent);animation:usp 9s linear infinite;pointer-events:none}
-#upd .c>*{position:relative}
-#upd .ic{width:68px;height:68px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;background:#9be3c01f;border:1px solid #9be3c055}
-#upd .ic svg{width:34px;height:34px;stroke:#9be3c0;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;animation:usp 6s linear infinite}
-#upd .k{font:600 28px Caveat,cursive;color:#f7d56b}
-#upd h2{font-size:clamp(24px,5vw,29px);line-height:1.1;letter-spacing:-.02em;font-weight:800;margin:2px 0 10px}
-#upd p{color:#a3b8ac;font-size:15px;margin:0 0 22px}
-#upd .go{width:100%;padding:14px 20px;border:0;border-radius:99px;background:#9be3c0;color:#0c1f17;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 0 34px #9be3c055;transition:.3s}
-#upd .go:hover{transform:scale(1.03)}
-#upd .lt{display:inline-block;margin-top:14px;background:none;border:0;color:#a3b8ac;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}#upd .lt:hover{color:#f2efe4}
-#upd .bar{height:12px;border-radius:99px;background:#ffffff14;overflow:hidden;margin:6px 0 10px}
-#upd .bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#9be3c0,#f7d56b);box-shadow:0 0 18px #9be3c088}
-#upd button:focus-visible{outline:3px solid #f7d56b;outline-offset:3px}
-@media(prefers-reduced-motion:reduce){#upd,#upd .c,#upd .c::before,#upd .ic svg{animation:none!important}}
 </style>
 </head>
 <body>
 <!-- Este arquivo só mantém o endereço sempre em minhalousadigital.vercel.app, não importa a página aberta. -->
-<div id="upd" hidden role="dialog" aria-modal="true" aria-labelledby="updT"><div class="c">
- <div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg></div>
- <div class="k">novidades no ar</div>
- <h2 id="updT">Existem atualizações recentes da Lousa Digital</h2>
- <div id="updA"><p>Carregue para usar a versão mais nova. Tudo o que você criou continua salvo.</p>
-  <button class="go" id="updGo" type="button">Carregar novas atualizações</button><br><button class="lt" id="updLt" type="button">Agora não</button></div>
- <div id="updB" hidden><p id="updP">Preparando a atualização...</p><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="updF"></i></div></div>
-</div></div>
-<script>
-/* Avisa quando existe versão nova publicada. Só aparece se a versão aberta ficou para trás. */
-(function(){
- var cur=null,open=false,stale=false,snooze=0,$=function(i){return document.getElementById(i)};
- function ver(){return fetch('/api/version',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){return j&&j.v||null}).catch(function(){return null})}
- function check(){ver().then(function(v){
-  if(!v)return;
-  if(cur===null){cur=v;return}               // versão com a qual esta página foi aberta
-  if(v!==cur){stale=true;tryShow()}})}
- // só avisa na tela de login ou dentro da lousa (não na página de vendas, termos etc.)
- function inApp(){try{var l=document.getElementById('app').contentWindow.location;return /^(login|lousa)(\.html)?$/.test(l.pathname.split('/').pop()||'')}catch(e){return false}}
- function tryShow(){if(stale&&!open&&Date.now()>snooze&&inApp())show()}
- function show(){open=true;$('updA').hidden=false;$('updB').hidden=true;$('upd').hidden=false;$('updGo').focus()}
- $('updLt').onclick=function(){$('upd').hidden=true;open=false;snooze=Date.now()+10*60000};   // volta a avisar em 10 min
- $('updGo').onclick=function(){
-  $('updA').hidden=true;$('updB').hidden=false;
-  var f=$('updF'),p=$('updP'),bar=document.querySelector('#upd .bar'),t0=Date.now(),D=2600;
-  (function tick(){
-   var x=Math.min(1,(Date.now()-t0)/D),e=1-Math.pow(1-x,2),n=Math.round(e*100);
-   f.style.width=n+'%';bar.setAttribute('aria-valuenow',n);
-   p.textContent=n<100?'Atualizando... '+n+'%':'Pronto! Abrindo a versão nova...';
-   if(x<1)requestAnimationFrame(tick);else setTimeout(function(){location.reload()},350)})()};
- check();setInterval(function(){check();tryShow()},30000);   // confere a cada 30 s
- document.addEventListener('DOMContentLoaded',function(){document.getElementById('app').addEventListener('load',function(){setTimeout(tryShow,700)})});
- addEventListener('focus',check);
- document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
-})();
-</script>
 <iframe id="app" title="Lousa Digital"
   allow="fullscreen; clipboard-read; clipboard-write; camera; microphone; autoplay; display-capture"
   allowfullscreen></iframe>

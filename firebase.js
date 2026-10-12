@@ -470,3 +470,34 @@ Object.assign(window.FB, {
   },
   async hasAccess() { return (await FB.tier()) !== null; }
 });
+
+/* =====================================================================
+   AVISOS DE ATUALIZAÇÃO — enviados pelo painel, chegam no sino de notificações
+   Coleção "announcements/{id}" -> { title, text, createdAt, by }
+   (leitura: qualquer usuário logado · escrita: só o administrador — veja as regras do Firestore)
+   ===================================================================== */
+Object.assign(window.FB, {
+  // cliente: cb(lista) com os avisos dos últimos 14 dias, a cada mudança
+  watchAnnouncements(cb) {
+    const since = Date.now() - 14 * 864e5;
+    return onSnapshot(
+      query(collection(db, "announcements"), where("createdAt", ">", since)),
+      (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      (e) => { console.warn("avisos:", e); cb([]); }
+    );
+  },
+  // painel: todos os avisos já enviados (mais novos primeiro)
+  async listAnnouncements() {
+    const s = await getDocs(collection(db, "announcements"));
+    return s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  },
+  // painel: envia um aviso para todos os usuários
+  async sendAnnouncement(a) {
+    const m = FB.me();
+    const title = String(a.title || "").trim().slice(0, 80) || "Nova atualização da Lousa";
+    const text = String(a.text || "").trim().slice(0, 400);
+    const ref = await addDoc(collection(db, "announcements"), { title, text, createdAt: Date.now(), by: m.email });
+    return ref.id;
+  },
+  deleteAnnouncement(id) { return deleteDoc(doc(db, "announcements", id)); }
+});
