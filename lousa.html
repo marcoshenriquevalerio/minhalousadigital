@@ -218,13 +218,6 @@
     .move-tile .mt-sub { font-size: 11px; opacity: .65; }
     .move-tile.is-over { transform: scale(1.06); background: rgba(251,191,36,.32); border: 2px solid #fbbf24; color: #fff; }
     .move-tile.is-current { opacity: .5; }
-    /* Lista de todas as lousas (botão antes do nome da lousa) */
-    #boardListOverlay { z-index: 9998; background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
-    .bl-tile { cursor: pointer; position: relative; }
-    .bl-tile:hover { transform: scale(1.04); background: rgba(251,191,36,.22); border: 2px solid #fbbf24; color: #fff; }
-    .bl-tile.is-current { opacity: 1; border: 2px solid #fbbf24; background: rgba(251,191,36,.28); color: #fff; cursor: default; }
-    .bl-tile.is-current:hover { transform: none; }
-    .bl-tile .bl-tag { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: .8; }
     .move-ghost { position: fixed; left: 0; top: 0; z-index: 10000; pointer-events: none; transform-origin: 0 0; opacity: .92; filter: drop-shadow(0 12px 14px rgba(0,0,0,.55)); }
 
     .chalk-dot { border-color: rgba(255, 255, 255, 0.35); }
@@ -247,6 +240,12 @@
     .nav-del:hover { background: rgba(153,27,27,0.7); }
     .nav-name { color: #fef3c7; }
     .nav-count { color: rgba(252,211,77,0.6); }
+    .bl-row { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(253,230,138,.25); color:#fef3c7; cursor:pointer; }
+    .bl-row:hover { background:rgba(180,83,9,.45); }
+    .bl-row.is-cur { border-color:#fbbf24; box-shadow:0 0 0 1px #fbbf24; }
+    .bl-row .bl-n { width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(253,230,138,.15); font-size:12px; font-weight:700; flex:0 0 24px; }
+    .bl-row .bl-name { flex:1; font-size:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bl-row small { font-size:11px; opacity:.7; }
 
     /* Linha de giz sob o título */
     .chalk-line {
@@ -1067,7 +1066,7 @@
     <div id="moreGroup" class="tb-group">
       <div class="mg-title">Mais opções</div>
       <div class="nav-pill">
-        <button id="btnBoardList" onclick="openBoardList()" data-close class="nav-btn" title="Ver todas as lousas"><i class="fa-solid fa-table-cells-large text-xs"></i></button>
+        <button id="btnBoardsList" onclick="openBoardsList()" class="nav-btn" title="Ver todas as lousas"><i class="fa-solid fa-table-cells-large text-xs"></i></button>
         <div class="flex flex-col items-center px-1 min-w-[64px]">
           <span id="widgetBoardName" onclick="renameCurrentBoard()" class="nav-name font-chalk font-bold whitespace-nowrap cursor-pointer" title="Clique para renomear a lousa">Lousa 1</span>
           <span id="widgetBoardCount" class="nav-count text-[10px] font-semibold leading-none">1 de 1</span>
@@ -1605,18 +1604,18 @@
     </div>
   </div>
 
-  <!-- LISTA DE TODAS AS LOUSAS: clique e vá direto para ela -->
-  <div id="boardListOverlay" class="hidden fixed inset-0 flex items-center justify-center p-3" onclick="if (event.target === this) closeBoardList()">
-    <div class="wood-frame rounded-2xl p-4 w-full flex flex-col" style="max-width:min(760px, calc(100vw - 24px)); max-height:calc(100vh - 32px);">
-      <div class="flex items-center justify-between mb-3">
-        <div class="font-chalk text-2xl text-amber-200"><i class="fa-solid fa-table-cells-large mr-2"></i>Minhas lousas</div>
-        <button onclick="closeBoardList()" class="nav-btn" title="Fechar"><i class="fa-solid fa-xmark text-xs"></i></button>
+  <!-- COMPARTILHAR LOUSA -->
+  <!-- LISTA DE TODAS AS LOUSAS -->
+  <div id="boardsListModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) closeOv('boardsListModal')">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+        <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-table-cells-large mr-2"></i>Minhas lousas</h3>
+        <button onclick="closeOv('boardsListModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="boardListGrid" class="grid gap-2.5 overflow-y-auto" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))"></div>
+      <div id="boardsListBody" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2"></div>
     </div>
   </div>
 
-  <!-- COMPARTILHAR LOUSA -->
   <!-- ESTILO DE SETAS E FORMAS (pop-up central) -->
   <div id="shapeStyleModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10060" onclick="if(event.target===this) closeShapeStyle()">
     <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1887,33 +1886,6 @@
         renderNotes();
       }
     }
-
-    /* Lista com todas as lousas: um clique e vai direto para ela */
-    function openBoardList() {
-      const cur = appData.activeBoardIndex;
-      byId('boardListGrid').innerHTML = appData.boards.map((b, i) => {
-        const n = (b.notes || []).length;
-        const icon = b.kind === 'finance' ? 'fa-sack-dollar' : (b.shared ? 'fa-user-group' : 'fa-chalkboard');
-        return `<div class="move-tile bl-tile ${i === cur ? 'is-current' : ''}" data-board-idx="${i}" onclick="goToBoard(${i})">
-          <i class="fa-solid ${icon} text-xl"></i>
-          <span class="mt-name">${escapeHtml(b.name || ('Lousa ' + (i + 1)))}</span>
-          <span class="mt-sub">${i === cur ? 'lousa atual' : n + (n === 1 ? ' item' : ' itens')}</span>
-        </div>`;
-      }).join('');
-      byId('boardListOverlay').classList.remove('hidden');
-    }
-    function closeBoardList() { byId('boardListOverlay').classList.add('hidden'); }
-    function goToBoard(i) {
-      closeBoardList();
-      if (i === appData.activeBoardIndex || !appData.boards[i]) return;
-      appData.activeBoardIndex = i;
-      selectedNoteId = null;
-      saveData();
-      renderNotes();
-    }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !byId('boardListOverlay').classList.contains('hidden')) closeBoardList();
-    });
 
     function createNewBoard() {
       const count = appData.boards.length + 1;
@@ -11111,6 +11083,25 @@
         if (n === undefined) return;
         appData.activeBoardIndex = n; selectedNoteId = null;
         saveData(); renderNotes();
+      };
+
+      window.openBoardsList = function () {
+        sync();
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const cur = appData.activeBoardIndex;
+        byId('boardsListBody').innerHTML = appData.boards.map((b, i) => {
+          const tag = b.kind === 'finance' ? 'Finanças' : (b.shared ? 'Compartilhada' : 'Lousa');
+          return `<button data-bl="${i}" class="bl-row${i === cur ? ' is-cur' : ''}"><span class="bl-n">${i + 1}</span><span class="bl-name font-chalk">${esc(b.name)}</span><small>${tag}</small></button>`;
+        }).join('') || '<div class="text-stone-400 text-sm">Nenhuma lousa.</div>';
+        byId('boardsListBody').onclick = (e) => {
+          const r = e.target.closest('[data-bl]'); if (!r) return;
+          const i = +r.dataset.bl, b = appData.boards[i];
+          navLast[navFilter] = appData.activeBoardIndex;
+          navFilter = match(b, 'finance') ? 'finance' : match(b, 'shared') ? 'shared' : '';
+          appData.activeBoardIndex = i; selectedNoteId = null;
+          saveData(); renderNotes(); closeOv('boardsListModal');
+        };
+        openOv('boardsListModal');
       };
 
       const ub = window.updateBoardWidgetControls;
