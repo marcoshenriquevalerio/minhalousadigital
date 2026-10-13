@@ -1,5 +1,6 @@
 // POST /api/admin  { action, ... }  -> tudo do painel de controle. Só dono e administradores autorizados.
 const S = require("../lib/server");
+const crypto = require("crypto");
 const { paymentsInfo, recordAp, payRef, CATALOG, getPlans, cleanPlans, admin, db, auth, OWNER, SITE, lc, getBilling, getMp, getAdmins, cfgRef, requireAdmin, mp, subRef, syncPreapproval, enforce, proActive, wrap, body } = S;
 
 const mask = (t) => (t ? "••••••••" + String(t).slice(-4) : "");
@@ -35,6 +36,28 @@ async function getUpdate() {
   const d = await cfgRef("update").get();
   const u = d.exists ? d.data() : {};
   return u.id ? { id: u.id, title: u.title || "", message: u.message || "", at: u.at || 0, by: u.by || "" } : null;
+}
+
+// ---- conteúdo editável do site ----
+const SITE_IMG = /^[a-z0-9]{6,24}$/;
+function cleanSite(s) {
+  s = s && typeof s === "object" ? s : {};
+  const texts = {};
+  const t = s.texts && typeof s.texts === "object" ? s.texts : {};
+  Object.keys(t).slice(0, 300).forEach((k) => { if (/^[a-z0-9._-]{1,40}$/i.test(k) && typeof t[k] === "string") texts[k] = t[k].slice(0, 1000); });
+  const cards = (Array.isArray(s.cards) ? s.cards : []).slice(0, 24).map((c) => {
+    c = c || {};
+    return {
+      id: String(c.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 24) || Math.random().toString(36).slice(2, 10),
+      title: String(c.title || "").slice(0, 120),
+      text: String(c.text || "").slice(0, 600),
+      img: SITE_IMG.test(c.img || "") ? c.img : ""
+    };
+  });
+  const h = s.hero || {};
+  const num = (v, lo, hi, d) => { v = Number(v); return isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d; };
+  const hero = { img: SITE_IMG.test(h.img || "") ? h.img : "", w: num(h.w, 20, 4000, 900), wm: num(h.wm, 20, 2000, 420), x: num(h.x, 0, 100, 70), y: num(h.y, 0, 100, 50), op: num(h.op, 0, 100, 100) };
+  return { texts, cards, hero };
 }
 
 const actions = {
@@ -184,6 +207,26 @@ const actions = {
   async clearUpdate() {
     await cfgRef("update").set({ id: "", clearedAt: Date.now() });
     return { ok: true };
+  },
+
+  async getSite() {
+    const d = await cfgRef("site").get();
+    return cleanSite(d.exists ? d.data() : {});
+  },
+
+  async saveSite(u, b) {
+    const site = cleanSite(b.site);
+    await cfgRef("site").set(Object.assign({}, site, { updatedAt: Date.now(), updatedBy: u.email }));
+    return { ok: true, site };
+  },
+
+  // recebe a imagem já reduzida pelo navegador (data URL) e guarda; devolve o id
+  async uploadSiteImage(u, b) {
+    const d = String(b.dataUrl || "");
+    if (d.length > 950000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(d)) bad("Imagem inválida ou pesada demais. Use PNG, JPG ou WebP menor.");
+    const id = crypto.randomBytes(8).toString("hex");
+    await cfgRef("siteimg_" + id).set({ data: d, at: Date.now(), by: u.email });
+    return { ok: true, id };
   },
 
   async addAdmin(u, b) {
