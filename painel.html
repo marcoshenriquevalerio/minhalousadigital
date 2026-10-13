@@ -122,9 +122,11 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
 
 main:has(#vSite:not([hidden])){max-width:1600px}
-.sg{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:18px;align-items:start}
+.sg{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.sc2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:14px;align-items:start}
+.stb{position:sticky;top:0;z-index:6;background:var(--bg);padding:10px 0;margin-bottom:6px}
 .sg .box{margin-bottom:14px}
-#sBox{border:1px solid var(--ln);border-radius:14px;background:#0c1f17;position:sticky;top:16px;overflow:hidden}
+#sBox{border:1px solid var(--ln);border-radius:14px;background:#0c1f17;overflow:hidden}
 #sFrame{border:0;background:#0c1f17;display:block}
 .sk{display:grid;gap:10px;padding:12px;border:1px solid var(--ln);border-radius:12px;margin-bottom:12px}
 .sk img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px}
@@ -249,14 +251,15 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
   <!-- SITE -->
   <section id="vSite" hidden>
    <h1>Site</h1><p class="sub">Clique em qualquer texto da prévia para editar. Cards e imagem de fundo ficam na coluna ao lado. Nada vai para o ar até você clicar em Salvar e publicar.</p>
-   <div class="row" style="margin-bottom:16px">
+   <div class="row stb">
     <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
     <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
     <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
     <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
    </div>
    <div class="sg">
-    <div>
+    <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
+    <div class="sc2">
      <div class="box" id="sHero">
       <h2>Imagem de fundo do topo</h2><p class="h">PNG (pode ter fundo transparente). Aparece atrás dos cards flutuantes.</p>
       <div class="row" style="margin-bottom:14px"><label class="btn s">Escolher imagem<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button></div>
@@ -272,7 +275,6 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
       <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
      </div>
     </div>
-    <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
    </div>
   </section>
 
@@ -547,7 +549,7 @@ function sDirty(v){$('sSave').disabled=!v;$('sSt').textContent=v?'Alterações n
 function sApply(){try{sf().contentWindow.applySite(SS)}catch(e){}}
 function sFit(){const box=$('sBox'),f=sf();if(!box.clientWidth)return;
  if(SDEV==='m'){box.style.overflow='auto';box.style.height='800px';f.style.cssText='width:390px;height:780px;margin:10px auto;transform:none;display:block'}
- else{const sc=Math.min(1,box.clientWidth/1280),h=780;box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:1280px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
+ else{const W=1200,sc=Math.min(1,box.clientWidth/W),h=Math.max(520,Math.round(innerHeight*.78));box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:'+W+'px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
 async function siteOpen(){
  if(!sLoaded){
   try{SS=await call('getSite');sLoaded=true;sCards();sHero();sDirty(false);sf().src='site.html?edit=1'}
@@ -557,7 +559,8 @@ sf().onload=()=>{
  const d=sf().contentDocument;if(!d)return;
  const st=d.createElement('style');st.textContent='[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}';d.head.appendChild(st);
  d.querySelectorAll('[data-k]').forEach(el=>{el.setAttribute('contenteditable','plaintext-only');if(el.contentEditable!=='plaintext-only')el.setAttribute('contenteditable','true')});
- d.addEventListener('click',e=>{if(e.target.closest('a'))e.preventDefault()},true);
+ d.querySelectorAll('details').forEach(x=>x.open=true);
+ d.addEventListener('click',e=>{if(e.target.closest('a,summary'))e.preventDefault()},true);
  d.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest&&e.target.closest('[data-k]'))e.preventDefault()},true);
  d.addEventListener('input',e=>{const el=e.target.closest&&e.target.closest('[data-k]');if(!el)return;SS.texts[el.dataset.k]=el.textContent;sDirty(true)});
  sApply();sFit()};
