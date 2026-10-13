@@ -120,6 +120,20 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
  main{padding-top:22px}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+
+main:has(#vSite:not([hidden])){max-width:1600px}
+.sg{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:18px;align-items:start}
+.sg .box{margin-bottom:14px}
+#sBox{border:1px solid var(--ln);border-radius:14px;background:#0c1f17;position:sticky;top:16px;overflow:hidden}
+#sFrame{border:0;background:#0c1f17;display:block}
+.sk{display:grid;gap:10px;padding:12px;border:1px solid var(--ln);border-radius:12px;margin-bottom:12px}
+.sk img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px}
+.noimg{display:grid;place-items:center;aspect-ratio:16/10;border-radius:8px;background:var(--bg);color:var(--mu);font-size:13px}
+.sk input[type=text],.sk textarea{width:100%}
+textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);background:var(--bg);font:inherit;color:inherit;resize:vertical;min-width:0}
+.sg input[type=range]{width:100%;padding:0;accent-color:var(--gr)}
+.dv button[aria-pressed=true]{background:var(--gs);border-color:var(--gr);color:var(--gr)}
+@media(max-width:1000px){.sg{grid-template-columns:minmax(0,1fr)}#sBox{position:static;order:-1}}
 </style>
 </head>
 <body>
@@ -131,6 +145,7 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
   <div class="logo">Lousa Digital<small>Painel de controle</small></div>
   <nav id="nav">
    <button data-v="vGeral" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Visão geral</button>
+   <button data-v="vSite"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8M12 17v4"/></svg>Site</button>
    <button data-v="vUsers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 010 6.4M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg>Usuários</button>
    <button data-v="vSubs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>Assinantes Pro</button>
    <button data-v="vPrice"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg>Assinatura</button>
@@ -231,6 +246,36 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
    </div>
   </section>
 
+  <!-- SITE -->
+  <section id="vSite" hidden>
+   <h1>Site</h1><p class="sub">Clique em qualquer texto da prévia para editar. Cards e imagem de fundo ficam na coluna ao lado. Nada vai para o ar até você clicar em Salvar e publicar.</p>
+   <div class="row" style="margin-bottom:16px">
+    <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
+    <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
+    <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
+    <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
+   </div>
+   <div class="sg">
+    <div>
+     <div class="box" id="sHero">
+      <h2>Imagem de fundo do topo</h2><p class="h">PNG (pode ter fundo transparente). Aparece atrás dos cards flutuantes.</p>
+      <div class="row" style="margin-bottom:14px"><label class="btn s">Escolher imagem<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button></div>
+      <label class="f">Tamanho no computador: <b id="o_w"></b><input type="range" data-hk="w" min="50" max="2400" step="10"></label>
+      <label class="f">Tamanho no celular: <b id="o_wm"></b><input type="range" data-hk="wm" min="50" max="1200" step="10"></label>
+      <label class="f">Posição horizontal: <b id="o_x"></b><input type="range" data-hk="x" min="0" max="100"></label>
+      <label class="f">Posição vertical: <b id="o_y"></b><input type="range" data-hk="y" min="0" max="100"></label>
+      <label class="f">Opacidade: <b id="o_op"></b><input type="range" data-hk="op" min="5" max="100"></label>
+     </div>
+     <div class="box">
+      <h2>Cards extras</h2><p class="h">Aparecem logo acima de "Tudo que cabe na sua lousa".</p>
+      <div id="sCards"></div>
+      <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
+     </div>
+    </div>
+    <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
+   </div>
+  </section>
+
   <!-- AVISAR ATUALIZAÇÃO -->
   <section id="vUpd" hidden>
    <h1>Avisar atualização</h1><p class="sub">Envia um aviso para todos que usam a lousa. Ele chega no sino de notificações, sem abrir nada na tela da pessoa. Ao tocar, abre o pop-up para atualizar (ou adiar por 10 minutos).</p>
@@ -277,7 +322,7 @@ const av=(u)=>u.photo?'<img class="av" referrerpolicy="no-referrer" alt="" src="
 /* navegação */
 function go(v){document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==v);
  document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===v?'page':'false'));scrollTo(0,0)}
-$('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)};
+$('nav').onclick=e=>{const b=e.target.closest('button');if(b){go(b.dataset.v);if(b.dataset.v==='vSite')siteOpen()}};
 
 /* dados */
 async function load(){
@@ -493,6 +538,87 @@ $('aa').onclick=async()=>{const e=$('ae').value.trim();if(!e)return;
 $('tb').onclick=async e=>{const b=e.target.closest('[data-rm]');if(!b)return;
  if(!confirm('Remover o acesso de '+b.dataset.rm+'?'))return;
  const r=await run(b,()=>call('removeAdmin',{email:b.dataset.rm}),'Acesso removido');if(r)load().catch(()=>{})};
+
+/* SITE: prévia + edição */
+let SS=null,SDEV='d',sLoaded=false;
+const SIMG=id=>'/api/siteconfig?img='+id;
+const sf=()=>$('sFrame');
+function sDirty(v){$('sSave').disabled=!v;$('sSt').textContent=v?'Alterações não publicadas.':'Tudo publicado.'}
+function sApply(){try{sf().contentWindow.applySite(SS)}catch(e){}}
+function sFit(){const box=$('sBox'),f=sf();if(!box.clientWidth)return;
+ if(SDEV==='m'){box.style.overflow='auto';box.style.height='800px';f.style.cssText='width:390px;height:780px;margin:10px auto;transform:none;display:block'}
+ else{const sc=Math.min(1,box.clientWidth/1280),h=780;box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:1280px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
+async function siteOpen(){
+ if(!sLoaded){
+  try{SS=await call('getSite');sLoaded=true;sCards();sHero();sDirty(false);sf().src='site.html?edit=1'}
+  catch(e){toast(e.message||'Não foi possível abrir o site.',true);return}}
+ sFit()}
+sf().onload=()=>{
+ const d=sf().contentDocument;if(!d)return;
+ const st=d.createElement('style');st.textContent='[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}';d.head.appendChild(st);
+ d.querySelectorAll('[data-k]').forEach(el=>{el.setAttribute('contenteditable','plaintext-only');if(el.contentEditable!=='plaintext-only')el.setAttribute('contenteditable','true')});
+ d.addEventListener('click',e=>{if(e.target.closest('a'))e.preventDefault()},true);
+ d.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest&&e.target.closest('[data-k]'))e.preventDefault()},true);
+ d.addEventListener('input',e=>{const el=e.target.closest&&e.target.closest('[data-k]');if(!el)return;SS.texts[el.dataset.k]=el.textContent;sDirty(true)});
+ sApply();sFit()};
+new ResizeObserver(()=>sFit()).observe($('sBox'));
+document.querySelectorAll('[data-dev]').forEach(b=>b.onclick=()=>{SDEV=b.dataset.dev;document.querySelectorAll('[data-dev]').forEach(x=>x.setAttribute('aria-pressed',x===b));sFit()});
+
+/* imagens: reduz no navegador e envia */
+function loadImg(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>no(new Error('Não consegui abrir essa imagem.'));i.src=u})}
+async function prep(file,png,max){
+ const im=await loadImg(file);let sc=Math.min(1,max/Math.max(im.width,im.height));
+ for(let n=0;n<10;n++){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*sc));c.height=Math.max(1,Math.round(im.height*sc));
+  const x=c.getContext('2d');if(!png){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}
+  x.drawImage(im,0,0,c.width,c.height);
+  const d=c.toDataURL(png?'image/png':'image/jpeg',.85);if(d.length<=900000)return d;sc*=.8}
+ throw new Error('Imagem pesada demais. Use uma menor.')}
+async function sUpload(file,png,max){
+ if(!file||!/^image\//.test(file.type))throw new Error('Escolha um arquivo de imagem.');
+ const d=await prep(file,png,max);return (await call('uploadSiteImage',{dataUrl:d})).id}
+
+/* fundo do topo */
+function sHero(){const h=SS.hero;
+ document.querySelectorAll('#sHero [data-hk]').forEach(i=>{i.value=h[i.dataset.hk];$('o_'+i.dataset.hk).textContent=h[i.dataset.hk]+(/^(w|wm)$/.test(i.dataset.hk)?' px':'%')});
+ $('hRm').hidden=!h.img}
+$('sHero').addEventListener('input',e=>{const k=e.target.dataset.hk;if(!k)return;
+ SS.hero[k]=+e.target.value;$('o_'+k).textContent=e.target.value+(/^(w|wm)$/.test(k)?' px':'%');sApply();sDirty(true)});
+$('hUp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ toast('Enviando imagem...');
+ try{SS.hero.img=await sUpload(f,true,1600);sHero();sApply();sDirty(true);toast('Imagem pronta. Ajuste o tamanho e publique.')}
+ catch(err){toast(err.message,true)}};
+$('hRm').onclick=()=>{SS.hero.img='';sHero();sApply();sDirty(true)};
+
+/* cards extras */
+function sCards(){
+ $('sCards').innerHTML=SS.cards.map((c,i)=>'<div class="sk" data-i="'+i+'">'
+  +(c.img?'<img src="'+SIMG(c.img)+'" alt="">':'<div class="noimg">Sem imagem</div>')
+  +'<div class="row"><label class="btn s">Imagem<input type="file" accept="image/*" data-up hidden></label>'
+  +(c.img?'<button class="btn s" type="button" data-noimg>Tirar imagem</button>':'')
+  +'<button class="btn s" type="button" data-mv="-1" aria-label="Subir">&uarr;</button><button class="btn s" type="button" data-mv="1" aria-label="Descer">&darr;</button><button class="btn s d" type="button" data-rm>Excluir</button></div>'
+  +'<input type="text" data-f="title" maxlength="120" placeholder="Título" value="'+esc(c.title)+'">'
+  +'<textarea data-f="text" rows="3" maxlength="600" placeholder="Texto">'+esc(c.text)+'</textarea></div>').join('')
+  ||'<p class="sub" style="margin:0 0 12px">Nenhum card ainda.</p>'}
+$('sAdd').onclick=()=>{if(SS.cards.length>=24){toast('Limite de 24 cards.',true);return}
+ SS.cards.push({id:Math.random().toString(36).slice(2,10),title:'',text:'',img:''});sCards();sDirty(true);sApply()};
+$('sCards').addEventListener('input',e=>{const f=e.target.dataset.f,k=e.target.closest('.sk');if(!f||!k)return;
+ SS.cards[+k.dataset.i][f]=e.target.value;sApply();sDirty(true)});
+$('sCards').addEventListener('click',e=>{const k=e.target.closest('.sk');if(!k)return;const i=+k.dataset.i;
+ if(e.target.closest('[data-rm]')){if(!confirm('Excluir este card?'))return;SS.cards.splice(i,1)}
+ else if(e.target.closest('[data-noimg]'))SS.cards[i].img='';
+ else if(e.target.closest('[data-mv]')){const j=i+ +e.target.closest('[data-mv]').dataset.mv;if(j<0||j>=SS.cards.length)return;[SS.cards[i],SS.cards[j]]=[SS.cards[j],SS.cards[i]]}
+ else return;
+ sCards();sApply();sDirty(true)});
+$('sCards').addEventListener('change',async e=>{if(!e.target.matches('[data-up]'))return;
+ const k=e.target.closest('.sk'),f=e.target.files[0];e.target.value='';if(!f)return;
+ toast('Enviando imagem...');
+ try{SS.cards[+k.dataset.i].img=await sUpload(f,false,1200);sCards();sApply();sDirty(true);toast('Imagem pronta.')}
+ catch(err){toast(err.message,true)}});
+
+/* salvar / restaurar */
+$('sSave').onclick=async()=>{const r=await run($('sSave'),()=>call('saveSite',{site:SS}),'Site publicado');
+ if(r){SS=r.site;sCards();sHero();sApply();sDirty(false)}};
+$('sReset').onclick=()=>{if(!confirm('Voltar todos os textos ao original? Só vale depois de salvar.'))return;SS.texts={};sApply();sDirty(true)};
 
 /* sessão */
 const sair=()=>{if(window.FB)FB.logout()};$('out').onclick=sair;$('denyOut').onclick=sair;
