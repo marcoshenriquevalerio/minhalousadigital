@@ -1057,6 +1057,15 @@
       #goPainel { bottom: calc(var(--bar-h, 0px) + 10px) !important; }
     }
   </style>
+<style id="bhSuckCss">
+#bhAlert{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);pointer-events:none;animation:bhAlIn .25s ease-out}
+#bhAlert .bh-alert-box{background:#1c1917;border:3px solid #fbbf24;border-radius:18px;padding:20px 34px;text-align:center;color:#fde68a;font:700 22px 'Patrick Hand',system-ui,sans-serif;box-shadow:0 0 40px rgba(251,191,36,.5);animation:bhAlPulse .5s ease-in-out 3}
+#bhAlert .bh-alert-icon{position:relative;font-size:72px;line-height:1.05;color:#fde68a}
+#bhAlert .bh-alert-tri{position:absolute;right:-30px;top:-14px;font-size:38px;color:#facc15}
+#bhAlert small{font-size:16px;opacity:.85}
+@keyframes bhAlIn{from{opacity:0}}
+@keyframes bhAlPulse{50%{transform:scale(1.06)}}
+</style>
 </head>
 <body class="bg-stone-900 font-sans-ui text-stone-100 flex flex-col overflow-hidden select-none" style="height:100vh;height:100dvh;">
 
@@ -6280,6 +6289,82 @@
       document.addEventListener('focusin', e => { const el = e.target; if (!isL(el)) return; if (!el.dataset.l) el.dataset.l = el.getAttribute('list'); if (el.value.trim()) el.removeAttribute('list'); else el.setAttribute('list', el.dataset.l); }, true);
       document.addEventListener('input', e => { const el = e.target; if (isL(el) && el.dataset.l) el.setAttribute('list', el.dataset.l); }, true);
     })();
+    /* ---- buraco negro "suga" as peças do quadro enquanto a linha está arrastada perto dele ----
+       Quanto mais tempo a linha fica fora do buraco, mais as peças são puxadas e encolhem.
+       Com 10s sem entrar: alerta (☢ + ⚠) e o arraste é cancelado. */
+    (function () {
+      const SUCK_MS = 10000;
+      let t0 = 0, active = false, alertShown = false;
+      const touched = new Set();
+      function beep() {
+        try {
+          const c = new (window.AudioContext || window.webkitAudioContext)(), t = c.currentTime;
+          for (let i = 0; i < 3; i++) {
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = 'square'; o.frequency.value = 880;
+            g.gain.setValueAtTime(0.0001, t + i * 0.3); g.gain.exponentialRampToValueAtTime(0.12, t + i * 0.3 + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.3 + 0.22);
+            o.connect(g); g.connect(c.destination); o.start(t + i * 0.3); o.stop(t + i * 0.3 + 0.25);
+          }
+        } catch (e) {}
+      }
+      function reset() {
+        touched.forEach(n => {
+          n.style.transition = 'translate .5s ease-out, scale .5s ease-out';
+          n.style.translate = ''; n.style.scale = '';
+          setTimeout(() => { n.style.transition = ''; }, 520);
+        });
+        touched.clear();
+      }
+      function showAlert() {
+        alertShown = true;
+        const a = document.createElement('div');
+        a.id = 'bhAlert';
+        a.innerHTML = '<div class="bh-alert-box"><div class="bh-alert-icon">☢<span class="bh-alert-tri">⚠</span></div>'
+          + '<div>Buraco negro sugou tudo!</div><small>Ação cancelada</small></div>';
+        document.body.appendChild(a);
+        beep();
+        setTimeout(() => a.remove(), 2200);
+        document.dispatchEvent(new Event('pointercancel'));   // cancela o arraste da linha
+      }
+      function applyPull(p, portals, now) {
+        const e = p * p;
+        document.querySelectorAll('#notesContainer .chalk-note').forEach((n, idx) => {
+          const r = n.getBoundingClientRect();
+          if (!r.width) return;
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          let best = null, bd = Infinity;
+          portals.forEach(pt => {
+            const pr = pt.getBoundingClientRect();
+            const d = Math.hypot(pr.left + pr.width / 2 - cx, pr.top + pr.height / 2 - cy);
+            if (d < bd) { bd = d; best = pr; }
+          });
+          if (!best) return;
+          const dx = best.left + best.width / 2 - cx, dy = best.top + best.height / 2 - cy;
+          const s = n.offsetWidth ? r.width / n.offsetWidth : 1;
+          const f = 0.85 * e;                                   // chega a ~85% do caminho: quase sugada
+          const jx = Math.sin(now / 37 + idx) * 5 * p, jy = Math.cos(now / 41 + idx * 2) * 5 * p;   // resistência tremendo
+          n.style.translate = ((dx * f + jx) / s) + 'px ' + ((dy * f + jy) / s) + 'px';
+          n.style.scale = String(1 - 0.35 * e);
+          touched.add(n);
+        });
+      }
+      function frame(now) {
+        requestAnimationFrame(frame);
+        const ghost = document.querySelector('.bh-ghost');
+        const portals = Array.from(document.querySelectorAll('.bh-portal:not(.closing)'));
+        if (portals.some(p => p.classList.contains('eat'))) { reset(); t0 = now; }   // entrou num buraco: recomeça
+        const on = !!ghost && portals.length > 0;
+        if (!on) { if (active) reset(); active = false; alertShown = false; return; }
+        if (!active) { active = true; t0 = now; alertShown = false; }
+        if (alertShown) return;
+        const p = Math.min(1, (now - t0) / SUCK_MS);
+        if (p >= 1) { reset(); showAlert(); return; }
+        applyPull(p, portals, now);
+      }
+      requestAnimationFrame(frame);
+    })();
+
     /* ---- segurar ~1s uma linha (tabela ou lista de tarefas) e arrastar para reposicionar ----
        Linha de tabela de finanças também pode ser arrastada para um "buraco negro" (um por lousa ligada):
        ao encostar nele a pessoa vai para a outra lousa ainda segurando a linha e solta onde quiser. */
@@ -8463,7 +8548,7 @@
           let cells = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(x => `<i class="wg-dow">${x}</i>`).join('') + '<i></i>'.repeat(first);
           for (let d = 1; d <= dim; d++) {
             const k = `${st.y}-${String(st.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, has = ev[k] && ev[k].length;
-            cells += `<button data-d="${k}" class="wg-day ${has ? (s === 0 ? 'wg-fill' : 'wg-dot') : ''} ${k === today ? 'wg-today' : ''}" title="${has ? ev[k].length + ' anotação(ões)' : ''}">${d}</button>`;
+            cells += `<button data-d="${k}" class="wg-day ${has ? (s === 0 ? 'wg-fill' : 'wg-dot') : ''} ${k === today ? 'wg-today' : ''}" title="${has ? escapeHtml(ev[k].map(t => '• ' + t).join('\n')) : ''}">${d}</button>`;
           }
           b.innerHTML = `<div class="font-chalk" style="font-size:6cqw"><div class="wg-nav"><button data-nav="-1"><i class="fa-solid fa-chevron-left"></i></button><b>${MES[st.m]} ${st.y}</b><button data-nav="1"><i class="fa-solid fa-chevron-right"></i></button></div><div class="wg-grid">${cells}</div></div>`;
         };
