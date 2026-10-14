@@ -6311,11 +6311,12 @@
         try { nuke.pause(); nuke.currentTime = 0; } catch (e) {}
       }
       function reset() {
-        document.querySelectorAll('#notesContainer .chalk-note').forEach(n => {
-          if (!n.style.translate && !n.style.scale) return;
-          n.style.transition = 'translate .5s ease-out, scale .5s ease-out';
+        touched.forEach(n => {
+          n.style.transition = 'translate .6s ease-out, scale .6s ease-out';
           n.style.translate = ''; n.style.scale = '';
-          setTimeout(() => { n.style.transition = ''; }, 520);
+          const t = n;
+          setTimeout(() => { t.style.transition = ''; }, 650);
+          delete n._bhBase;
         });
         touched.clear();
       }
@@ -6332,24 +6333,24 @@
         document.dispatchEvent(new Event('pointercancel'));   // cancela o arraste da linha
       }
       function applyPull(p, portals, now) {
-        const e = p * p;
+        const e = p * p, f = 0.85 * e;
+        const bc = document.getElementById('boardCanvas');
+        const bs = bc && bc.offsetWidth ? bc.getBoundingClientRect().width / bc.offsetWidth : 1;   // escala só do quadro
         document.querySelectorAll('#notesContainer .chalk-note').forEach((n, idx) => {
-          if (n.classList.contains('is-selected') || n.querySelector('.fin-scroll, .fin-card, [data-row]')) return;
-          const r = n.getBoundingClientRect();
-          if (!r.width) return;
-          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          if (!n._bhBase) {
+            const r0 = n.getBoundingClientRect();
+            if (!r0.width) return;
+            n._bhBase = { cx: r0.left + r0.width / 2, cy: r0.top + r0.height / 2 };   // posição original, fixa
+          }
           let best = null, bd = Infinity;
           portals.forEach(pt => {
-            const pr = pt.getBoundingClientRect();
-            const d = Math.hypot(pr.left + pr.width / 2 - cx, pr.top + pr.height / 2 - cy);
-            if (d < bd) { bd = d; best = pr; }
+            const d = Math.hypot(pt.x - n._bhBase.cx, pt.y - n._bhBase.cy);
+            if (d < bd) { bd = d; best = pt; }
           });
           if (!best) return;
-          const dx = best.left + best.width / 2 - cx, dy = best.top + best.height / 2 - cy;
-          const s = n.offsetWidth ? r.width / n.offsetWidth : 1;
-          const f = 0.85 * e;                                   // chega a ~85% do caminho: quase sugada
-          const jx = Math.sin(now / 37 + idx) * 5 * p, jy = Math.cos(now / 41 + idx * 2) * 5 * p;   // resistência tremendo
-          n.style.translate = ((dx * f + jx) / s) + 'px ' + ((dy * f + jy) / s) + 'px';
+          const dx = best.x - n._bhBase.cx, dy = best.y - n._bhBase.cy;
+          const jx = Math.sin(now / 37 + idx) * 5 * p, jy = Math.cos(now / 41 + idx * 2) * 5 * p;   // resistência
+          n.style.translate = ((dx * f + jx) / bs) + 'px ' + ((dy * f + jy) / bs) + 'px';
           n.style.scale = String(1 - 0.35 * e);
           touched.add(n);
         });
@@ -6385,7 +6386,7 @@
       const ctx = cv.getContext('2d');
       const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
       fit(); addEventListener('resize', fit);
-      let parts = [], scars = [], fires = [], embers = [], last = 0, spot = null, nextChunk = 0;
+      let parts = [], scars = [], fires = [], embers = [], last = 0, spot = null, nextChunk = 0, dyingT = 0;
       const rnd = (a, b) => a + Math.random() * (b - a);
 
       /* textura de madeira crua (sem pintura) */
@@ -6420,14 +6421,24 @@
         }
         return pts;
       }
+      /* borda de rasgo irregular (muitos vértices, cada um com ruído) */
+      function tearEdge(size) {
+        const n = Math.floor(rnd(14, 19)), pts = [];
+        for (let i = 0; i < n; i++) {
+          const an = i / n * Math.PI * 2 + rnd(-0.12, 0.12);
+          const r = size * rnd(0.6, 1) * (i % 2 ? rnd(0.7, 0.9) : 1);
+          pts.push([Math.cos(an) * r, Math.sin(an) * r * rnd(0.7, 1)]);
+        }
+        return pts;
+      }
       /* pedaço que se solta do ponto fixo e é puxado para o buraco */
       function spawnChunk(c) {
-        const size = rnd(14, 28), pts = jagged(size, Math.floor(rnd(6, 9))), rot = rnd(0, 6);
+        const size = rnd(34, 56), pts = tearEdge(size), rot = rnd(0, 6);
         const x = spot.x + rnd(-4, 4), y = spot.y + rnd(-4, 4);
         const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy) || 1, sp = rnd(150, 240);
         const life = rnd(2.4, 3.6);
         parts.push({ kind: 'chunk', x, y, vx: dx / d * sp, vy: dy / d * sp, rot, vr: rnd(-2.5, 2.5), pts, size, life, age: 0 });
-        scars.push({ x, y, rot, pts, size, life: life + 1.6, age: 0, burn: 0 });
+        scars.push({ x, y, rot, pts, size, life: Infinity, age: 0, burn: 0 });   // o rasgo fica até o buraco sumir
       }
       /* brasa: sai do anel, cai na lousa e acende um fogo pequeno */
       function spawnEmber(c) {
@@ -6439,12 +6450,12 @@
         embers.push({ sx, sy, cx: mx, cy: my, tx, ty, age: 0, life: rnd(1.1, 1.7) });
       }
       function landSpot(x, y) {
-        scars.push({ x, y, rot: rnd(0, 6), pts: jagged(rnd(6, 10), 7), size: rnd(7, 11), life: rnd(1.8, 2.6), age: 0, burn: 0 });
+        scars.push({ x, y, rot: rnd(0, 6), pts: tearEdge(rnd(8, 13)), size: rnd(8, 13), life: Infinity, age: 0, burn: 0 });
         for (let i = 0; i < 6; i++) fireAt(x + rnd(-5, 5), y + rnd(-5, 5), false);
       }
       function fireAt(x, y, big) {
         fires.push({ x, y, vx: rnd(-22, 22), vy: rnd(-150, -60) * (big ? 1.3 : 1), life: rnd(0.4, 0.9), age: 0,
-          s: rnd(10, 22) * (big ? 1.2 : 1), ph: rnd(0, 6) });
+          s: rnd(4, 9) * (big ? 1.15 : 1), ph: rnd(0, 6) });
       }
       window.__bhFxBurst = () => {
         const st = window.__bhState;
@@ -6488,11 +6499,11 @@
           if (!spot) { spot = { x: c.x - rnd(200, 300), y: c.y + rnd(-110, 110) }; nextChunk = 7500; }
           if (st.t >= nextChunk && st.p > 0.45) { spawnChunk(c); nextChunk = st.t + rnd(4000, 7000); }
           if (Math.random() < 0.012 + st.p * 0.03) spawnEmber(c);
-        } else {
-          spot = null;
         }
         /* cicatrizes: queimam aos poucos e somem no fim */
-        scars = scars.filter(sc => sc.age < sc.life);
+        if (st && c) dyingT = 0; else dyingT += dt;
+        const scarFade = Math.max(0, 1 - dyingT / 1.2);
+        if (dyingT > 1.2) { scars = []; spot = null; }
         for (const sc of scars) {
           sc.age += dt; sc.burn = Math.min(1, sc.age / 1.2);
           if (sc.burn > 0.05 && sc.age < sc.life - 0.4) {
@@ -6508,7 +6519,7 @@
         embers = embers.filter(e => { e.age += dt; if (e.age >= e.life) { landSpot(e.tx, e.ty); return false; } return true; });
 
         ctx.clearRect(0, 0, cv.width, cv.height);
-        for (const sc of scars) drawScar(sc, Math.min(1, (sc.life - sc.age) / 0.6));
+        for (const sc of scars) drawScar(sc, scarFade);
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (const sc of scars) if (sc.burn > 0) {
           const fl = 0.75 + 0.25 * Math.sin(now / 70 + sc.x), g = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, sc.size * 2.2);
