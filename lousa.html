@@ -6293,37 +6293,22 @@
        Quanto mais tempo a linha fica fora do buraco, mais as peças são puxadas e encolhem.
        Com 10s sem entrar: alerta (☢ + ⚠) e o arraste é cancelado. */
     (function () {
-      const SUCK_MS = 10000;
-      let t0 = 0, active = false, alertShown = false;
+      const SUCK_MS = 15000;
+      let t0 = 0, active = false, alertShown = false, soundStarted = false, soundAt = 0;
       const touched = new Set();
-      function beep() {
+      /* som de alerta nuclear: arquivo nuclear.mp3 (na mesma pasta do lousa.html).
+         Começa 9s antes do alerta (aos 15s de espera) e toca por 9s. */
+      let nuke = null;
+      function nukeStart() {
         try {
-          const c = new (window.AudioContext || window.webkitAudioContext)(), t = c.currentTime;
-          /* sirene de alerta nuclear: tom subindo e descendo, 3 vezes */
-          for (let i = 0; i < 3; i++) {
-            const o = c.createOscillator(), g = c.createGain(), t0 = t + i * 0.9;
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(420, t0);
-            o.frequency.linearRampToValueAtTime(980, t0 + 0.45);
-            o.frequency.linearRampToValueAtTime(420, t0 + 0.9);
-            g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.11, t0 + 0.05);
-            g.gain.setValueAtTime(0.11, t0 + 0.85); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
-            o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 0.95);
-          }
-          /* estrondo da explosão: grave caindo + ruído branco */
-          const bo = c.createOscillator(), bg = c.createGain();
-          bo.type = 'sine';
-          bo.frequency.setValueAtTime(140, t + 2.7); bo.frequency.exponentialRampToValueAtTime(28, t + 4.2);
-          bg.gain.setValueAtTime(0.0001, t + 2.7); bg.gain.exponentialRampToValueAtTime(0.9, t + 2.75);
-          bg.gain.exponentialRampToValueAtTime(0.0001, t + 4.3);
-          bo.connect(bg); bg.connect(c.destination); bo.start(t + 2.7); bo.stop(t + 4.4);
-          const len = c.sampleRate * 1.6, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
-          for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
-          const ns = c.createBufferSource(), ng = c.createGain(), nf = c.createBiquadFilter();
-          ns.buffer = buf; nf.type = 'lowpass'; nf.frequency.value = 900;
-          ng.gain.setValueAtTime(0.7, t + 2.7);
-          ns.connect(nf); nf.connect(ng); ng.connect(c.destination); ns.start(t + 2.7);
+          if (!nuke) nuke = new Audio('nuclear.mp3');
+          nuke.currentTime = 0;
+          const pr = nuke.play(); if (pr && pr.catch) pr.catch(() => {});
         } catch (e) {}
+      }
+      function nukeStop() {
+        if (!nuke) return;
+        try { nuke.pause(); nuke.currentTime = 0; } catch (e) {}
       }
       function reset() {
         document.querySelectorAll('#notesContainer .chalk-note').forEach(n => {
@@ -6341,8 +6326,8 @@
         a.innerHTML = '<div class="bh-alert-box"><div class="bh-alert-icon">☢<span class="bh-alert-tri">⚠</span></div>'
           + '<div>Medidas protetivas foram acionadas...</div><small>Ação cancelada</small></div>';
         document.body.appendChild(a);
-        beep();
-        setTimeout(() => a.remove(), 4600);
+        nukeStop();
+        setTimeout(() => a.remove(), 2200);
         document.dispatchEvent(new Event('pointercancel'));   // cancela o arraste da linha
       }
       function applyPull(p, portals, now) {
@@ -6372,12 +6357,14 @@
         requestAnimationFrame(frame);
         const ghost = document.querySelector('.bh-ghost');
         const portals = Array.from(document.querySelectorAll('.bh-portal:not(.closing)'));
-        if (portals.some(p => p.classList.contains('eat'))) { reset(); t0 = now; }   // entrou num buraco: recomeça
+        if (portals.some(p => p.classList.contains('eat'))) { reset(); nukeStop(); t0 = now; soundStarted = false; }   // entrou num buraco: recomeça
         const on = !!ghost && portals.length > 0;
-        if (!on) { if (active) reset(); active = false; alertShown = false; return; }
-        if (!active) { active = true; t0 = now; alertShown = false; }
+        if (!on) { if (active) reset(); nukeStop(); active = false; alertShown = false; soundStarted = false; return; }
+        if (!active) { active = true; t0 = now; alertShown = false; soundStarted = false; }
         if (alertShown) return;
         const p = Math.min(1, (now - t0) / SUCK_MS);
+        if (!soundStarted && now - t0 >= SUCK_MS - 9000) { soundStarted = true; soundAt = now; nukeStart(); }
+        if (soundStarted && now - soundAt >= 9000) nukeStop();   // o som dura 9s
         if (p >= 1) { reset(); showAlert(); return; }
         applyPull(p, portals, now);
       }
