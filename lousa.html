@@ -6301,7 +6301,7 @@
       let nuke = null;
       function nukeStart() {
         try {
-          if (!nuke) nuke = new Audio('nuclear.mp3');
+          if (!nuke) { nuke = new Audio('nuclear.mp3'); nuke.volume = 0.3; }   // mais baixo que o buraco negro
           nuke.currentTime = 0;
           const pr = nuke.play(); if (pr && pr.catch) pr.catch(() => {});
         } catch (e) {}
@@ -6326,6 +6326,7 @@
         a.innerHTML = '<div class="bh-alert-box"><div class="bh-alert-icon">☢<span class="bh-alert-tri">⚠</span></div>'
           + '<div>Medidas protetivas foram acionadas...</div><small>Ação cancelada</small></div>';
         document.body.appendChild(a);
+        if (window.__bhFxBurst) window.__bhFxBurst(90);
         nukeStop();
         setTimeout(() => a.remove(), 2200);
         document.dispatchEvent(new Event('pointercancel'));   // cancela o arraste da linha
@@ -6359,14 +6360,89 @@
         const portals = Array.from(document.querySelectorAll('.bh-portal:not(.closing)'));
         if (portals.some(p => p.classList.contains('eat'))) { reset(); nukeStop(); t0 = now; soundStarted = false; }   // entrou num buraco: recomeça
         const on = !!ghost && portals.length > 0;
-        if (!on) { if (active) reset(); nukeStop(); active = false; alertShown = false; soundStarted = false; return; }
+        if (!on) { if (active) reset(); nukeStop(); window.__bhState = null; active = false; alertShown = false; soundStarted = false; return; }
         if (!active) { active = true; t0 = now; alertShown = false; soundStarted = false; }
         if (alertShown) return;
         const p = Math.min(1, (now - t0) / SUCK_MS);
         if (!soundStarted && now - t0 >= SUCK_MS - 9000) { soundStarted = true; soundAt = now; nukeStart(); }
         if (soundStarted && now - soundAt >= 9000) nukeStop();   // o som dura 9s
-        if (p >= 1) { reset(); showAlert(); return; }
+        window.__bhState = { p, portals: portals.map(pt => { const r = pt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) };
+        if (p >= 1) { reset(); window.__bhState = null; showAlert(); return; }
         applyPull(p, portals, now);
+      }
+      requestAnimationFrame(frame);
+    })();
+
+    /* ---- efeitos do buraco negro: faíscas e pedras se espalhando pela lousa ----
+       Aumentam conforme a sucção avança (window.__bhState) e explodem no alerta. */
+    (function () {
+      const cv = document.createElement('canvas');
+      cv.id = 'bhFx';
+      cv.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:99996';
+      document.body.appendChild(cv);
+      const ctx = cv.getContext('2d');
+      const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
+      fit(); addEventListener('resize', fit);
+      let parts = [], last = 0;
+      const rnd = (a, b) => a + Math.random() * (b - a);
+      function spawnFrom(c, rock, speedMin, speedMax) {
+        const a = Math.random() * Math.PI * 2, sp = rnd(speedMin, speedMax);
+        if (rock) {
+          const n = 5 + Math.floor(Math.random() * 3), size = rnd(4, 12), pts = [];
+          for (let i = 0; i < n; i++) { const an = i / n * Math.PI * 2, r = size * rnd(0.6, 1); pts.push([Math.cos(an) * r, Math.sin(an) * r]); }
+          const g = Math.floor(rnd(90, 150));
+          parts.push({ rock: true, x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: rnd(0, 6), vr: rnd(-6, 6), pts,
+            col: `rgb(${g},${g - 8},${g - 18})`, life: rnd(2.5, 4.2), age: 0 });
+        } else {
+          parts.push({ rock: false, x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: rnd(0.5, 1.2), age: 0, hue: rnd(18, 48) });
+        }
+      }
+      window.__bhFxBurst = (n) => {
+        const st = window.__bhState || { portals: [] };
+        const c = (st.portals && st.portals[0]) || { x: innerWidth - 84, y: innerHeight / 2 };
+        for (let i = 0; i < n; i++) spawnFrom(c, Math.random() < 0.35, 260, 1100);
+      };
+      function frame(now) {
+        requestAnimationFrame(frame);
+        const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
+        const st = window.__bhState;
+        if (st && st.portals && st.portals.length) {
+          const k = st.p;
+          const rate = k * 6;                                    // faíscas por frame, aumentam com a sucção
+          for (let i = 0; i < rate; i++) if (Math.random() < 0.6) {
+            const c = st.portals[Math.floor(Math.random() * st.portals.length)];
+            spawnFrom(c, false, 240, 900);
+          }
+          if (Math.random() < k * 0.35) {
+            const c = st.portals[Math.floor(Math.random() * st.portals.length)];
+            spawnFrom(c, true, 120, 420 + 300 * k);
+          }
+        }
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        parts = parts.filter(p => p.age < p.life && p.x > -60 && p.x < innerWidth + 60 && p.y > -60 && p.y < innerHeight + 60);
+        for (const p of parts) {
+          p.age += dt;
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          const drag = Math.pow(0.35, dt);
+          p.vx *= drag; p.vy *= drag;
+          const fade = Math.min(1, (p.life - p.age) / 0.35);
+          if (p.rock) {
+            p.rot += p.vr * dt; p.vy += 90 * dt;                // pedras caem levemente
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
+            ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+            ctx.closePath(); ctx.fillStyle = p.col; ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+          } else {
+            const len = 10 + 10 * (1 - p.age / p.life), a = fade;
+            ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
+            ctx.strokeStyle = `hsl(${p.hue},100%,62%)`; ctx.shadowColor = `hsl(${p.hue},100%,55%)`; ctx.shadowBlur = 8;
+            ctx.lineWidth = 2;
+            const sp = Math.hypot(p.vx, p.vy) || 1;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx / sp * len, p.y - p.vy / sp * len); ctx.stroke();
+            ctx.restore();
+          }
+        }
       }
       requestAnimationFrame(frame);
     })();
@@ -6388,13 +6464,13 @@
         g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
       }
-      function sndForm() { sweep('sawtooth', 55, 380, 0.8, 0.09, 700); sweep('sine', 110, 760, 0.8, 0.07, 1500); }
-      function sndSuck() { sweep('sawtooth', 950, 60, 0.38, 0.1, 1200); }
-      function sndVanish() { sweep('sine', 420, 35, 0.65, 0.12, 900); sweep('sawtooth', 160, 40, 0.6, 0.05, 400); }
+      function sndForm() { sweep('sawtooth', 55, 380, 0.8, 0.22, 700); sweep('sine', 110, 760, 0.8, 0.18, 1500); }
+      function sndSuck() { sweep('sawtooth', 950, 60, 0.38, 0.26, 1200); }
+      function sndVanish() { sweep('sine', 420, 35, 0.65, 0.26, 900); sweep('sawtooth', 160, 40, 0.6, 0.12, 400); }
       function humStart() {
         if (hum) return; const c = AC(); if (!c) return;
         const g = c.createGain(), f = c.createBiquadFilter(), lfo = c.createOscillator(), lg = c.createGain();
-        g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime(0.05, c.currentTime + 0.6);
+        g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime(0.22, c.currentTime + 0.6);
         f.type = 'lowpass'; f.frequency.value = 320;
         lfo.frequency.value = 2.2; lg.gain.value = 0.02; lfo.connect(lg); lg.connect(g.gain);
         const o1 = c.createOscillator(), o2 = c.createOscillator();
