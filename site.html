@@ -146,43 +146,32 @@ footer p+p{margin-top:6px}
 .mb svg{display:block;width:100%;margin-top:14px;stroke-width:4;transition:stroke-width .4s}.mb[data-t="m"] svg{stroke-width:7}
 .mb .a1{stroke:var(--c2);transition:stroke .6s}.mb .a2{stroke:var(--c3);transition:stroke .6s}
 @media(max-width:860px){.sw{grid-template-columns:1fr}.hero h1{max-width:100%}.hero .ul{width:min(560px,80%)}.nav .btn{padding:10px 16px;font-size:14px}.nav nav{gap:8px}}
-
-/* conteúdo editável pelo painel */
-.hbg{position:absolute;z-index:-1;left:var(--hx,70%);top:var(--hy,50%);width:var(--hw,900px);max-width:none;height:auto;translate:-50% -50%;opacity:var(--ho,1);pointer-events:none;user-select:none}
-@media(max-width:860px){.hbg{width:var(--hwm,420px)}}
-#extra{padding-bottom:0}
-.xg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px}
-.xk{border-radius:22px;overflow:hidden;background:#ffffff08;border:1px solid #ffffff1a;transition:translate .4s,border-color .4s}
-.xk:hover{translate:0 -5px;border-color:#9be3c066}
-.xk img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
-.xk div{padding:22px 24px 26px}.xk h3{font-size:21px;line-height:1.2;margin-bottom:6px}.xk p{color:var(--m);font-size:15.5px;white-space:pre-line}
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas><div class="gl"></div><div class="gl b"></div>
-<header class="nav"><a class="logo" href="#topo">Lousa Digital</a><nav><a href="#como" data-k="nav.1">Como funciona</a><a href="#tudo" data-k="nav.2">Recursos</a><a href="#planos" data-k="nav.3">Planos</a><a class="btn o" href="login.html" data-k="nav.4">Entrar</a><a class="btn" href="#planos" data-buy="pro" data-k="nav.5">Assinar agora</a></nav></header>
+<header class="nav"><a class="logo" href="#topo">Lousa Digital</a><nav><a href="#como">Como funciona</a><a href="#tudo">Recursos</a><a href="#planos">Planos</a><a class="btn o" href="login.html">Entrar</a><a class="btn" href="#planos" data-buy="pro">Assinar agora</a></nav></header>
 
 <main id="topo">
 <section class="hero" data-h="150">
- <img class="hbg" id="hbg" alt="" hidden>
- <div class="fc" style="right:9%;top:24%" data-p="-.12" data-k="hero.fc1">&#9745; responder clientes</div>
- <div class="fc" style="right:20%;top:52%;animation-delay:-2s;color:var(--r)" data-p="-.2" data-k="hero.fc2">ideia nova!</div>
- <div class="fc" style="right:6%;top:70%;animation-delay:-4s;color:var(--b)" data-p="-.08" data-k="hero.fc3">R$ 4.280 entrou</div>
- <h1 data-k="hero.title">Sua lousa de giz, feita para o futuro.</h1>
+ <div class="fc" style="right:9%;top:24%" data-p="-.12">&#9745; responder clientes</div>
+ <div class="fc" style="right:20%;top:52%;animation-delay:-2s;color:var(--r)" data-p="-.2">ideia nova!</div>
+ <div class="fc" style="right:6%;top:70%;animation-delay:-4s;color:var(--b)" data-p="-.08">R$ 4.280 entrou</div>
+ <h1>Sua lousa de giz, feita para o futuro.</h1>
  <svg class="ul" viewBox="0 0 560 30" preserveAspectRatio="none"><path pathLength="1" d="M4 20 C120 4 260 28 380 12 S520 8 556 14"/></svg>
- <p class="lead" data-k="hero.lead">Listas, setas que se mexem, post-its, finanças e equipe ao vivo, tudo numa lousa verde que dá gosto de usar. Abre no navegador e no celular, sem instalar nada.</p>
- <div class="row"><a class="btn" href="#planos" data-buy="pro" data-k="hero.btn1">Assinar agora</a><a class="btn o" href="#como" data-k="hero.btn2">Ver como funciona</a></div>
- <small data-k="hero.small">Sem instalar. Funciona no celular. Comece grátis.</small>
+ <p class="lead">Listas, setas que se mexem, post-its, finanças e equipe ao vivo, tudo numa lousa verde que dá gosto de usar. Abre no navegador e no celular, sem instalar nada.</p>
+ <div class="row"><a class="btn" href="#planos" data-buy="pro">Assinar agora</a><a class="btn o" href="#como">Ver como funciona</a></div>
+ <small>Sem instalar. Funciona no celular. Comece grátis.</small>
 </section>
 <div class="mq" aria-hidden="true"><div><span>listas</span><span>setas animadas</span><span>post-its</span><span>imagens e adesivos</span><span>finanças</span><span>calendário</span><span>equipe ao vivo</span><span>vários quadros</span><span>minijogos</span><span>giz ou canetão</span><span>listas</span><span>setas animadas</span><span>post-its</span><span>imagens e adesivos</span><span>finanças</span><span>calendário</span><span>equipe ao vivo</span><span>vários quadros</span><span>minijogos</span><span>giz ou canetão</span></div></div>
 
 <section id="como" class="story" data-h="150">
  <div>
-  <div class="st on" data-i="0" data-h="150"><span class="ch">cena 1</span><h2 data-k="story.0.t">Listas que dão gosto de marcar</h2><p data-k="story.0.p">Escreva suas tarefas em giz, marque cada uma e veja o risco aparecer. Mude cor, tamanho da letra e título quando quiser.</p></div>
-  <div class="st" data-i="1" data-h="45"><span class="ch">cena 2</span><h2 data-k="story.1.t">Setas e formas com vida</h2><p data-k="story.1.p">Dobre a seta onde precisar. Ajuste espessura e opacidade, deixe tracejada, faça piscar ou rabiscar. Ao tocar, você pega exatamente o que está vendo.</p></div>
-  <div class="st" data-i="2" data-h="330"><span class="ch">cena 3</span><h2 data-k="story.2.t">Post-its, fotos e adesivos</h2><p data-k="story.2.p">Cole lembretes coloridos, fotos com moldura e adesivos de emoji. Arraste, gire e deixe a lousa com a sua cara.</p></div>
-  <div class="st" data-i="3" data-h="205"><span class="ch">cena 4</span><h2 data-k="story.3.t">Em equipe, ao vivo</h2><p data-k="story.3.p">Veja quem está na lousa agora, com nome e foto. Compartilhe um quadro e trabalhem juntos, cada um no seu aparelho.</p></div>
-  <div class="st" data-i="4" data-h="95"><span class="ch">cena 5</span><h2 data-k="story.4.t">Dinheiro e agenda no mesmo lugar</h2><p data-k="story.4.p">Monte tabelas, cards e gráficos de entradas e saídas. Anote compromissos por dia no calendário.</p></div>
+  <div class="st on" data-i="0" data-h="150"><span class="ch">cena 1</span><h2>Listas que dão gosto de marcar</h2><p>Escreva suas tarefas em giz, marque cada uma e veja o risco aparecer. Mude cor, tamanho da letra e título quando quiser.</p></div>
+  <div class="st" data-i="1" data-h="45"><span class="ch">cena 2</span><h2>Setas e formas com vida</h2><p>Dobre a seta onde precisar. Ajuste espessura e opacidade, deixe tracejada, faça piscar ou rabiscar. Ao tocar, você pega exatamente o que está vendo.</p></div>
+  <div class="st" data-i="2" data-h="330"><span class="ch">cena 3</span><h2>Post-its, fotos e adesivos</h2><p>Cole lembretes coloridos, fotos com moldura e adesivos de emoji. Arraste, gire e deixe a lousa com a sua cara.</p></div>
+  <div class="st" data-i="3" data-h="205"><span class="ch">cena 4</span><h2>Em equipe, ao vivo</h2><p>Veja quem está na lousa agora, com nome e foto. Compartilhe um quadro e trabalhem juntos, cada um no seu aparelho.</p></div>
+  <div class="st" data-i="4" data-h="95"><span class="ch">cena 5</span><h2>Dinheiro e agenda no mesmo lugar</h2><p>Monte tabelas, cards e gráficos de entradas e saídas. Anote compromissos por dia no calendário.</p></div>
  </div>
  <div class="board" data-s="0">
   <div class="sc s0"><div class="ch" style="font-size:38px">Pendências da semana</div><ul class="ck">
@@ -200,9 +189,9 @@ footer p+p{margin-top:6px}
 
 <section id="estilo" class="sw" data-h="95">
  <div>
-  <span class="ch" data-k="est.ch">giz ou canetão</span>
-  <h2 data-k="est.title">Do giz ao canetão, com um toque</h2>
-  <p class="lead" data-k="est.lead">Gosta do clima de sala de aula? Fique com a lousa verde de giz. Prefere algo mais limpo? Troque para o quadro branco de canetão. Suas listas, setas e post-its continuam exatamente iguais.</p>
+  <span class="ch">giz ou canetão</span>
+  <h2>Do giz ao canetão, com um toque</h2>
+  <p class="lead">Gosta do clima de sala de aula? Fique com a lousa verde de giz. Prefere algo mais limpo? Troque para o quadro branco de canetão. Suas listas, setas e post-its continuam exatamente iguais.</p>
   <div class="tg" role="group" aria-label="Escolha o estilo da lousa"><button type="button" class="on" data-t="g" aria-pressed="true">Lousa de giz</button><button type="button" data-t="m" aria-pressed="false">Quadro de canetão</button></div>
  </div>
  <div class="mb" id="mb" data-t="g">
@@ -212,63 +201,61 @@ footer p+p{margin-top:6px}
  </div>
 </section>
 
-<section id="extra" hidden><div class="xg" id="xg"></div></section>
-
 <section id="tudo" data-h="45">
- <h2 data-k="tudo.title">Tudo que cabe na sua lousa</h2><p class="lead" data-k="tudo.lead">Uma lousa só para listas, ideias, dinheiro e equipe. Sem trocar de aplicativo.</p>
+ <h2>Tudo que cabe na sua lousa</h2><p class="lead">Uma lousa só para listas, ideias, dinheiro e equipe. Sem trocar de aplicativo.</p>
  <div class="bn">
-  <div class="cd w" style="--i:0;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M8 12l4 4 7-8"/><path pathLength="1" d="M26 14h14"/><path pathLength="1" d="M8 29l4 4 7-8"/><path pathLength="1" d="M26 31h14"/></svg></i><h3 data-k="cd.0.t">Listas de tarefas em giz</h3><p data-k="cd.0.p">Marque, risque e reorganize. Escolha a cor do giz, o tamanho da letra e dê um título para cada lista. Ao tocar, você pega o que está vendo, sem brigar com camadas.</p></div>
-  <div class="cd" style="--i:1;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="9" cy="38" r="2.5"/><path pathLength="1" d="M12 36C14 14 30 9 40 22"/><path pathLength="1" d="M31 20l10 3-3-10"/></svg></i><h3 data-k="cd.1.t">Setas e formas</h3><p data-k="cd.1.p">Curvas que você dobra. Espessura, opacidade, tracejado, piscar e rabiscar.</p></div>
-  <div class="cd" style="--i:2;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M10 8h28v22L28 40H10z"/><path pathLength="1" d="M28 40V30h10"/><path pathLength="1" d="M16 17h16M16 24h9"/></svg></i><h3 data-k="cd.2.t">Post-its</h3><p data-k="cd.2.p">Lembretes coloridos para arrastar e girar.</p></div>
-  <div class="cd" style="--i:3;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="7" y="9" width="34" height="30" rx="5"/><circle pathLength="1" cx="18" cy="20" r="3.5"/><path pathLength="1" d="M7 33l10-9 8 7 6-5 10 8"/></svg></i><h3 data-k="cd.3.t">Imagens e adesivos</h3><p data-k="cd.3.p">Fotos com moldura vintage ou moderna e emojis como adesivos.</p></div>
-  <div class="cd" style="--i:4;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M7 40h34"/><rect pathLength="1" x="11" y="26" width="7" height="14" rx="1.5"/><rect pathLength="1" x="21" y="18" width="7" height="22" rx="1.5"/><rect pathLength="1" x="31" y="9" width="7" height="31" rx="1.5"/></svg></i><h3 data-k="cd.4.t">Finanças</h3><p data-k="cd.4.p">Tabelas, cards e gráficos de entradas e saídas.</p></div>
-  <div class="cd" style="--i:5;--c:var(--b)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="7" y="11" width="34" height="30" rx="5"/><path pathLength="1" d="M7 20h34M16 6v8M32 6v8"/><path pathLength="1" d="M15 28h4M22 28h4M29 28h4M15 34h4M22 34h4"/></svg></i><h3 data-k="cd.5.t">Calendário</h3><p data-k="cd.5.p">Anotações por dia, ao lado da lousa.</p></div>
-  <div class="cd h" style="--i:6;--c:var(--b)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="18" cy="18" r="6"/><path pathLength="1" d="M6 40c0-8 5-12 12-12s12 4 12 12"/><circle pathLength="1" cx="34" cy="16" r="5"/><path pathLength="1" d="M34 27c6 0 9 4 9 10"/></svg></i><h3 data-k="cd.6.t">Equipe ao vivo</h3><p data-k="cd.6.p">Veja quem está online, com nome e foto, e receba avisos do que mudou.</p></div>
-  <div class="cd h" style="--i:7;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M24 8l18 9-18 9-18-9z"/><path pathLength="1" d="M6 25l18 9 18-9"/><path pathLength="1" d="M6 33l18 9 18-9"/></svg></i><h3 data-k="cd.7.t">Vários quadros</h3><p data-k="cd.7.p">Separe casa, trabalho e estudos, cada um com seu quadro. Troque com um toque.</p></div>
-  <div class="cd" style="--i:8;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M24 7C13 7 6 15 6 25c0 10 8 17 18 17 3 0 4-2 4-4 0-3 2-4 4-4h5c4 0 7-3 7-7C44 14 35 7 24 7z"/><circle pathLength="1" cx="16" cy="22" r="2"/><circle pathLength="1" cx="24" cy="15" r="2"/><circle pathLength="1" cx="33" cy="21" r="2"/></svg></i><h3 data-k="cd.8.t">Giz ou canetão</h3><p data-k="cd.8.p">Troque a lousa verde de giz por um quadro branco de canetão quando quiser, com um toque.</p></div>
-  <div class="cd" style="--i:9;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M8 12h32a3 3 0 013 3v16a3 3 0 01-3 3H24l-9 7v-7H8a3 3 0 01-3-3V15a3 3 0 013-3z"/><path pathLength="1" d="M13 21h22M13 28h12"/></svg></i><h3 data-k="cd.9.t">Sua frase na lousa</h3><p data-k="cd.9.p">Fixe uma frase que te motiva todo dia.</p></div>
-  <div class="cd" style="--i:10;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="5" y="14" width="38" height="22" rx="11"/><path pathLength="1" d="M15 21v8M11 25h8"/><circle pathLength="1" cx="31" cy="23" r="1.8"/><circle pathLength="1" cx="36" cy="27" r="1.8"/></svg></i><h3 data-k="cd.10.t">Minijogos</h3><p data-k="cd.10.p">Uma pausa rápida sem sair da lousa.</p></div>
+  <div class="cd w" style="--i:0;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M8 12l4 4 7-8"/><path pathLength="1" d="M26 14h14"/><path pathLength="1" d="M8 29l4 4 7-8"/><path pathLength="1" d="M26 31h14"/></svg></i><h3>Listas de tarefas em giz</h3><p>Marque, risque e reorganize. Escolha a cor do giz, o tamanho da letra e dê um título para cada lista. Ao tocar, você pega o que está vendo, sem brigar com camadas.</p></div>
+  <div class="cd" style="--i:1;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="9" cy="38" r="2.5"/><path pathLength="1" d="M12 36C14 14 30 9 40 22"/><path pathLength="1" d="M31 20l10 3-3-10"/></svg></i><h3>Setas e formas</h3><p>Curvas que você dobra. Espessura, opacidade, tracejado, piscar e rabiscar.</p></div>
+  <div class="cd" style="--i:2;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M10 8h28v22L28 40H10z"/><path pathLength="1" d="M28 40V30h10"/><path pathLength="1" d="M16 17h16M16 24h9"/></svg></i><h3>Post-its</h3><p>Lembretes coloridos para arrastar e girar.</p></div>
+  <div class="cd" style="--i:3;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="7" y="9" width="34" height="30" rx="5"/><circle pathLength="1" cx="18" cy="20" r="3.5"/><path pathLength="1" d="M7 33l10-9 8 7 6-5 10 8"/></svg></i><h3>Imagens e adesivos</h3><p>Fotos com moldura vintage ou moderna e emojis como adesivos.</p></div>
+  <div class="cd" style="--i:4;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M7 40h34"/><rect pathLength="1" x="11" y="26" width="7" height="14" rx="1.5"/><rect pathLength="1" x="21" y="18" width="7" height="22" rx="1.5"/><rect pathLength="1" x="31" y="9" width="7" height="31" rx="1.5"/></svg></i><h3>Finanças</h3><p>Tabelas, cards e gráficos de entradas e saídas.</p></div>
+  <div class="cd" style="--i:5;--c:var(--b)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="7" y="11" width="34" height="30" rx="5"/><path pathLength="1" d="M7 20h34M16 6v8M32 6v8"/><path pathLength="1" d="M15 28h4M22 28h4M29 28h4M15 34h4M22 34h4"/></svg></i><h3>Calendário</h3><p>Anotações por dia, ao lado da lousa.</p></div>
+  <div class="cd h" style="--i:6;--c:var(--b)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="18" cy="18" r="6"/><path pathLength="1" d="M6 40c0-8 5-12 12-12s12 4 12 12"/><circle pathLength="1" cx="34" cy="16" r="5"/><path pathLength="1" d="M34 27c6 0 9 4 9 10"/></svg></i><h3>Equipe ao vivo</h3><p>Veja quem está online, com nome e foto, e receba avisos do que mudou.</p></div>
+  <div class="cd h" style="--i:7;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M24 8l18 9-18 9-18-9z"/><path pathLength="1" d="M6 25l18 9 18-9"/><path pathLength="1" d="M6 33l18 9 18-9"/></svg></i><h3>Vários quadros</h3><p>Separe casa, trabalho e estudos, cada um com seu quadro. Troque com um toque.</p></div>
+  <div class="cd" style="--i:8;--c:var(--a)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M24 7C13 7 6 15 6 25c0 10 8 17 18 17 3 0 4-2 4-4 0-3 2-4 4-4h5c4 0 7-3 7-7C44 14 35 7 24 7z"/><circle pathLength="1" cx="16" cy="22" r="2"/><circle pathLength="1" cx="24" cy="15" r="2"/><circle pathLength="1" cx="33" cy="21" r="2"/></svg></i><h3>Giz ou canetão</h3><p>Troque a lousa verde de giz por um quadro branco de canetão quando quiser, com um toque.</p></div>
+  <div class="cd" style="--i:9;--c:var(--v)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M8 12h32a3 3 0 013 3v16a3 3 0 01-3 3H24l-9 7v-7H8a3 3 0 01-3-3V15a3 3 0 013-3z"/><path pathLength="1" d="M13 21h22M13 28h12"/></svg></i><h3>Sua frase na lousa</h3><p>Fixe uma frase que te motiva todo dia.</p></div>
+  <div class="cd" style="--i:10;--c:var(--r)"><i class="ib"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect pathLength="1" x="5" y="14" width="38" height="22" rx="11"/><path pathLength="1" d="M15 21v8M11 25h8"/><circle pathLength="1" cx="31" cy="23" r="1.8"/><circle pathLength="1" cx="36" cy="27" r="1.8"/></svg></i><h3>Minijogos</h3><p>Uma pausa rápida sem sair da lousa.</p></div>
  </div>
 </section>
 
 <!-- DEPOIMENTOS DE EXEMPLO: troque por opiniões reais dos primeiros clientes antes de publicar -->
 <section data-h="95">
- <h2 data-k="dep.title">Quem usa, gosta</h2><p class="lead" data-k="dep.lead">O que as pessoas contam sobre o dia a dia com a lousa.</p>
+ <h2>Quem usa, gosta</h2><p class="lead">O que as pessoas contam sobre o dia a dia com a lousa.</p>
  <div class="tc">
-  <figure class="tq" style="--i:0;--c:var(--v)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.0.q">Eu vivia com dez abas abertas e papel colado no monitor. Agora minha semana inteira cabe numa lousa só, e marcar tarefa em giz é viciante.</blockquote><figcaption class="who"><span class="pf" style="background:var(--v)">C</span><span><b data-k="dep.0.n">Camila R.</b><small data-k="dep.0.r">Professora, Campinas</small></span></figcaption></figure>
-  <figure class="tq" style="--i:1;--c:var(--a)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.1.q">Configurei tudo sozinho em uns 10 minutos seguindo o passo a passo. As setas animadas impressionam cliente em reunião.</blockquote><figcaption class="who"><span class="pf" style="background:var(--a)">R</span><span><b data-k="dep.1.n">Rafael M.</b><small data-k="dep.1.r">Designer autônomo</small></span></figcaption></figure>
-  <figure class="tq" style="--i:2;--c:var(--r)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.2.q">Usamos para organizar a reforma da casa. Cada um no seu celular, vendo o outro na lousa ao vivo. Evitou muita discussão.</blockquote><figcaption class="who"><span class="pf" style="background:var(--r)">J</span><span><b data-k="dep.2.n">Juliana e Pedro</b><small data-k="dep.2.r">São Paulo</small></span></figcaption></figure>
-  <figure class="tq" style="--i:3;--c:var(--b)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.3.q">A parte de finanças me salvou. Entradas e saídas do mês num gráfico simples, do lado das tarefas.</blockquote><figcaption class="who"><span class="pf" style="background:var(--b)">T</span><span><b data-k="dep.3.n">Thiago S.</b><small data-k="dep.3.r">Dono de loja online</small></span></figcaption></figure>
-  <figure class="tq" style="--i:4;--c:var(--v)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.4.q">Estudo para o vestibular e separei um quadro por matéria. O visual de lousa me anima a abrir todo dia.</blockquote><figcaption class="who"><span class="pf" style="background:var(--v)">B</span><span><b data-k="dep.4.n">Bianca L.</b><small data-k="dep.4.r">Estudante</small></span></figcaption></figure>
-  <figure class="tq" style="--i:5;--c:var(--a)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote data-k="dep.5.q">Precisei de ajuda uma vez e o suporte respondeu no WhatsApp rapidinho. Resolvido em poucos minutos.</blockquote><figcaption class="who"><span class="pf" style="background:var(--a)">H</span><span><b data-k="dep.5.n">Helena T.</b><small data-k="dep.5.r">Nutricionista</small></span></figcaption></figure>
+  <figure class="tq" style="--i:0;--c:var(--v)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>Eu vivia com dez abas abertas e papel colado no monitor. Agora minha semana inteira cabe numa lousa só, e marcar tarefa em giz é viciante.</blockquote><figcaption class="who"><span class="pf" style="background:var(--v)">C</span><span><b>Camila R.</b><small>Professora, Campinas</small></span></figcaption></figure>
+  <figure class="tq" style="--i:1;--c:var(--a)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>Configurei tudo sozinho em uns 10 minutos seguindo o passo a passo. As setas animadas impressionam cliente em reunião.</blockquote><figcaption class="who"><span class="pf" style="background:var(--a)">R</span><span><b>Rafael M.</b><small>Designer autônomo</small></span></figcaption></figure>
+  <figure class="tq" style="--i:2;--c:var(--r)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>Usamos para organizar a reforma da casa. Cada um no seu celular, vendo o outro na lousa ao vivo. Evitou muita discussão.</blockquote><figcaption class="who"><span class="pf" style="background:var(--r)">J</span><span><b>Juliana e Pedro</b><small>São Paulo</small></span></figcaption></figure>
+  <figure class="tq" style="--i:3;--c:var(--b)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>A parte de finanças me salvou. Entradas e saídas do mês num gráfico simples, do lado das tarefas.</blockquote><figcaption class="who"><span class="pf" style="background:var(--b)">T</span><span><b>Thiago S.</b><small>Dono de loja online</small></span></figcaption></figure>
+  <figure class="tq" style="--i:4;--c:var(--v)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>Estudo para o vestibular e separei um quadro por matéria. O visual de lousa me anima a abrir todo dia.</blockquote><figcaption class="who"><span class="pf" style="background:var(--v)">B</span><span><b>Bianca L.</b><small>Estudante</small></span></figcaption></figure>
+  <figure class="tq" style="--i:5;--c:var(--a)"><div class="stars" aria-label="5 de 5 estrelas">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>Precisei de ajuda uma vez e o suporte respondeu no WhatsApp rapidinho. Resolvido em poucos minutos.</blockquote><figcaption class="who"><span class="pf" style="background:var(--a)">H</span><span><b>Helena T.</b><small>Nutricionista</small></span></figcaption></figure>
  </div>
 </section>
 
 <section data-h="330">
- <h2 data-k="pas.title">Comece em 3 passos</h2><p class="lead" data-k="pas.lead">Do pagamento à primeira lista em poucos minutos.</p>
- <div class="how"><div><b>1</b><h3 data-k="pas.0.t">Entre com o Google</h3><p data-k="pas.0.p">Escolha o plano e entre com a sua conta Google. Sem criar senha.</p></div><div><b>2</b><h3 data-k="pas.1.t">Siga o passo a passo</h3><p data-k="pas.1.p">Escolha seu nome e sua foto em poucos cliques, direto na lousa.</p></div><div><b>3</b><h3 data-k="pas.2.t">Crie seu primeiro quadro</h3><p data-k="pas.2.p">Adicione uma lista, uma seta e um post-it. Depois convide quem quiser.</p></div></div>
+ <h2>Comece em 3 passos</h2><p class="lead">Do pagamento à primeira lista em poucos minutos.</p>
+ <div class="how"><div><b>1</b><h3>Entre com o Google</h3><p>Escolha o plano e entre com a sua conta Google. Sem criar senha.</p></div><div><b>2</b><h3>Siga o passo a passo</h3><p>Escolha seu nome e sua foto em poucos cliques, direto na lousa.</p></div><div><b>3</b><h3>Crie seu primeiro quadro</h3><p>Adicione uma lista, uma seta e um post-it. Depois convide quem quiser.</p></div></div>
 </section>
 
 <section id="planos" data-h="205">
- <h2 data-k="pla.title">Planos simples</h2><p class="lead"><span data-k="pla.l1">Comece grátis. Assine quando quiser mais.</span> <a href="login.html" style="color:var(--v)" data-k="pla.l2">Já tem conta? Entrar</a><span data-k="pla.l3">, sem pagar de novo.</span></p>
+ <h2>Planos simples</h2><p class="lead">Comece grátis. Assine quando quiser mais. <a href="login.html" style="color:var(--v)">Já tem conta? Entrar</a>, sem pagar de novo.</p>
  <div class="pr">
-  <div class="pl"><h3 data-k="pla.f.t">Grátis</h3><div class="v" data-k="pla.f.v">R$ 0</div><ul data-bul="free"><li>2 quadros</li><li>Listas, setas e post-its</li><li>Giz ou canetão</li></ul><a class="btn o" href="#planos" data-buy="free" data-k="pla.f.b">Começar grátis</a></div>
-  <div class="pl p"><span class="fd" data-k="pla.p.fd">Vagas de fundador: R$ 12,90/mês</span><h3 data-k="pla.p.t">Pro</h3><div class="v"><span data-price>R$ 19,90</span><small> /mês</small></div><ul data-bul="pro"><li>Quadros ilimitados</li><li>Equipe ao vivo e compartilhamento</li><li>Finanças e calendário</li><li>Imagens, adesivos e minijogos</li><li>Cancele quando quiser</li></ul><a class="btn" href="#planos" data-buy="pro" data-k="pla.p.b">Assinar o Pro</a></div>
+  <div class="pl"><h3>Grátis</h3><div class="v">R$ 0</div><ul data-bul="free"><li>2 quadros</li><li>Listas, setas e post-its</li><li>Giz ou canetão</li></ul><a class="btn o" href="#planos" data-buy="free">Começar grátis</a></div>
+  <div class="pl p"><span class="fd">Vagas de fundador: R$ 12,90/mês</span><h3>Pro</h3><div class="v"><span data-price>R$ 19,90</span><small> /mês</small></div><ul data-bul="pro"><li>Quadros ilimitados</li><li>Equipe ao vivo e compartilhamento</li><li>Finanças e calendário</li><li>Imagens, adesivos e minijogos</li><li>Cancele quando quiser</li></ul><a class="btn" href="#planos" data-buy="pro">Assinar o Pro</a></div>
  </div>
 </section>
 
 <section class="fq" data-h="95">
- <h2 data-k="faq.title">Perguntas frequentes</h2>
- <details><summary><span data-k="faq.0.q">Preciso instalar algum programa?</span></summary><p data-k="faq.0.a">Não. A Lousa Digital abre no navegador, no computador e no celular.</p></details>
- <details><summary><span data-k="faq.1.q">Posso usar com a minha equipe?</span></summary><p data-k="faq.1.a">Sim. Compartilhe um quadro e veja quem está online, com nome e foto.</p></details>
- <details><summary><span data-k="faq.2.q">Posso trocar o giz por um quadro de canetão?</span></summary><p data-k="faq.2.a">Posso sim. Você escolhe entre a lousa verde de giz e o quadro branco de canetão e troca quando quiser, com um toque.</p></details>
- <details><summary><span data-k="faq.3.q">Posso cancelar quando quiser?</span></summary><p data-k="faq.3.a">Sim. Sem fidelidade. Você cancela quando não quiser mais.</p></details>
- <details><summary><span data-k="faq.4.q">Como começo?</span></summary><p data-k="faq.4.a">Clique em Assinar agora, entre com sua conta Google e siga o passo a passo na própria lousa. Quem já tem conta é só clicar em Entrar.</p></details><details><summary><span data-k="faq.5.q">E se eu precisar de ajuda?</span></summary><p data-k="faq.5.a">Chame o suporte no WhatsApp, (11) 93466-4498.</p></details>
+ <h2>Perguntas frequentes</h2>
+ <details><summary>Preciso instalar algum programa?</summary><p>Não. A Lousa Digital abre no navegador, no computador e no celular.</p></details>
+ <details><summary>Posso usar com a minha equipe?</summary><p>Sim. Compartilhe um quadro e veja quem está online, com nome e foto.</p></details>
+ <details><summary>Posso trocar o giz por um quadro de canetão?</summary><p>Posso sim. Você escolhe entre a lousa verde de giz e o quadro branco de canetão e troca quando quiser, com um toque.</p></details>
+ <details><summary>Posso cancelar quando quiser?</summary><p>Sim. Sem fidelidade. Você cancela quando não quiser mais.</p></details>
+ <details><summary>Como começo?</summary><p>Clique em Assinar agora, entre com sua conta Google e siga o passo a passo na própria lousa. Quem já tem conta é só clicar em Entrar.</p></details><details><summary>E se eu precisar de ajuda?</summary><p>Chame o suporte no WhatsApp, (11) 93466-4498.</p></details>
 </section>
 
-<section class="cta" data-h="150"><h2 data-k="cta.title">Organize sua vida em uma lousa só.</h2><p class="lead" data-k="cta.lead">Assine agora e crie seu primeiro quadro hoje.</p><a class="btn" href="#planos" data-buy="pro" data-k="cta.btn">Assinar agora</a></section>
+<section class="cta" data-h="150"><h2>Organize sua vida em uma lousa só.</h2><p class="lead">Assine agora e crie seu primeiro quadro hoje.</p><a class="btn" href="#planos" data-buy="pro">Assinar agora</a></section>
 </main>
-<footer><p>&copy; <span id="yr">2026</span> Lousa Digital. Todos os direitos reservados.</p><p data-k="foot.sup">Suporte no WhatsApp (11) 93466-4498</p><p><a href="termos.html#termos" style="color:inherit">Termos de Uso</a> &middot; <a href="termos.html#privacidade" style="color:inherit">Política de Privacidade</a></p></footer>
+<footer><p>&copy; <span id="yr">2026</span> Lousa Digital. Todos os direitos reservados.</p><p>Suporte no WhatsApp (11) 93466-4498</p><p><a href="termos.html#termos" style="color:inherit">Termos de Uso</a> &middot; <a href="termos.html#privacidade" style="color:inherit">Política de Privacidade</a></p></footer>
 <!-- CHECKOUT SIMULADO: troque pelo gateway real (links/API) depois -->
 <div class="mo" id="ck" role="dialog" aria-modal="true" aria-label="Assinatura"><div class="bx">
  <button class="x" id="cx" aria-label="Fechar">&times;</button><span class="demo">Demonstração: nenhum pagamento real é feito</span>
@@ -321,34 +308,7 @@ gi('yr').textContent=new Date().getFullYear();
 </script>
 <script src="giz.js" defer></script>
 <script>fetch("/api/public").then(r=>r.json()).then(j=>{if(!j)return;
-if(j.site&&!/[?&]edit=1/.test(location.search))applySite(j.site);
 if(j.price)document.querySelectorAll("[data-price]").forEach(e=>e.textContent="R$ "+Number(j.price).toFixed(2).replace(".",","));
 if(j.cards)["free","pro"].forEach(k=>{const u=document.querySelector('[data-bul="'+k+'"]');if(u&&j.cards[k])u.innerHTML=j.cards[k].map(t=>"<li>"+t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</li>").join("")})}).catch(()=>{})</script>
-<script>
-(function(){
- var q=function(x){return[].slice.call(document.querySelectorAll(x))},U=function(id){return"/api/siteconfig?img="+id};
- window.applySite=function(S){
-  S=S||{};var T=S.texts||{};
-  q("[data-k]").forEach(function(el){
-   if(el.dataset.d===undefined)el.dataset.d=el.textContent;
-   var v=typeof T[el.dataset.k]==="string"?T[el.dataset.k]:el.dataset.d;
-   if(el.textContent!==v)el.textContent=v});
-  var cards=(S.cards||[]).filter(function(c){return c&&(c.title||c.text||c.img)}),xg=document.getElementById("xg"),sig=JSON.stringify(cards);
-  if(xg.dataset.sig!==sig){xg.dataset.sig=sig;xg.innerHTML="";
-   cards.forEach(function(c){var a=document.createElement("article");a.className="xk";
-    if(c.img){var i=document.createElement("img");i.src=U(c.img);i.alt=c.title||"";i.loading="lazy";a.appendChild(i)}
-    var d=document.createElement("div");
-    if(c.title){var h=document.createElement("h3");h.textContent=c.title;d.appendChild(h)}
-    if(c.text){var p=document.createElement("p");p.textContent=c.text;d.appendChild(p)}
-    a.appendChild(d);xg.appendChild(a)});
-   document.getElementById("extra").hidden=!cards.length}
-  var H=S.hero||{},im=document.getElementById("hbg");
-  if(H.img){var u=U(H.img);if(im.getAttribute("src")!==u)im.src=u;im.hidden=false;
-   var st=im.style;st.setProperty("--hw",(H.w||900)+"px");st.setProperty("--hwm",(H.wm||420)+"px");
-   st.setProperty("--hx",(H.x==null?70:H.x)+"%");st.setProperty("--hy",(H.y==null?50:H.y)+"%");st.setProperty("--ho",(H.op==null?100:H.op)/100)}
-  else{im.hidden=true;im.removeAttribute("src")}
- };
-})();
-</script>
 </body>
 </html>
