@@ -18,5 +18,5 @@ module.exports = wrap(async (req, res) => {
   const d = await cfgRef("site").get();
   const s = d.exists ? d.data() : {};
   res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-  res.status(200).json({ texts: s.texts || {}, fs: s.fs || {}, cards: s.cards || [], hero: s.hero || {}, cardW: s.cardW || 230, mq: s.mq || {} });
+  res.status(200).json({ texts: s.texts || {}, fs: s.fs || {}, cards: s.cards || [], hero: s.hero || {}, cardW: s.cardW || 230, mq: s.mq || {}, mv: s.mv || {} });
 });

@@ -77,7 +77,16 @@ function cleanSite(s) {
   const q = s.mq && typeof s.mq === "object" ? s.mq : {};
   const qy = num(q.y, -300, 300, 0);
   const mq = { y: qy, ym: num(q.ym, -300, 300, qy) };
-  return { texts, fs, cards, cardW, hero, mq };
+  // posição e tamanho de cada elemento do site: x/y em px e z em % (computador); xm/ym/zm (celular)
+  const mv = {};
+  const m0 = s.mv && typeof s.mv === "object" ? s.mv : {};
+  Object.keys(m0).slice(0, 300).forEach((k) => {
+    if (!KEY.test(k)) return;
+    const v = m0[k] || {};
+    const e = { x: num(v.x, -3000, 3000, 0), y: num(v.y, -3000, 3000, 0), z: num(v.z, 30, 300, 100), xm: num(v.xm, -3000, 3000, 0), ym: num(v.ym, -3000, 3000, 0), zm: num(v.zm, 30, 300, 100) };
+    if (e.x || e.y || e.xm || e.ym || e.z !== 100 || e.zm !== 100) mv[k] = e;
+  });
+  return { texts, fs, cards, cardW, hero, mq, mv };
 }
 
 const actions = {
