@@ -39,6 +39,9 @@ h2{font-size:clamp(32px,5vw,60px);line-height:1.05;letter-spacing:-.03em;font-we
 .mq{overflow:hidden;white-space:nowrap;border-block:1px solid #ffffff18;padding:18px 0;color:var(--m)}
 .mq div{display:inline-block;animation:mq 34s linear infinite}.mq span{margin:0 26px;font:600 24px Caveat,cursive}
 @keyframes mq{to{translate:-50% 0}}
+.mq{position:relative;top:var(--mqy,0px)}
+[data-k]{white-space:pre-line}
+@media(max-width:860px){.mq{top:var(--mqym,var(--mqy,0px))}}
 .story{display:grid;grid-template-columns:1fr 1.1fr;gap:5vw;align-items:start}
 .st{min-height:75vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:.6s}.st.on{opacity:1}
 .st p{color:var(--m);max-width:430px}
@@ -346,7 +349,9 @@ if(j.cards)["free","pro"].forEach(k=>{const u=document.querySelector('[data-bul=
   q("[data-k]").forEach(function(el){
    if(el.dataset.d===undefined)el.dataset.d=el.textContent;
    var v=typeof T[el.dataset.k]==="string"?T[el.dataset.k]:el.dataset.d;
-   if(el.textContent!==v)el.textContent=v});
+   if(el.textContent.replace(/\u200b/g,"")!==v)el.textContent=v});
+  var M=S.mq||{},mqe=document.querySelector(".mq");
+  if(mqe){mqe.style.setProperty("--mqy",(M.y||0)+"px");if(M.ym==null)mqe.style.removeProperty("--mqym");else mqe.style.setProperty("--mqym",M.ym+"px")}
   var cards=(S.cards||[]).filter(function(c){return c&&(c.title||c.text||c.img)}),xg=document.getElementById("xg"),sig=JSON.stringify(cards);
   xg.style.setProperty("--cw",(S.cardW||230)+"px");
   if(xg.dataset.sig!==sig){xg.dataset.sig=sig;xg.innerHTML="";
