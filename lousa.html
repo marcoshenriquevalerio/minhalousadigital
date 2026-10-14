@@ -12400,7 +12400,11 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
             if (n.type === 'shape') st += `height:${n.height || 80}px;`;
             else if (n.type === 'checklist' && n.height) st += `height:${n.height}px;`;
             else if (isFinType(n.type)) st += `height:${n.height || 320}px;`;
-            return `<div class="${cls}" style="${st}">${inner}</div>`;
+            /* monta como elemento isolado: o parser descarta tags sobrando e o HTML sai sempre balanceado */
+            const el = document.createElement('div');
+            el.className = cls; el.setAttribute('style', st); el.innerHTML = inner;
+            el.querySelectorAll('script,iframe,canvas').forEach(x => x.remove());
+            return el.outerHTML;
           }).join('');
         } finally { appData.activeBoardIndex = keep; }
         let ink = '', sb = '';
