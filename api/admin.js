@@ -73,7 +73,11 @@ function cleanSite(s) {
     x, y, xm: num(h.xm, -100, 200, x), ym: num(h.ym, -100, 200, y),   // celular começa igual ao computador
     op: num(h.op, 0, 100, 100)
   };
-  return { texts, fs, cards, cardW, hero };
+  // faixa animada (listas, setas animadas...): deslocamento vertical em px, y = computador, ym = celular
+  const q = s.mq && typeof s.mq === "object" ? s.mq : {};
+  const qy = num(q.y, -300, 300, 0);
+  const mq = { y: qy, ym: num(q.ym, -300, 300, qy) };
+  return { texts, fs, cards, cardW, hero, mq };
 }
 
 const actions = {
