@@ -33,6 +33,7 @@ h2{font-size:clamp(32px,5vw,60px);line-height:1.05;letter-spacing:-.03em;font-we
 .ul{display:block;width:min(560px,80%);height:30px;margin-top:6px;overflow:visible}
 .ul path{fill:none;stroke:var(--a);stroke-width:5;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:dr 1.4s .5s ease forwards}
 .hero small{display:block;margin-top:26px;color:var(--m);font-size:14px}
+.fc.fi-on{background:none;border:0;padding:0;backdrop-filter:none;font-size:0!important;line-height:0}.fc.fi-on .fi{display:block;max-width:none;height:auto;pointer-events:none;user-select:none}
 .fc{position:absolute;padding:12px 18px;border-radius:14px;background:#ffffff0e;border:1px solid #ffffff26;backdrop-filter:blur(8px);font:600 25px Caveat,cursive;animation:bob 6s ease-in-out infinite alternate}
 @keyframes bob{to{translate:0 -20px;rotate:3deg}}
 @keyframes dr{to{stroke-dashoffset:0}}
@@ -134,8 +135,8 @@ footer p+p{margin-top:6px}
 .wa{display:grid;place-items:center;width:62px;height:62px;padding:0}.wa svg{width:32px;height:32px}
 .sw{display:grid;grid-template-columns:1fr 1.1fr;gap:5vw;align-items:center}
 .tg{display:inline-flex;gap:4px;margin-top:28px;padding:5px;border-radius:99px;background:#ffffff0d;border:1px solid #ffffff22}
-.tg button{border:0;padding:12px 24px;border-radius:99px;background:none;color:var(--g);font:inherit;font-weight:700;cursor:pointer;transition:.3s}
-.tg button.on{background:var(--v);color:#0c1f17;box-shadow:0 0 28px #9be3c055}
+.tg [data-t]{display:inline-block;border:0;padding:12px 24px;border-radius:99px;background:none;color:var(--g);font:inherit;font-weight:700;cursor:pointer;transition:.3s}
+.tg [data-t].on{background:var(--v);color:#0c1f17;box-shadow:0 0 28px #9be3c055}
 .mb{--ink:#f2efe4;--c1:#9be3c0;--c2:#f7d56b;--c3:#f4a6c0;position:relative;overflow:hidden;min-height:340px;padding:34px;border-radius:30px;color:var(--ink);background:linear-gradient(160deg,#143426,#0b1912);border:1px solid #9be3c033;box-shadow:0 40px 90px #000b,inset 0 0 90px #9be3c014;transition:color .6s,border-color .6s}
 .mb:before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,#fbfaf6,#e9e8e0);opacity:0;transition:opacity .6s}
 .mb>*{position:relative}
@@ -209,7 +210,7 @@ footer p+p{margin-top:6px}
   <span class="ch" data-k="est.ch">giz ou canetão</span>
   <h2 data-k="est.title">Do giz ao canetão, com um toque</h2>
   <p class="lead" data-k="est.lead">Gosta do clima de sala de aula? Fique com a lousa verde de giz. Prefere algo mais limpo? Troque para o quadro branco de canetão. Suas listas, setas e post-its continuam exatamente iguais.</p>
-  <div class="tg" role="group" aria-label="Escolha o estilo da lousa"><button type="button" class="on" data-t="g" aria-pressed="true">Lousa de giz</button><button type="button" data-t="m" aria-pressed="false">Quadro de canetão</button></div>
+  <div class="tg" data-mv="est.tg" role="group" aria-label="Escolha o estilo da lousa"><span role="button" tabindex="0" class="on" data-t="g" data-k="est.b1" aria-pressed="true">Lousa de giz</span><span role="button" tabindex="0" data-t="m" data-k="est.b2" aria-pressed="false">Quadro de canetão</span></div>
  </div>
  <div class="mb" id="mb" data-t="g">
   <div class="ch mt">Plano da semana</div>
@@ -320,8 +321,8 @@ gi('pay').onclick=()=>{const em=gi('em').value.trim(),er=gi('err');
  gi('ls').textContent=plan=='free'?'Criando sua conta...':mode=='pix'?'Aguardando confirmação do Pix...':'Processando pagamento...';
  setTimeout(()=>{gi('ld').hidden=true;gi('ok').hidden=false;gi('okt').textContent=plan=='free'?'Conta criada!':'Pagamento aprovado!';gi('oks').textContent='Enviamos o passo a passo para '+em+'. Siga os passos e configure seu perfil em poucos minutos.'},2200)};
 const mb=gi('mb');
-function setEstilo(t,save){mb.dataset.t=t;$('.tg button').forEach(x=>{const on=x.dataset.t===t;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});if(save){try{localStorage.setItem('lousa.estilo',t)}catch(e){}dispatchEvent(new CustomEvent('gz-mode',{detail:t}))}}
-$('.tg button').forEach(b=>b.onclick=()=>setEstilo(b.dataset.t,true));
+function setEstilo(t,save){mb.dataset.t=t;$('.tg [data-t]').forEach(x=>{const on=x.dataset.t===t;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});if(save){try{localStorage.setItem('lousa.estilo',t)}catch(e){}dispatchEvent(new CustomEvent('gz-mode',{detail:t}))}}
+$('.tg [data-t]').forEach(b=>{b.onclick=()=>setEstilo(b.dataset.t,true);b.onkeydown=e=>{if(!/[?&]edit=1/.test(location.search)&&(e.key==='Enter'||e.key===' ')){e.preventDefault();b.click()}}});
 try{if(localStorage.getItem('lousa.estilo')==='m')setEstilo('m',false)}catch(e){}
 gi('yr').textContent=new Date().getFullYear();
 </script>
@@ -392,6 +393,12 @@ if(!ED){setInterval(function(){if(!document.hidden)load()},10000);document.addEv
    pv("--hxm",H.xm==null?null:H.xm+"%");pv("--hym",H.ym==null?null:H.ym+"%");
    st.setProperty("--ho",(H.op==null?100:H.op)/100)}
   else{im.hidden=true;im.removeAttribute("src")}
+  var FC=S.fc||{};
+  q(".fc").forEach(function(el){var c=FC[el.dataset.k],im=el.querySelector("img.fi");
+   if(c&&c.mode==="img"&&c.img){el.classList.add("fi-on");
+    if(!im){im=document.createElement("img");im.className="fi";im.alt="";el.appendChild(im)}
+    var u2=U(c.img);if(im.getAttribute("src")!==u2)im.src=u2;im.style.width=(c.w||200)+"px"}
+   else{el.classList.remove("fi-on");if(im)im.remove()}});
   fsApply();mvApply();
  };
 })();

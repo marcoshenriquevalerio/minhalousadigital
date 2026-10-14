@@ -121,7 +121,17 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
 
-main:has(#vSite:not([hidden])){max-width:1600px}
+main:has(#vSite:not([hidden])){max-width:none;padding:12px 14px 12px}
+.sl{display:grid;grid-template-columns:248px minmax(0,1fr);gap:12px;align-items:start}
+.stt{display:grid;gap:6px;align-content:start;max-height:calc(100vh - 24px);overflow:auto;padding-right:2px}
+.stt .box{padding:10px;margin:0}.stt .hpb{margin:4px 0 0}
+.trow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:6px}.trow:last-child{margin-bottom:0}
+.trow b{min-width:40px;text-align:center;font-size:13px}
+.stt .btn.s{padding:6px 10px;font-size:12px}
+.stt .f{margin:0 0 6px;font-size:12px}
+.stb2{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.stb2 .btn{padding:7px 12px;font-size:13px}
+@media(max-width:1000px){.sl{grid-template-columns:minmax(0,1fr)}.stt{max-height:none}}
 .hp{position:relative}.hp summary{list-style:none;cursor:pointer}.hp summary::-webkit-details-marker{display:none}
 .sctl{display:grid;gap:8px;margin:4px 0 12px}
 .hpb{margin:6px 0 0;padding:10px 12px}
@@ -258,36 +268,39 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
 
   <!-- SITE -->
   <section id="vSite" hidden>
-   <h1>Site</h1>
-   <div class="sctl">
-    <details class="hp" id="sHero" open><summary class="btn s">Topo e faixa animada</summary><div class="box hpb">
-      <div class="row" style="margin-bottom:8px;align-items:center"><label class="btn s">Imagem de fundo<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button><span class="sub" id="hMode" style="margin:0;font-size:12px"></span></div>
-      <div class="hpg">
-       <label class="f">Tamanho: <b id="o_sz"></b><input type="range" id="r_sz" min="50" max="2400" step="10"></label>
-       <label class="f">Horizontal: <b id="o_px"></b><input type="range" id="r_px" min="-20" max="120"></label>
-       <label class="f">Vertical: <b id="o_py"></b><input type="range" id="r_py" min="-20" max="120"></label>
-       <label class="f">Opacidade: <b id="o_op"></b><input type="range" id="r_op" min="5" max="100"></label>
-       <label class="f">Faixa animada (subir / descer): <b id="o_mq"></b><input type="range" id="r_mq" min="-300" max="300" step="2"></label>
-       <label class="f">Tamanho dos cards extras: <b id="o_cw"></b><input type="range" id="r_cw" min="140" max="420" step="10"></label>
-      </div>
+   <div class="sl">
+    <div class="stt">
+     <div class="box tsec">
+      <div class="trow"><span class="sub" id="fsL">Letra (selecione um texto):</span></div>
+      <div class="trow"><button class="btn s" id="fsM" type="button" disabled aria-label="Diminuir letra">A&minus;</button><b id="fsV"></b><button class="btn s" id="fsP" type="button" disabled aria-label="Aumentar letra">A+</button><button class="btn s" id="fsR" type="button" disabled>Padrão</button></div>
+      <div class="trow"><span class="sub" id="zL">Elemento:</span><button class="btn s" id="zM" type="button" disabled aria-label="Diminuir elemento">&minus;</button><b id="zV"></b><button class="btn s" id="zP" type="button" disabled aria-label="Aumentar elemento">+</button><button class="btn s" id="zR" type="button" disabled>Voltar ao lugar</button></div>
+     </div>
+     <details class="hp" id="sHero" open><summary class="btn s">Topo e faixa animada</summary><div class="box hpb">
+      <div class="trow"><label class="btn s">Imagem de fundo<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button></div>
+      <span class="sub" id="hMode" style="display:block;margin:0 0 6px;font-size:11px"></span>
+      <label class="f">Tamanho: <b id="o_sz"></b><input type="range" id="r_sz" min="50" max="2400" step="10"></label>
+      <label class="f">Horizontal: <b id="o_px"></b><input type="range" id="r_px" min="-20" max="120"></label>
+      <label class="f">Vertical: <b id="o_py"></b><input type="range" id="r_py" min="-20" max="120"></label>
+      <label class="f">Opacidade: <b id="o_op"></b><input type="range" id="r_op" min="5" max="100"></label>
+      <label class="f">Faixa animada (subir / descer): <b id="o_mq"></b><input type="range" id="r_mq" min="-300" max="300" step="2"></label>
      </div></details>
-    <details class="hp" id="sCardsP"><summary class="btn s">Cards extras</summary><div class="box hpb hpc">
-      <p class="sub" style="margin:0 0 8px;font-size:12px">Aparecem acima de "Tudo que cabe na sua lousa". Use PNG com fundo transparente (a imagem vira quadrada, sem cortar).</p>
+     <details class="hp" id="sFcP"><summary class="btn s">Cards flutuantes do topo</summary><div class="box hpb"><div id="sFc"></div></div></details>
+     <details class="hp" id="sCardsP"><summary class="btn s">Cards extras</summary><div class="box hpb">
+      <label class="f">Tamanho dos cards: <b id="o_cw"></b><input type="range" id="r_cw" min="140" max="420" step="10"></label>
       <div id="sCards"></div>
       <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
      </div></details>
-   </div>
-   <div class="row stb">
-    <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
-    <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
-    <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
-    <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
-    <button class="btn s" id="mvB" type="button" aria-pressed="false">Mover elementos</button>
-    <span class="row fsb"><span class="sub" id="zL" style="margin:0;font-size:13px">Elemento:</span><button class="btn s" id="zM" type="button" disabled aria-label="Diminuir elemento">&minus;</button><b id="zV" style="min-width:44px;text-align:center"></b><button class="btn s" id="zP" type="button" disabled aria-label="Aumentar elemento">+</button><button class="btn s" id="zR" type="button" disabled>Voltar ao lugar</button></span>
-    <span class="row fsb"><span class="sub" id="fsL" style="margin:0;font-size:13px">Clique num texto para mudar o tamanho da letra</span><button class="btn s" id="fsM" type="button" disabled aria-label="Diminuir letra">A&minus;</button><b id="fsV" style="min-width:44px;text-align:center"></b><button class="btn s" id="fsP" type="button" disabled aria-label="Aumentar letra">A+</button><button class="btn s" id="fsR" type="button" disabled>Padrão</button></span>
-   </div>
-   <div class="sg">
-    <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
+    </div>
+    <div class="spv">
+     <div class="stb2">
+      <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
+      <button class="btn s" id="mvB" type="button" aria-pressed="false">Mover elementos</button>
+      <button class="btn p s" id="sSave" type="button" disabled>Salvar e publicar</button>
+      <button class="btn s" id="sReset" type="button">Restaurar textos</button>
+      <span class="sub" id="sSt" style="margin:0;font-size:12px"></span>
+     </div>
+     <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
+    </div>
    </div>
   </section>
 
@@ -558,15 +571,17 @@ $('tb').onclick=async e=>{const b=e.target.closest('[data-rm]');if(!b)return;
 let SS=null,SDEV='d',sLoaded=false,SEL=null;
 const SIMG=id=>'/api/siteconfig?img='+id;
 const sf=()=>$('sFrame');
+const sH=()=>innerWidth>1000?Math.max(380,Math.round(innerHeight-($('sBox').getBoundingClientRect().top+scrollY)-14)):Math.round(innerHeight*.78);
+addEventListener('resize',()=>{if(SS)sFit()});
 function sDirty(v){$('sSave').disabled=!v;$('sSt').textContent=v?'Alterações não publicadas.':'Tudo publicado.'}
 function sApply(){try{sf().contentWindow.applySite(SS)}catch(e){}}
 function sFit(){const box=$('sBox'),f=sf();if(!box.clientWidth)return;
  try{f.contentDocument.documentElement.classList.toggle('nosb',SDEV==='m')}catch(e){}
- if(SDEV==='m'){const h=Math.max(560,Math.round(innerHeight*.78));box.style.overflow='auto';box.style.height=h+'px';f.style.cssText='width:390px;height:'+(h-40)+'px;margin:20px auto;transform:none;display:block;border-radius:24px;box-shadow:0 0 0 8px #1b2a22,0 0 0 9px #ffffff2e'}
- else{const W=1200,sc=Math.min(1,box.clientWidth/W),h=Math.max(520,Math.round(innerHeight*.78));box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:'+W+'px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
+ if(SDEV==='m'){const h=sH();box.style.overflow='auto';box.style.height=h+'px';f.style.cssText='width:390px;height:'+(h-40)+'px;margin:20px auto;transform:none;display:block;border-radius:24px;box-shadow:0 0 0 8px #1b2a22,0 0 0 9px #ffffff2e'}
+ else{const W=1200,sc=Math.min(1,box.clientWidth/W),h=sH();box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:'+W+'px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
 async function siteOpen(){
  if(!sLoaded){
-  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};SS.mv=SS.mv||{};sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
+  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};SS.mv=SS.mv||{};SS.fc=SS.fc||{};sFc();sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
   catch(e){toast(e.message||'Não foi possível abrir o site.',true);return}}
  sFit()}
 sf().onload=()=>{
@@ -672,10 +687,22 @@ $('zR').onclick=()=>{if(!SEL)return;const o=SS.mv[SEL];if(!o)return;const m=SDEV
 const fsCur=()=>((SS.fs[SEL]||{})[SDEV])||100;
 function fsShow(){zShow();const on=!!SEL&&!!SS;['fsM','fsP','fsR'].forEach(i=>$(i).disabled=!on);
  $('fsV').textContent=on?fsCur()+'%':'';
- $('fsL').textContent=on?'Letra ('+(SDEV==='m'?'celular':'computador')+'):':'Clique num texto para mudar o tamanho da letra'}
+ $('fsL').textContent=on?'Letra ('+(SDEV==='m'?'celular':'computador')+'):':'Letra (selecione um texto):'}
 function fsSet(v){if(!SEL)return;v=Math.max(30,Math.min(300,v));const o=SS.fs[SEL]=Object.assign({d:100,m:100},SS.fs[SEL]);o[SDEV]=v;
  if(o.d===100&&o.m===100)delete SS.fs[SEL];sApply();fsShow();sDirty(true)}
 $('fsM').onclick=()=>fsSet(fsCur()-10);$('fsP').onclick=()=>fsSet(fsCur()+10);$('fsR').onclick=()=>fsSet(100);
+
+/* cards flutuantes do topo: manter o card ou virar só uma imagem PNG */
+const FCK=[['hero.fc1','Card 1 (responder clientes)'],['hero.fc2','Card 2 (ideia nova)'],['hero.fc3','Card 3 (R$ entrou)']];
+function sFc(){if(!SS)return;$('sFc').innerHTML=FCK.map(([k,n])=>{const c=SS.fc[k]||{},im=c.mode==='img';
+ return '<div class="sk" data-fk="'+k+'" style="padding:8px;margin-bottom:8px"><b style="font-size:12px">'+n+'</b><div class="trow"><button class="btn s'+(im?'':' p')+'" type="button" data-fm="card">Card</button><button class="btn s'+(im?' p':'')+'" type="button" data-fm="img">Só imagem PNG</button></div>'
+ +(im?'<div class="trow">'+(c.img?'<img src="'+SIMG(c.img)+'" alt="" style="width:40px;height:40px">':'')+'<label class="btn s">'+(c.img?'Trocar PNG':'Escolher PNG')+'<input type="file" accept="image/*" data-fup hidden></label></div><label class="f">Largura: <b>'+(c.w||200)+' px</b><input type="range" data-fw min="40" max="800" step="10" value="'+(c.w||200)+'"></label>':'')+'</div>'}).join('')}
+$('sFc').addEventListener('click',e=>{const b=e.target.closest('[data-fm]'),k=e.target.closest('[data-fk]');if(!b||!k)return;const key=k.dataset.fk;
+ if(b.dataset.fm==='card')delete SS.fc[key];else SS.fc[key]=Object.assign({w:200,img:''},SS.fc[key],{mode:'img'});
+ sFc();sApply();sDirty(true)});
+$('sFc').addEventListener('input',e=>{if(!e.target.matches('[data-fw]'))return;const key=e.target.closest('[data-fk]').dataset.fk;SS.fc[key].w=+e.target.value;e.target.parentNode.querySelector('b').textContent=e.target.value+' px';sApply();sDirty(true)});
+$('sFc').addEventListener('change',async e=>{if(!e.target.matches('[data-fup]'))return;const key=e.target.closest('[data-fk]').dataset.fk,f=e.target.files[0];e.target.value='';if(!f)return;
+ toast('Enviando imagem...');try{SS.fc[key].img=await sUpload(f,800,false);sFc();sApply();sDirty(true);toast('Imagem pronta.')}catch(err){toast(err.message,true)}});
 
 /* cards extras */
 function sCards(){
@@ -705,7 +732,7 @@ $('sCards').addEventListener('change',async e=>{if(!e.target.matches('[data-up]'
 
 /* salvar / restaurar */
 $('sSave').onclick=async()=>{const r=await run($('sSave'),()=>call('saveSite',{site:SS}),'Site publicado');
- if(r){SS=r.site;sCards();sHero();sApply();sDirty(false)}};
+ if(r){SS=r.site;SS.fc=SS.fc||{};SS.mv=SS.mv||{};SS.mq=SS.mq||{y:0,ym:0};sFc();sCards();sHero();sApply();sDirty(false)}};
 $('sReset').onclick=()=>{if(!confirm('Voltar todos os textos e tamanhos de letra ao original? Só vale depois de salvar.'))return;SS.texts={};SS.fs={};sApply();fsShow();sDirty(true)};
 
 /* sessão */
