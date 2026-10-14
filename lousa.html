@@ -6360,21 +6360,23 @@
         const portals = Array.from(document.querySelectorAll('.bh-portal:not(.closing)'));
         if (portals.some(p => p.classList.contains('eat'))) { reset(); nukeStop(); t0 = now; soundStarted = false; }   // entrou num buraco: recomeça
         const on = !!ghost && portals.length > 0;
-        if (!on) { if (active) reset(); nukeStop(); window.__bhState = null; active = false; alertShown = false; soundStarted = false; return; }
+        if (!on) { if (active) reset(); nukeStop(); window.__bhState = null; const bv = document.getElementById('boardViewport'); if (bv) bv.style.filter = ''; active = false; alertShown = false; soundStarted = false; return; }
         if (!active) { active = true; t0 = now; alertShown = false; soundStarted = false; }
         if (alertShown) return;
         const p = Math.min(1, (now - t0) / SUCK_MS);
         if (!soundStarted && now - t0 >= SUCK_MS - 9000) { soundStarted = true; soundAt = now; nukeStart(); }
         if (soundStarted && now - soundAt >= 9000) nukeStop();   // o som dura 9s
-        window.__bhState = { p, portals: portals.map(pt => { const r = pt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) };
+        window.__bhState = { p, portals: portals.map(pt => { const r = pt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, R: r.width * 0.36 }; }) };
+        const bvp = document.getElementById('boardViewport');
+        if (bvp) bvp.style.filter = p > 0 ? `saturate(${(1 - 0.92 * p).toFixed(3)}) brightness(${(1 - 0.25 * p).toFixed(3)})` : '';
         if (p >= 1) { reset(); window.__bhState = null; showAlert(); return; }
         applyPull(p, portals, now);
       }
       requestAnimationFrame(frame);
     })();
 
-    /* ---- efeitos do buraco negro: faíscas e pedras se espalhando pela lousa ----
-       Aumentam conforme a sucção avança (window.__bhState) e explodem no alerta. */
+    /* ---- efeitos do buraco negro: faíscas saindo do anel, pedras realistas e pedaços da lousa ----
+       Lê window.__bhState (p = progresso da sucção, portals = centro e raio de cada buraco). */
     (function () {
       const cv = document.createElement('canvas');
       cv.id = 'bhFx';
@@ -6385,60 +6387,118 @@
       fit(); addEventListener('resize', fit);
       let parts = [], last = 0;
       const rnd = (a, b) => a + Math.random() * (b - a);
-      function spawnFrom(c, rock, speedMin, speedMax) {
-        const a = Math.random() * Math.PI * 2, sp = rnd(speedMin, speedMax);
-        if (rock) {
-          const n = 5 + Math.floor(Math.random() * 3), size = rnd(4, 12), pts = [];
-          for (let i = 0; i < n; i++) { const an = i / n * Math.PI * 2, r = size * rnd(0.6, 1); pts.push([Math.cos(an) * r, Math.sin(an) * r]); }
-          const g = Math.floor(rnd(90, 150));
-          parts.push({ rock: true, x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: rnd(0, 6), vr: rnd(-6, 6), pts,
-            col: `rgb(${g},${g - 8},${g - 18})`, life: rnd(2.5, 4.2), age: 0 });
-        } else {
-          parts.push({ rock: false, x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-            life: rnd(0.5, 1.2), age: 0, hue: rnd(18, 48) });
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+
+      /* forma irregular (contorno de pedra/fragmento) */
+      function jagged(size, n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const an = i / n * Math.PI * 2 + rnd(-0.25, 0.25), r = size * rnd(0.55, 1);
+          pts.push([Math.cos(an) * r, Math.sin(an) * r * rnd(0.6, 1)]);
         }
+        return pts;
+      }
+      /* ponto no anel do buraco: [x, y, direção tangente] */
+      function ringPoint(c) {
+        const a = Math.random() * Math.PI * 2, R = (c.R || 52) * rnd(0.96, 1.08);
+        return { x: c.x + Math.cos(a) * R, y: c.y + Math.sin(a) * R, a, R };
+      }
+      function spawnSpark(c) {
+        const q = ringPoint(c), dir = Math.random() < 0.5 ? 1 : -1;
+        const tang = 260 * dir, out = rnd(120, 420);            // sai do anel, orbita e depois se afasta
+        const tx = -Math.sin(q.a) * tang, ty = Math.cos(q.a) * tang;
+        const ox = Math.cos(q.a) * out, oy = Math.sin(q.a) * out;
+        parts.push({ kind: 'spark', x: q.x, y: q.y, vx: tx + ox, vy: ty + oy,
+          life: rnd(0.45, 1.1), age: 0, hue: rnd(18, 48) });
+      }
+      function spawnRock(c, speedMin, speedMax) {
+        const q = ringPoint(c), sp = rnd(speedMin, speedMax), dir = Math.random() < 0.5 ? 1 : -1;
+        const tang = sp * 0.35 * dir;
+        const size = rnd(5, 13);
+        const g = Math.floor(rnd(70, 140));
+        parts.push({ kind: 'rock', x: q.x, y: q.y,
+          vx: Math.cos(q.a) * sp - Math.sin(q.a) * tang, vy: Math.sin(q.a) * sp + Math.cos(q.a) * tang,
+          rot: rnd(0, 6), vr: rnd(-7, 7), pts: jagged(size, Math.floor(rnd(6, 9))), size,
+          base: g, life: rnd(2.6, 4.4), age: 0 });
+      }
+      function spawnChunk(c) {
+        /* pedaço da lousa verde que se solta perto do buraco e é puxado para ele */
+        const a = Math.random() * Math.PI * 2, d = (c.R || 52) * rnd(2.2, 4.2);
+        const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
+        const size = rnd(14, 34), sp = rnd(120, 260), swirl = (Math.random() < 0.5 ? 1 : -1) * rnd(60, 140);
+        const inx = -Math.cos(a), iny = -Math.sin(a);
+        parts.push({ kind: 'chunk', x, y,
+          vx: inx * sp - iny * swirl, vy: iny * sp + inx * swirl,
+          rot: rnd(0, 6), vr: rnd(-3, 3), pts: jagged(size, Math.floor(rnd(6, 9))), size,
+          life: rnd(2.2, 3.4), age: 0 });
       }
       window.__bhFxBurst = (n) => {
-        const st = window.__bhState || { portals: [] };
-        const c = (st.portals && st.portals[0]) || { x: innerWidth - 84, y: innerHeight / 2 };
-        for (let i = 0; i < n; i++) spawnFrom(c, Math.random() < 0.35, 260, 1100);
+        const st = window.__bhState;
+        const c = (st && st.portals && st.portals[0]) || { x: innerWidth - 84, y: innerHeight / 2, R: 52 };
+        for (let i = 0; i < n; i++) {
+          const r = Math.random();
+          if (r < 0.45) spawnSpark(c); else if (r < 0.85) spawnRock(c, 300, 1100); else spawnChunk(c);
+        }
       };
+      function drawRock(p, fade) {
+        const pts = p.pts, s = p.size;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
+        ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+        const grd = ctx.createLinearGradient(-s, -s, s, s);
+        grd.addColorStop(0, `rgb(${p.base + 60},${p.base + 56},${p.base + 50})`);
+        grd.addColorStop(0.55, `rgb(${p.base},${p.base - 4},${p.base - 10})`);
+        grd.addColorStop(1, `rgb(${p.base - 45},${p.base - 48},${p.base - 52})`);
+        ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
+        ctx.fillStyle = grd; ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(20,20,20,.55)'; ctx.lineWidth = 1; ctx.stroke();
+        /* rachadura e brilho de lasca */
+        ctx.beginPath(); ctx.moveTo(pts[0][0] * .3, pts[0][1] * .3); ctx.lineTo(pts[2 % pts.length][0] * .6, pts[2 % pts.length][1] * .6);
+        ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.stroke();
+        ctx.restore();
+      }
+      function drawChunk(p, fade) {
+        const pts = p.pts, s = p.size;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
+        ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+        const grd = ctx.createLinearGradient(-s, -s, s, s);
+        grd.addColorStop(0, '#2d5e47'); grd.addColorStop(0.6, '#1f4534'); grd.addColorStop(1, '#17332a');
+        ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
+        ctx.fillStyle = grd; ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(253,230,138,.35)'; ctx.lineWidth = 1.2; ctx.stroke();   // borda de giz
+        ctx.restore();
+      }
       function frame(now) {
         requestAnimationFrame(frame);
         const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
         const st = window.__bhState;
         if (st && st.portals && st.portals.length) {
           const k = st.p;
-          const rate = k * 6;                                    // faíscas por frame, aumentam com a sucção
-          for (let i = 0; i < rate; i++) if (Math.random() < 0.6) {
-            const c = st.portals[Math.floor(Math.random() * st.portals.length)];
-            spawnFrom(c, false, 240, 900);
-          }
-          if (Math.random() < k * 0.35) {
-            const c = st.portals[Math.floor(Math.random() * st.portals.length)];
-            spawnFrom(c, true, 120, 420 + 300 * k);
-          }
+          const c = () => st.portals[Math.floor(Math.random() * st.portals.length)];
+          for (let i = 0; i < k * 7; i++) if (Math.random() < 0.7) spawnSpark(c());
+          if (Math.random() < k * 0.45) spawnRock(c(), 120, 320 + 260 * k);
+          if (k > 0.55 && Math.random() < (k - 0.55) * 1.6) spawnChunk(c());
         }
         ctx.clearRect(0, 0, cv.width, cv.height);
-        parts = parts.filter(p => p.age < p.life && p.x > -60 && p.x < innerWidth + 60 && p.y > -60 && p.y < innerHeight + 60);
+        parts = parts.filter(p => p.age < p.life && p.x > -80 && p.x < innerWidth + 80 && p.y > -80 && p.y < innerHeight + 80);
         for (const p of parts) {
           p.age += dt;
           p.x += p.vx * dt; p.y += p.vy * dt;
-          const drag = Math.pow(0.35, dt);
+          const drag = Math.pow(p.kind === 'spark' ? 0.25 : 0.45, dt);
           p.vx *= drag; p.vy *= drag;
-          const fade = Math.min(1, (p.life - p.age) / 0.35);
-          if (p.rock) {
-            p.rot += p.vr * dt; p.vy += 90 * dt;                // pedras caem levemente
-            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
-            ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
-            ctx.closePath(); ctx.fillStyle = p.col; ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+          const fade = Math.min(1, (p.life - p.age) / 0.4);
+          if (p.kind === 'rock') {
+            p.rot += p.vr * dt; p.vy += 60 * dt;
+            drawRock(p, fade);
+          } else if (p.kind === 'chunk') {
+            p.rot += p.vr * dt;
+            drawChunk(p, fade);
           } else {
-            const len = 10 + 10 * (1 - p.age / p.life), a = fade;
-            ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
+            const sp = Math.hypot(p.vx, p.vy) || 1, len = 6 + 12 * (1 - p.age / p.life);
+            ctx.save(); ctx.globalAlpha = fade; ctx.lineCap = 'round';
             ctx.strokeStyle = `hsl(${p.hue},100%,62%)`; ctx.shadowColor = `hsl(${p.hue},100%,55%)`; ctx.shadowBlur = 8;
             ctx.lineWidth = 2;
-            const sp = Math.hypot(p.vx, p.vy) || 1;
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx / sp * len, p.y - p.vy / sp * len); ctx.stroke();
             ctx.restore();
           }
