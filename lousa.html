@@ -824,6 +824,14 @@
     #moreDot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
     #notifPanel { position: fixed; z-index: 10040; top: 58px; right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; }
     .nt-row { background: rgba(0,0,0,.28); border: 1px solid rgba(251,191,36,.25); border-radius: 10px; padding: 9px 10px; margin-bottom: 7px; color: #fef3c7; }
+    .bl-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .bl-tab { padding: 8px 14px; border-radius: 999px; background: #292524; border: 1.5px solid #44403c; color: #d6d3d1; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .bl-tab span { opacity: .65; margin-left: 4px; }
+    .bl-tab.on { background: #fbbf24; border-color: #fbbf24; color: #1c1917; }
+    .bl-hint { text-align: center; color: #a8a29e; font-size: 12px; margin-top: 14px; }
+    .bl-card { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+    .bl-card.bl-lift { z-index: 5; transition: none; box-shadow: 0 16px 36px rgba(0,0,0,.6); border-color: #fbbf24; touch-action: none; }
+    .bl-card.bl-over { border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.35); }
     .bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
     .bl-card { position: relative; text-align: left; padding: 8px; border-radius: 16px; background: #1c1917; border: 1.5px solid #44403c; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; color: #e7e5e4; }
     .bl-card:hover { transform: translateY(-3px); border-color: #fbbf24; box-shadow: 0 10px 26px rgba(0,0,0,.5); }
@@ -11109,7 +11117,7 @@
 
 <!-- FINANÇAS: relatório em PDF (pré-visualização, baixar, compartilhar) -->
 <div id="finPdfModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 hidden">
-  <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-3xl h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+  <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-md h-[88vh] flex flex-col shadow-2xl overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-stone-600">
       <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-file-pdf mr-2"></i>Relatório em PDF</h3>
       <button onclick="finPdfClose()" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -11357,20 +11365,70 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       });
       return base + `<svg viewBox="${x0} ${y0} ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g}</svg></div>`;
     }
-    function openBoardList() {
+    let blTab = 'normal', blDragged = false;
+    const blKind = (b) => b.kind === 'finance' ? 'finance' : (b.shared ? 'shared' : 'normal');
+    function blSetTab(t) { blTab = t; openBoardList(true); }
+    function openBoardList(keep) {
       const cur = appData.activeBoardIndex;
+      const cnt = { normal: 0, finance: 0, shared: 0 };
+      appData.boards.forEach(b => cnt[blKind(b)]++);
+      if (!keep && appData.boards[cur]) blTab = blKind(appData.boards[cur]);
       byId('boardListCount').textContent = appData.boards.length + (appData.boards.length === 1 ? ' lousa' : ' lousas');
-      byId('boardListBody').innerHTML = '<div class="bl-grid">' + appData.boards.map((b, i) => {
+      const tabs = [['normal', 'fa-chalkboard', 'Normais'], ['finance', 'fa-sack-dollar', 'Finanças'], ['shared', 'fa-user-group', 'Compartilhadas']];
+      const bar = '<div class="bl-tabs">' + tabs.map(t => `<button type="button" class="bl-tab${blTab === t[0] ? ' on' : ''}" onclick="blSetTab('${t[0]}')"><i class="fa-solid ${t[1]}"></i> ${t[2]} <span>${cnt[t[0]]}</span></button>`).join('') + '</div>';
+      const cards = appData.boards.map((b, i) => ({ b, i })).filter(o => blKind(o.b) === blTab).map(({ b, i }) => {
         const tag = b.kind === 'finance' ? '<i class="fa-solid fa-sack-dollar"></i> Finanças' : (b.shared ? '<i class="fa-solid fa-user-group"></i> Compartilhada' : '<i class="fa-solid fa-chalkboard"></i> Lousa');
         const n = (b.notes || []).length;
         let th = ''; try { th = blThumb(b); } catch (e) { th = '<div class="bl-th"></div>'; }
-        return `<button type="button" class="bl-card${i === cur ? ' on' : ''}" onclick="goBoard(${i})">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</button>`;
-      }).join('') + '</div>';
+        return `<button type="button" class="bl-card${i === cur ? ' on' : ''}" data-i="${i}" onclick="if(blDragged){blDragged=false;return;}goBoard(${i})">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</button>`;
+      }).join('');
+      byId('boardListBody').innerHTML = bar + (cards ? '<div class="bl-grid">' + cards + '</div><p class="bl-hint">Segure uma lousa e arraste para mudar a ordem</p>' : '<p class="bl-hint" style="padding:30px 0">Nenhuma lousa nesta aba.</p>');
+      blBindDrag();
       openOv('boardListModal');
-      blSnap().then((ok) => {   // tira a foto atual da lousa aberta e troca na hora
-        if (!ok || byId('boardListModal').classList.contains('hidden')) return;
-        const card = byId('boardListBody').querySelector('.bl-card.on'), b = appData.boards[cur];
-        if (card && b) { const th = card.querySelector('.bl-th'); if (th) th.outerHTML = blThumb(b); }
+    }
+    function blBindDrag() {
+      const grid = byId('boardListBody').querySelector('.bl-grid'); if (!grid) return;
+      grid.querySelectorAll('.bl-card').forEach(card => {
+        card.addEventListener('pointerdown', (e) => {
+          if (e.button) return;
+          const sx = e.clientX, sy = e.clientY; let lifted = false, over = null, timer;
+          const move = (ev) => {
+            if (!lifted) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) cleanup(); return; }
+            ev.preventDefault();
+            card.style.transform = `translate(${ev.clientX - sx}px,${ev.clientY - sy}px) scale(1.04)`;
+            card.style.pointerEvents = 'none';
+            const el = document.elementFromPoint(ev.clientX, ev.clientY);
+            card.style.pointerEvents = '';
+            const t = el && el.closest ? el.closest('.bl-card') : null;
+            if (over && over !== t) over.classList.remove('bl-over');
+            over = t && t !== card && grid.contains(t) ? t : null;
+            if (over) over.classList.add('bl-over');
+          };
+          const cleanup = () => {
+            clearTimeout(timer);
+            document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+          };
+          const up = () => {
+            cleanup();
+            if (!lifted) return;
+            blDragged = true; setTimeout(() => { blDragged = false; }, 50);
+            if (over) {
+              const from = +card.dataset.i, to = +over.dataset.i;
+              const idxs = appData.boards.map((b, i) => i).filter(i => blKind(appData.boards[i]) === blTab);
+              const act = appData.boards[appData.activeBoardIndex];
+              const list = idxs.map(i => appData.boards[i]);
+              const a = idxs.indexOf(from), z = idxs.indexOf(to);
+              const [m] = list.splice(a, 1); list.splice(z, 0, m);
+              idxs.forEach((slot, k) => { appData.boards[slot] = list[k]; });
+              appData.activeBoardIndex = Math.max(0, appData.boards.indexOf(act));
+              saveData();
+            }
+            openBoardList(true);
+          };
+          timer = setTimeout(() => { lifted = true; card.classList.add('bl-lift'); if (navigator.vibrate) try { navigator.vibrate(15); } catch (x) {} }, 350);
+          document.addEventListener('pointermove', move, { passive: false }); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+        });
+        card.addEventListener('contextmenu', (e) => e.preventDefault());
       });
     }
     function goBoard(i) {
@@ -12118,8 +12176,8 @@ html,body{background:#eef1ef}body{font-family:'Space Grotesk','Segoe UI',system-
 .page{position:relative;width:210mm;min-height:296mm;margin:16px auto;padding:30px 36px 18px;display:flex;flex-direction:column;border-radius:6px;box-shadow:0 6px 28px rgba(15,40,28,.14);background:#fff}
 .page:last-child{break-after:auto;page-break-after:auto}
 .hd{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid #e5e7eb}
-.wm{position:relative;display:inline-block;font-family:'Caveat','Patrick Hand',cursive;font-weight:700;font-size:44px;line-height:1;color:#1d6b46;letter-spacing:.5px;padding-bottom:12px}
-.wm .scr{position:absolute;left:-4px;right:-6px;bottom:0;width:calc(100% + 10px);height:14px;overflow:visible}
+.wm{position:relative;display:inline-block;font-family:'Caveat','Patrick Hand',cursive;font-weight:700;font-size:44px;line-height:1;color:#1d6b46;letter-spacing:.5px;padding-bottom:0}
+.wm .scr{display:block;width:230px;height:14px;margin:4px 0 0 -2px}
 .tag{margin-top:7px;font-size:10.5px;letter-spacing:.4px;color:#64748b}
 .hd-r{font-size:10px;letter-spacing:2.5px;color:#64748b;text-align:right;font-weight:600}.hd-r span{display:block;color:#1f2937;letter-spacing:1px;margin-top:4px;font-weight:500;font-size:11px}
 .bd{flex:1;min-height:0}
@@ -12204,7 +12262,7 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
       }
       const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO</div><h1>${esc(name)}</h1><div class="sub">${periodTxt(all)} · ${pl(all.length, 'lançamento', 'lançamentos')}${fl ? ' · Filtros: ' + esc(fl) : ''}</div>` +
         (cards ? `<div class="blk">${cards}</div>` : '') + (table ? `<div class="blk">${table}</div>` : '') + (charts ? `<div class="blk">${charts}</div>` : '');
-      const doc = `<section class="page"><header class="hd"><div class="hd-l"><div class="wm">Lousa Digital<svg class="scr" viewBox="0 0 260 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9.5C34 4 66 11.5 104 6.5S178 3.5 220 7.5s30 1 37-1.5" fill="none" stroke="#f6c945" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.5C60 8.5 118 12 176 9" fill="none" stroke="#f6c945" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tag">Sua lousa de giz, feita para o futuro.</div></div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span><b>Lousa Digital</b></footer></section>`;
+      const doc = `<section class="page"><header class="hd"><div class="hd-l"><div class="wm">Lousa Digital<svg class="scr" width="230" height="14" viewBox="0 0 260 14" aria-hidden="true"><path d="M3 9.5C34 4 66 11.5 104 6.5S178 3.5 220 7.5s30 1 37-1.5" fill="none" stroke="#f6c945" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.5C60 8.5 118 12 176 9" fill="none" stroke="#f6c945" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tag">Sua lousa de giz, feita para o futuro.</div></div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span><b>Lousa Digital</b></footer></section>`;
       const title = multi ? 'Relatório geral de finanças' : 'Relatório — ' + name;
       const tail = auto ? `<script>window.addEventListener('load',function(){var go=function(){setTimeout(function(){window.print()},350)};try{Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,2500)})]).then(go)}catch(e){go()}})<\/script>` : '';
       return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><style>${CSS}</style></head><body>` +
@@ -12420,7 +12478,7 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
         pdfState = { blob: res.blob, url: URL.createObjectURL(res.blob), name, title };
         const n = res.pages.length;
         byId('finPdfPages').innerHTML = res.pages.map((src, i) =>
-          `<div style="width:100%;max-width:640px;aspect-ratio:210/297;background:#fff;overflow:hidden;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.45)"><img alt="Página ${i + 1}" src="${src}" style="display:block;width:100%;margin-top:${(PDF_M / PDF_W * 100).toFixed(2)}%"></div><div class="text-[11px] text-stone-300 -mt-2">Página ${i + 1} de ${n}</div>`).join('');
+          `<div style="width:100%;max-width:400px;aspect-ratio:210/297;background:#fff;overflow:hidden;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.45)"><img alt="Página ${i + 1}" src="${src}" style="display:block;width:100%;margin-top:${(PDF_M / PDF_W * 100).toFixed(2)}%"></div><div class="text-[11px] text-stone-300 -mt-2">Página ${i + 1} de ${n}</div>`).join('');
         pdfStatus('', false);
       } catch (e) {
         if (job !== pdfJob) return;
