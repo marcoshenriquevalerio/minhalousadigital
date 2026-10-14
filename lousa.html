@@ -6558,7 +6558,7 @@
        ao encostar nele a pessoa vai para a outra lousa ainda segurando a linha e solta onde quiser. */
     (function () {
       const HOLD = 1000, MOVE_TOL = 8, PR = 62;
-      let timer = null, pend = null, st = null, portals = [];
+      let timer = null, pend = null, st = null, portals = [];  /* portals = o único buraco negro (porta do vórtice) */
       /* ---------- sons do buraco negro (WebAudio, sem arquivos) ---------- */
       let ac = null, hum = null;
       const AC = () => { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch (e) { return null; } };
@@ -6610,34 +6610,257 @@
         r.style.transform = `translateY(${y - st.grab - nat}px) scale(1.02)`;
       }
 
-      /* ---------- buracos negros ---------- */
+      /* ---------- buraco negro (canvas realista) + vórtice temporal ---------- */
+      const TAU = Math.PI * 2, TILT = .27;
+      let gRaf = 0, vx = null, SP = null;
+      (function () { const s = document.createElement('style'); s.textContent = '.bh-portal canvas{position:absolute;inset:0;width:100%;height:100%;display:block}'; document.head.appendChild(s); })();
+      const vortexOn = () => !!vx && !vx.closing;
+      const targets = () => vortexOn() ? vx.holes : portals;
+
+      /* --- renderer: disco de acreção com efeito Doppler, anel de fótons, halo lenteado, grãos orbitando --- */
+      const RC = { hot: [[255, 246, 222], [255, 160, 70]], mid: [[255, 196, 110], [225, 105, 40]], dim: [[150, 62, 22], [95, 32, 46]] };
+      const mixc = (a, b, u) => Math.round(a + (b - a) * u);
+      function rc(k, u, al) { const A = RC[k][0], B = RC[k][1]; return 'rgba(' + mixc(A[0], B[0], u) + ',' + mixc(A[1], B[1], u) + ',' + mixc(A[2], B[2], u) + ',' + al + ')'; }
+      function cgrad(c, cx, cy, u, al) {   // lado esquerdo (que se aproxima) mais brilhante
+        if (!c.createConicGradient) return rc('mid', u, al * .8);
+        const g = c.createConicGradient(0, cx, cy);
+        g.addColorStop(0, rc('dim', u, al * .35)); g.addColorStop(.25, rc('mid', u, al * .75)); g.addColorStop(.5, rc('hot', u, al));
+        g.addColorStop(.75, rc('mid', u, al * .75)); g.addColorStop(1, rc('dim', u, al * .35));
+        return g;
+      }
+      function bhDisk(c, cx, cy, R, t, seed, front, fl) {
+        const W = R * 4;
+        c.save(); c.beginPath(); front ? c.rect(cx - W, cy, W * 2, W) : c.rect(cx - W, cy - W, W * 2, W); c.clip();
+        const N = 9;
+        for (let k = 0; k < N; k++) {
+          const u = k / (N - 1), rx = R * (1.5 + u * 1.4), ry = rx * TILT;
+          const al = (1 - u * .55) * (.75 + .25 * Math.sin(t * 2.6 + k * 1.9 + seed)) * (1 + fl * .6), lw = R * .2;
+          c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, TAU);
+          c.setLineDash([]); c.lineWidth = lw; c.strokeStyle = cgrad(c, cx, cy, u, al * .42); c.stroke();
+          const d1 = rx * (.5 + .35 * ((k * 37) % 5) / 5), d2 = rx * (.22 + .15 * ((k * 53) % 4) / 4);
+          c.setLineDash([d1, d2, d1 * .35, d2 * 1.3]); c.lineDashOffset = t * R * (4.2 / (u + .45)) + k * 17;
+          c.lineWidth = lw * .6; c.strokeStyle = cgrad(c, cx, cy, u, Math.min(1, al * 1.05)); c.stroke();
+        }
+        c.setLineDash([]); c.restore();
+      }
+      function bhHalo(c, cx, cy, R, t, seed, fl) {   // imagem lenteada do disco de trás, em volta da sombra
+        for (let j = 0; j < 6; j++) {
+          const rr = R * (1.05 + j * .12), u = j / 5, al = (.95 - j * .13) * (.85 + .15 * Math.sin(t * 2.2 + j + seed)) * (1 + fl * .6);
+          c.beginPath(); c.arc(cx, cy, rr, 0, TAU);
+          c.setLineDash([]); c.lineWidth = R * .15; c.strokeStyle = cgrad(c, cx, cy, u * .7, al * .55); c.stroke();
+          c.setLineDash([rr * .7, rr * .3, rr * .2, rr * .45]); c.lineDashOffset = t * R * (2.4 + j * .5);
+          c.lineWidth = R * .08; c.strokeStyle = cgrad(c, cx, cy, u * .7, Math.min(1, al)); c.stroke();
+        }
+        c.setLineDash([]);
+      }
+      function bhSpecks(c, cx, cy, R, t, seed, front) {   // grãos de matéria em órbita (mais rápidos por dentro)
+        for (let i = 0; i < 20; i++) {
+          const u = (i * .618034 + seed * .17) % 1, r = R * (1.55 + u * 1.3), w = 2.2 / Math.pow(r / R, 1.5);
+          const a = i * 2.399 - t * w, sn = Math.sin(a);
+          if ((sn > 0) !== front) continue;
+          const x = cx + Math.cos(a) * r, y = cy + sn * r * TILT, al = .35 + .6 * (.5 - .5 * Math.cos(a)), s = R * (.05 + .05 * ((i * 7) % 3) / 3) * (1.2 - u * .3);
+          const g = c.createRadialGradient(x, y, 0, x, y, s * 3);
+          g.addColorStop(0, 'rgba(255,245,215,' + al + ')'); g.addColorStop(1, 'rgba(255,150,60,0)');
+          c.fillStyle = g; c.beginPath(); c.arc(x, y, s * 3, 0, TAU); c.fill();
+        }
+      }
+      function drawBH(c, cx, cy, R, t, seed, fl) {
+        fl = fl || 0;
+        c.save(); c.globalCompositeOperation = 'lighter';
+        const br = 1 + .04 * Math.sin(t * 1.6 + seed) + fl * .5, gr = R * 2.95 * br;
+        const g = c.createRadialGradient(cx, cy, R * .8, cx, cy, gr);
+        g.addColorStop(0, 'rgba(255,150,60,' + (.34 + fl * .3) + ')'); g.addColorStop(.4, 'rgba(200,80,30,.12)'); g.addColorStop(.75, 'rgba(90,50,170,.05)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(cx, cy, gr, 0, TAU); c.fill();
+        bhDisk(c, cx, cy, R, t, seed, false, fl); bhSpecks(c, cx, cy, R, t, seed, false); bhHalo(c, cx, cy, R, t, seed, fl);
+        c.globalCompositeOperation = 'source-over';
+        c.fillStyle = '#000'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();   // horizonte de eventos
+        c.globalCompositeOperation = 'lighter';
+        c.beginPath(); c.arc(cx, cy, R * 1.015, 0, TAU);   // anel de fótons
+        c.shadowColor = 'rgba(255,140,50,.9)'; c.shadowBlur = R * .5; c.lineWidth = Math.max(1, R * .045);
+        c.strokeStyle = 'rgba(255,230,190,.55)'; c.stroke(); c.strokeStyle = cgrad(c, cx, cy, 0, 1); c.stroke();
+        c.shadowBlur = 0;
+        bhDisk(c, cx, cy, R, t, seed, true, fl); bhSpecks(c, cx, cy, R, t, seed, true);   // metade da frente cruza por cima
+        c.restore();
+      }
+
+      /* --- o único buraco negro (porta do vórtice) --- */
       function hidePortals(now) {
         const els = portals; portals = [];
         if (!now && els.length) { sndVanish(); humStop(); }
         els.forEach(el => { if (now) { el.remove(); return; } el.classList.remove('open', 'near'); el.classList.add('closing'); setTimeout(() => el.remove(), 520); });
       }
+      function gLoop(now) {
+        const cvs = document.querySelectorAll('.bh-portal canvas');
+        if (!cvs.length) { gRaf = 0; return; }
+        gRaf = requestAnimationFrame(gLoop);
+        cvs.forEach(cv => { const s = cv._s; cv._c.clearRect(0, 0, s, s); drawBH(cv._c, s / 2, s / 2, s * .165, now / 1000, 1.3, 0); });
+      }
       function showPortals(board, backId) {
         hidePortals(true);
         let list = []; try { list = finLinkedBoards(board, null); } catch (e) {}
-        const n = list.length, x = innerWidth - (innerWidth < 600 ? 66 : 84);
-        if (n) { sndForm(); humStart(); }
-        list.forEach((b, i) => {
-          const y = Math.max(70, Math.min(innerHeight - 90, innerHeight / 2 + (i - (n - 1) / 2) * 176));
-          const el = document.createElement('div');
-          el.className = 'bh-portal' + (b.id === backId ? ' bh-back' : '');
-          el.style.left = x + 'px'; el.style.top = y + 'px';
-          el.innerHTML = '<div class="bh-hole"><i class="bh-shade"></i><i class="bh-lens"></i><i class="bh-glow"></i>'
-            + '<div class="bh-flat back"><i class="bh-dc"></i><i class="bh-ds"></i></div>'
-            + '<i class="bh-halo"></i><i class="bh-core"></i><i class="bh-photon"></i>'
-            + '<div class="bh-flat front"><i class="bh-dc"></i><i class="bh-ds"></i></div></div><span class="bh-name"></span>';
-          el.querySelector('.bh-name').textContent = (b.id === backId ? '↩ ' : '') + (b.name || 'Finanças');
-          el._board = b; el._x = x; el._y = y;
-          document.body.appendChild(el); portals.push(el);
-          requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open')));
-        });
+        if (!list.length) return;
+        const sz = innerWidth < 600 ? 150 : 190, x = innerWidth - (sz / 2 + 14), y = innerHeight / 2, dpr = Math.min(window.devicePixelRatio || 1, 2);
+        sndForm(); humStart();
+        const el = document.createElement('div');
+        el.className = 'bh-portal';
+        el.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + sz + 'px;height:' + sz + 'px;margin:' + (-sz / 2) + 'px 0 0 ' + (-sz / 2) + 'px';
+        const cv = document.createElement('canvas'); cv.width = cv.height = Math.round(sz * dpr);
+        cv._s = sz; cv._c = cv.getContext('2d'); cv._c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        el.appendChild(cv);
+        const nm = document.createElement('span'); nm.className = 'bh-name'; nm.textContent = 'Vórtice'; el.appendChild(nm);
+        el._board = null; el._x = x; el._y = y; el._hit = sz * .165 * 2.2;
+        document.body.appendChild(el); portals.push(el);
+        if (!gRaf) gRaf = requestAnimationFrame(gLoop);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open')));
       }
-      function portalAt(x, y, k) { for (const el of portals) if (Math.hypot(x - el._x, y - el._y) < PR * (k || 1)) return el; return null; }
-      function nearFx(x, y) { portals.forEach(el => el.classList.toggle('near', Math.hypot(x - el._x, y - el._y) < PR * 1.6)); }
+      function portalAt(x, y, k) { for (const el of targets()) if (Math.hypot(x - el._x, y - el._y) < (el._hit || 0) * (k || 1) && (el._hit || 0) > 0) return el; return null; }
+      function nearFx(x, y) {
+        targets().forEach(el => { const n = Math.hypot(x - el._x, y - el._y) < (el._hit || PR) * 1.6; if (el.classList) el.classList.toggle('near', n); else el.near = n; });
+      }
+
+      /* --- vórtice temporal: a tela inteira vira um túnel de estrelas, com buracos negros flutuando --- */
+      function mkSpiral() {
+        const S = 512, cv = document.createElement('canvas'); cv.width = cv.height = S;
+        const x = cv.getContext('2d'); x.translate(S / 2, S / 2); x.globalCompositeOperation = 'lighter';
+        const hues = [265, 200, 320, 35];
+        for (let arm = 0; arm < 4; arm++) for (let i = 0; i < 260; i++) {
+          const u = i / 260, r = 10 + u * u * 236 + u * 10, a = arm * Math.PI / 2 + u * 5.2 + (Math.random() - .5) * .1;
+          const sp = (Math.random() - .5) * 34 * (.25 + u), px = Math.cos(a) * r - Math.sin(a) * sp, py = Math.sin(a) * r + Math.cos(a) * sp, rad = 8 + u * 26;
+          const g = x.createRadialGradient(px, py, 0, px, py, rad), h = hues[arm];
+          g.addColorStop(0, 'hsla(' + h + ',90%,' + (60 + (1 - u) * 20) + '%,' + (.2 * (1 - u * .6)) + ')'); g.addColorStop(1, 'hsla(' + h + ',90%,50%,0)');
+          x.fillStyle = g; x.beginPath(); x.arc(px, py, rad, 0, TAU); x.fill();
+        }
+        return cv;
+      }
+      function vFit() {
+        const v = vx; if (!v) return;
+        v.W = innerWidth; v.H = innerHeight;
+        v.cv.width = Math.round(v.W * v.dpr); v.cv.height = Math.round(v.H * v.dpr);
+        const g = v.ctx.createRadialGradient(v.W / 2, v.H / 2, 0, v.W / 2, v.H / 2, Math.hypot(v.W, v.H) / 2);
+        g.addColorStop(0, '#1b0c3d'); g.addColorStop(.45, '#080216'); g.addColorStop(1, '#000');
+        v.bg = g;
+      }
+      function lensPt(v, x, y) {   // lente gravitacional: a imagem da estrela é empurrada para fora (anel de Einstein)
+        for (const h of v.holes) {
+          if (h.s < .3) continue;
+          const dx = x - h._x, dy = y - h._y, d = Math.hypot(dx, dy) || .01, Re = h.R * 1.3;
+          if (d > Re * 9) continue;
+          const d2 = (d + Math.sqrt(d * d + 4 * Re * Re)) / 2;
+          x = h._x + dx / d * d2; y = h._y + dy / d * d2;
+        }
+        return [x, y];
+      }
+      function openVortex(ox, oy) {
+        if (vx) return;
+        if (!SP) SP = mkSpiral();
+        const el = document.createElement('div'); el.className = 'bh-vortex';
+        el.style.cssText = 'position:fixed;inset:0;z-index:99980;background:#000;pointer-events:none;overflow:hidden;transition:clip-path .95s cubic-bezier(.45,0,.2,1),-webkit-clip-path .95s cubic-bezier(.45,0,.2,1)';
+        const sc = 'circle(0px at ' + ox + 'px ' + oy + 'px)'; el.style.clipPath = sc; el.style.webkitClipPath = sc;
+        const cv = document.createElement('canvas'); cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
+        el.appendChild(cv); document.body.appendChild(el);
+        const v = vx = { el, cv, ctx: cv.getContext('2d'), t0: performance.now(), last: 0, closing: false, holes: [], stars: [], raf: 0, dpr: Math.min(window.devicePixelRatio || 1, 1.5), W: 0, H: 0, bg: null };
+        v.fitFn = vFit; vFit(); addEventListener('resize', vFit);
+        const N = innerWidth < 600 ? 240 : 480, hueS = [215, 260, 300, 45, 190, -1];
+        const rs = s => { s.z = 1; s.a = Math.random() * TAU; s.r = .35 + .65 * Math.random(); s.v = .18 + .32 * Math.random(); const h = hueS[Math.floor(Math.random() * hueS.length)]; s.col = h < 0 ? 'rgba(255,255,255,' : 'hsla(' + h + ',85%,78%,'; s.w = .6 + Math.random() * .8; };
+        for (let i = 0; i < N; i++) { const s = {}; rs(s); s.z = .05 + Math.random() * .95; v.stars.push(s); }
+        v.reset = rs;
+        let list = []; try { list = finLinkedBoards(st.cur, null); } catch (e) {}
+        const boards = [st.cur].concat(list);
+        boards.forEach((b, i) => v.holes.push({ _board: b, _x: -999, _y: -999, _hit: 0, s: 0, R: 0, ns: 1, near: false, ph: Math.random() * 6.28, fx: .5 + Math.random() * .5, fy: .4 + Math.random() * .5, A: 14 + Math.random() * 10, born: .7 + i * .18, back: b === st.fromBoard, eat: 0 }));
+        v.R0 = Math.max(20, Math.min(40, Math.min(innerWidth, innerHeight) * .058));
+        sndForm(); humStart();
+        void el.offsetWidth;
+        const ec = 'circle(' + Math.hypot(innerWidth, innerHeight) * 1.05 + 'px at ' + ox + 'px ' + oy + 'px)'; el.style.clipPath = ec; el.style.webkitClipPath = ec;
+        v.raf = requestAnimationFrame(vFrame);
+      }
+      function closeVortex(ox, oy) {
+        const v = vx; if (!v || v.closing) return; v.closing = true;
+        v.el.style.transition = 'clip-path .6s cubic-bezier(.5,0,.8,.4),-webkit-clip-path .6s cubic-bezier(.5,0,.8,.4)';
+        const cc = 'circle(0px at ' + ox + 'px ' + oy + 'px)'; v.el.style.clipPath = cc; v.el.style.webkitClipPath = cc;
+        setTimeout(() => { cancelAnimationFrame(v.raf); removeEventListener('resize', v.fitFn); v.el.remove(); if (vx === v) vx = null; }, 650);
+      }
+      function vFrame(now) {
+        const v = vx; if (!v) return;
+        v.raf = requestAnimationFrame(vFrame);
+        const t = (now - v.t0) / 1000, dt = Math.min(.05, v.last ? (now - v.last) / 1000 : .016); v.last = now;
+        const c = v.ctx, W = v.W, H = v.H, cx = W / 2, cy = H / 2, maxR = Math.hypot(W, H) / 2, ms = Math.min(W, H);
+        c.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
+        c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+        c.fillStyle = v.bg; c.fillRect(0, 0, W, H);
+
+        /* buracos negros flutuantes: posição atual (a lente das estrelas usa isto) */
+        const n = v.holes.length;
+        v.holes.forEach((h, i) => {
+          const a = Math.PI + i * TAU / n + (n > 1 ? t * .05 : 0), age = t - h.born, e = age <= 0 ? 0 : Math.min(1, age / .9);
+          const eb = e === 0 ? 0 : 1 + 2.70158 * Math.pow(e - 1, 3) + 1.70158 * Math.pow(e - 1, 2);
+          h.ns += ((h.near ? 1.18 : 1) - h.ns) * Math.min(1, dt * 8);
+          h._x = cx + Math.cos(a) * W * .31 + Math.sin(t * h.fx + h.ph) * h.A;
+          h._y = cy + Math.sin(a) * H * .26 + Math.cos(t * h.fy + h.ph * 1.7) * h.A;
+          h.s = eb * h.ns; h.R = v.R0 * h.s; h._hit = e > .7 ? v.R0 * 2.2 * h.ns : 0; h.e = e;
+        });
+
+        /* braços de espiral + brilho central */
+        c.globalCompositeOperation = 'lighter';
+        let s = maxR * 2.2 * (1 + .03 * Math.sin(t * .8));
+        c.save(); c.translate(cx, cy); c.rotate(t * .11); c.globalAlpha = .85; c.drawImage(SP, -s / 2, -s / 2, s, s); c.restore();
+        s = maxR * 1.5;
+        c.save(); c.translate(cx, cy); c.rotate(-t * .07 + 1); c.globalAlpha = .5; c.drawImage(SP, -s / 2, -s / 2, s, s); c.restore();
+        c.globalAlpha = 1;
+        const cg = c.createRadialGradient(cx, cy, 0, cx, cy, maxR * .4);
+        cg.addColorStop(0, 'rgba(230,215,255,.5)'); cg.addColorStop(.25, 'rgba(150,110,255,.22)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = cg; c.fillRect(0, 0, W, H);
+
+        /* ondas de tempo se expandindo + relógio de ticks girando */
+        c.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) { const u = (t * .22 + i / 5) % 1; c.strokeStyle = 'rgba(160,220,255,' + (.2 * (1 - u)) + ')'; c.beginPath(); c.arc(cx, cy, u * maxR, 0, TAU); c.stroke(); }
+        for (const [rad, dir, cnt] of [[ms * .42, -.12, 60], [ms * .3, .2, 12]]) {
+          c.save(); c.translate(cx, cy); c.rotate(t * dir); c.strokeStyle = 'rgba(200,190,255,.28)';
+          for (let i = 0; i < cnt; i++) { const a = i / cnt * TAU, l = (cnt === 60 && i % 5) ? 6 : 14; c.lineWidth = l > 6 ? 2 : 1; c.beginPath(); c.moveTo(Math.cos(a) * rad, Math.sin(a) * rad); c.lineTo(Math.cos(a) * (rad + l), Math.sin(a) * (rad + l)); c.stroke(); }
+          c.restore();
+        }
+        c.save(); c.translate(cx, cy); c.strokeStyle = 'rgba(210,200,255,.22)'; c.lineWidth = 2;
+        for (const [sp, len] of [[.35, .27], [-.05, .2]]) { const a = t * sp; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * ms * len, Math.sin(a) * ms * len); c.stroke(); }
+        c.restore();
+
+        /* estrelas em túnel (com lente gravitacional ao redor dos buracos) */
+        c.lineCap = 'round';
+        for (const st2 of v.stars) {
+          st2.z -= dt * st2.v;
+          const swirl = 1 + (1 - st2.z) * 1.5;
+          st2.a += dt * .3 * swirl;
+          const z = st2.z, z2 = Math.min(1.3, z + st2.v * .05), rho = maxR * st2.r * (.07 / Math.max(z, .02));
+          if (z < .04 || rho > maxR * 1.15) { v.reset(st2); continue; }
+          const rho0 = maxR * st2.r * (.07 / z2), a0 = st2.a - .018 * swirl;
+          let p1 = [cx + Math.cos(st2.a) * rho, cy + Math.sin(st2.a) * rho], p0 = [cx + Math.cos(a0) * rho0, cy + Math.sin(a0) * rho0];
+          if (v.holes.length) { p1 = lensPt(v, p1[0], p1[1]); p0 = lensPt(v, p0[0], p0[1]); }
+          c.strokeStyle = st2.col + Math.min(1, (1 - z) * 1.6) + ')'; c.lineWidth = st2.w * (.5 + (1 - z) * 1.6);
+          c.beginPath(); c.moveTo(p0[0], p0[1]); c.lineTo(p1[0], p1[1]); c.stroke();
+        }
+
+        /* os buracos negros e seus nomes */
+        c.globalCompositeOperation = 'source-over';
+        const fs = W < 600 ? 15 : 18;
+        v.holes.forEach((h, i) => {
+          if (h.s <= .01) return;
+          const fl = h.eat ? Math.max(0, 1 - (now - h.eat) / 420) : 0;
+          drawBH(c, h._x, h._y, h.R * (1 + .3 * fl), t, h.ph, fl);
+          if (h.e < .6) return;
+          const txt = (h.back ? '↩ ' : '') + (h._board.name || 'Finanças'), ty = h._y + v.R0 * 2.1 + 14;
+          c.font = '700 ' + fs + 'px "Patrick Hand", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+          const tw = Math.min(c.measureText(txt).width, 150), pw = tw + 22, ph = fs + 8;
+          c.globalAlpha = Math.min(1, (h.e - .6) / .4);
+          c.fillStyle = h.back ? '#fbbf24' : 'rgba(0,0,0,.65)';
+          c.beginPath(); c.roundRect ? c.roundRect(h._x - pw / 2, ty - ph / 2, pw, ph, ph / 2) : c.rect(h._x - pw / 2, ty - ph / 2, pw, ph); c.fill();
+          c.fillStyle = h.back ? '#1c1917' : '#fde68a'; c.fillText(txt, h._x, ty, 150);
+          c.globalAlpha = 1;
+        });
+        if (t > 1.4 && t < 7 && !v.closing) {
+          c.globalAlpha = Math.min(1, (t - 1.4) / .6, (7 - t) / .6) * .8;
+          c.font = '' + fs + 'px "Patrick Hand", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#e9e2ff';
+          c.fillText('Solte a linha dentro de um buraco negro para ir à outra lousa', cx, H - 34, W - 24);
+          c.globalAlpha = 1;
+        }
+      }
 
       /* ---------- fantasma da linha (segue o dedo entre lousas) ---------- */
       function makeGhost() {
@@ -6662,7 +6885,7 @@
       /* quanto mais perto do buraco, mais a linha é esticada na direção dele e puxada para ele */
       function pullFx(x, y) {
         let best = null, bd = 1e9;
-        portals.forEach(el => { const d = Math.hypot(el._x - x, el._y - y); if (d < bd) { bd = d; best = el; } });
+        targets().forEach(el => { const d = Math.hypot(el._x - x, el._y - y); if (d < bd) { bd = d; best = el; } });
         const none = { a: 0, sx: 1, sy: 1, dx: 0, dy: 0, sc: 1 };
         if (!best) return none;
         const t = Math.max(0, Math.min(1, 1 - bd / 240));
@@ -6672,6 +6895,7 @@
         return { a, sx: 1 + 1.7 * k, sy: 1 - .55 * k, dx: (best._x - x) * k * .28, dy: (best._y - y) * k * .28, sc: 1 - .3 * k * t };
       }
       function hoverTable(x, y) {
+        if (vortexOn()) return null;
         const el = document.elementFromPoint(x, y), wr = el && el.closest && el.closest('.chalk-note');
         const n = wr && findPieceAnywhere(wr.id);
         if (!n || n.type !== 'fintable') return null;
@@ -6686,6 +6910,7 @@
         const pf = pullFx(x, y), easing = st.easeUntil && performance.now() < st.easeUntil;
         setGhost(x, y, pf.sc, easing ? 120 : 0, 0, pf, 'cubic-bezier(.2,.8,.3,1)');
         nearFx(x, y);
+        if (vortexOn()) { clearSlot(); return; }
         const h = hoverTable(x, y);
         if (!h) { clearSlot(); return; }
         if (st.over !== h.wr) { clearSlot(); h.wr.classList.add('bh-over'); st.over = h.wr; }
@@ -6735,19 +6960,24 @@
         if (st.busy) return;
         st.busy = true; st.hopped = true; sndSuck();
         if (!st.ghost) { makeGhost(); setGhost(st.x, st.y, 1, 0, 0); void st.ghost.offsetWidth; }
-        p.classList.add('eat');
-        const sa = st.pa || 0;
-        setGhost(p._x, p._y, .06, 330, 540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 });
-        const prev = st.cur;
+        const sa = st.pa || 0, px = p._x, py = p._y, gate = !!p.classList, prev = st.cur;
+        if (gate) { p.classList.add('eat'); openVortex(px, py); } else p.eat = performance.now();
+        setGhost(px, py, .06, 330, 540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 });
         setTimeout(() => {
           if (!st) return;
-          const dest = p._board;
-          gotoBoard(dest); st.cur = dest; st.armed = false;
-          showPortals(dest, prev.id);
-          const back = portals.find(el => el._board === prev) || { _x: st.x, _y: st.y };
-          st.prevPortalBoard = prev;
-          document.querySelectorAll('[data-row="' + st.rowId + '"]').forEach(r => { r.style.display = 'none'; });
-          setGhost(back._x, back._y, .06, 0, -540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 }); void st.ghost.offsetWidth;
+          const hideRow = () => document.querySelectorAll('[data-row="' + st.rowId + '"]').forEach(r => { r.style.display = 'none'; });
+          if (gate) {
+            /* entrou no buraco: a tela vira vórtice e o buraco da lousa some */
+            hidePortals(true); sndVanish(); humStop(); humStart();
+            st.armed = false;
+          } else {
+            /* entrou num buraco do vórtice: vai para a outra lousa (o vórtice se fecha) */
+            const dest = p._board;
+            gotoBoard(dest); st.cur = dest; st.armed = false; st.prevPortalBoard = prev;
+            hideRow(); closeVortex(px, py); humStop();
+            setTimeout(() => { if (st && !vortexOn()) showPortals(dest, prev.id); }, 660);
+          }
+          setGhost(px, py, .06, 0, -540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 }); void st.ghost.offsetWidth;
           setGhost(st.x, st.y, 1, 380, 0);
           setTimeout(() => { if (!st) return; st.busy = false; if (st.release) finishGhost(st.release === 'commit'); else ghostMove(st.x, st.y); }, 380);
         }, 340);
@@ -6774,13 +7004,25 @@
         }
         // soltou fora: a linha volta ao buraco negro de onde veio
         clearSlot();
-        const s0 = st, back = portals.find(el => el._board === s0.fromBoard) || portals.find(el => el._board === s0.prevPortalBoard);
+        if (vortexOn()) {   // soltou dentro do vórtice, fora dos buracos: volta para a lousa de origem
+          const s1 = st, bk = vx.holes.find(hh => hh._board === s1.fromBoard) || vx.holes[0];
+          s1.busy = true; sndSuck();
+          if (bk) { bk.eat = performance.now(); setGhost(bk._x, bk._y, .06, 380, 540); } else { g.style.transition = 'opacity .3s'; g.style.opacity = '0'; }
+          const bx = bk ? bk._x : innerWidth / 2, by = bk ? bk._y : innerHeight / 2;
+          setTimeout(() => {
+            const s2 = endAll(); g.remove(); humStop();
+            gotoBoard(s2.fromBoard); closeVortex(bx, by);
+            setTimeout(() => { const r = document.querySelector('[data-row="' + s2.rowId + '"]'); if (r) { r.classList.add('bh-return'); setTimeout(() => r.classList.remove('bh-return'), 900); } }, 30);
+          }, 400);
+          return;
+        }
+        const s0 = st, back = portals[0];
         if (s0.cur === s0.fromBoard || !back) {   // já está na lousa de origem: a linha volta voando para o lugar
           if (s0.orig && s0.cur === s0.fromBoard) {
             g.style.transformOrigin = '0 0'; g.style.transition = 'transform .28s cubic-bezier(.2,.8,.3,1)';
             g.style.transform = `translate(${s0.orig.left}px,${s0.orig.top}px) scale(1)`;
           } else { g.style.transition = 'opacity .25s'; g.style.opacity = '0'; }
-          endAll(); setTimeout(() => { g.remove(); renderNotes(); }, 290);
+          endAll(); setTimeout(() => { g.remove(); if (s0.cur !== s0.fromBoard) gotoBoard(s0.fromBoard); else renderNotes(); }, 290);
           return;
         }
         s0.busy = true; back.classList.add('eat'); sndSuck();
@@ -6839,7 +7081,7 @@
             else if (st.ghost && deepIn) pullBack();
           }
         }
-        if (portals.length) {
+        if (targets().length) {
           if (!portalAt(st.x, st.y, 1.25)) st.armed = true;
           else if (st.armed) { const p = portalAt(st.x, st.y); if (p) { enterPortal(p); return; } }
         }
