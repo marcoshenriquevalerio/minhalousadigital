@@ -679,7 +679,7 @@ function sHero(){const h=SS.hero,k=hk(),set=(r,o,v,u)=>{$(r).value=v;$(o).textCo
  $('r_sz').max=SDEV==='m'?1200:2400;
  set('r_sz','o_sz',h[k.sz],' px');set('r_px','o_px',h[k.x],'%');set('r_py','o_py',h[k.y],'%');set('r_op','o_op',h.op,'%');
  set('r_cw','o_cw',SS.cardW,' px');set('r_xp','o_xp',SS.xpad==null?40:SS.xpad,' px');set('r_mq','o_mq',(SS.mq||{})[SDEV==='m'?'ym':'y']||0,' px');$('hRm').hidden=!h.img}
-$('sHero').addEventListener('input',e=>{const id=e.target.id,k=hk();
+document.querySelector('[data-pane="top"]').addEventListener('input',e=>{const id=e.target.id,k=hk();
  const map={r_sz:k.sz,r_px:k.x,r_py:k.y,r_op:'op'};if(!map[id])return;
  SS.hero[map[id]]=+e.target.value;sHero();sApply();sDirty(true)});
 $('r_mq').addEventListener('input',e=>{SS.mq=SS.mq||{y:0,ym:0};SS.mq[SDEV==='m'?'ym':'y']=+e.target.value;sHero();sApply();sDirty(true)});
