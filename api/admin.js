@@ -96,7 +96,20 @@ function cleanSite(s) {
     fc[k] = { mode: "img", img: SITE_IMG.test(v.img || "") ? v.img : "", w: num(v.w, 40, 1200, 200) };
   });
   const xpad = num(s.xpad, 0, 300, 40);   // espaço acima e abaixo dos cards extras
-  return { texts, fs, cards, cardW, hero, mq, mv, fc, xpad };
+  // cenas do quadro verde grande ("cena 1..5"): manter o desenho original ou mostrar imagem PNG + título + texto
+  const sc = {};
+  const s0 = s.sc && typeof s.sc === "object" ? s.sc : {};
+  ["0", "1", "2", "3", "4"].forEach((k) => {
+    const v = s0[k];
+    if (!v || v.mode !== "img") return;
+    sc[k] = {
+      mode: "img", img: SITE_IMG.test(v.img || "") ? v.img : "",
+      iw: num(v.iw, 10, 150, 70), ix: num(v.ix, -100, 100, 0), iy: num(v.iy, -100, 100, 0),
+      title: String(v.title || "").slice(0, 120), text: String(v.text || "").slice(0, 400),
+      ts: num(v.ts, 14, 120, 38), xs: num(v.xs, 10, 60, 18)
+    };
+  });
+  return { texts, fs, cards, cardW, hero, mq, mv, fc, xpad, sc };
 }
 
 const actions = {

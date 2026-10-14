@@ -13,7 +13,7 @@ module.exports = wrap(async (req, res) => {
     update: u.id ? { id: String(u.id), title: u.title || "", message: u.message || "", at: u.at || 0 } : null,
     catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
     // textos, cards extras e fundo do topo editados no painel (aba Site)
-    site: { texts: st.texts || {}, fs: st.fs || {}, cards: st.cards || [], hero: st.hero || {}, cardW: st.cardW || 230, mq: st.mq || {}, mv: st.mv || {}, fc: st.fc || {}, xpad: st.xpad } ,
+    site: { texts: st.texts || {}, fs: st.fs || {}, cards: st.cards || [], hero: st.hero || {}, cardW: st.cardW || 230, mq: st.mq || {}, mv: st.mv || {}, fc: st.fc || {}, xpad: st.xpad, sc: st.sc || {} } ,
     cards: { free: bullets(plans.free, "free"), pro: bullets(plans.pro, "pro") }
   });
 });
