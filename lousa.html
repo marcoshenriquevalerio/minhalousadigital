@@ -875,7 +875,7 @@
     .bl-tab span { opacity: .65; margin-left: 4px; }
     .bl-tab.on { background: #fbbf24; border-color: #fbbf24; color: #1c1917; }
     .bl-hint { text-align: center; color: #a8a29e; font-size: 12px; margin-top: 14px; }
-    .bl-card { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+    .bl-card { display: block; font: inherit; color: inherit; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
     .bl-card.bl-lift { z-index: 5; transition: none; box-shadow: 0 16px 36px rgba(0,0,0,.6); border-color: #fbbf24; touch-action: none; }
     .bl-card.bl-over { border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.35); }
     .bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
@@ -12404,6 +12404,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
             const el = document.createElement('div');
             el.className = cls; el.setAttribute('style', st); el.innerHTML = inner;
             el.querySelectorAll('script,iframe,canvas').forEach(x => x.remove());
+            el.querySelectorAll('[tabindex]').forEach(x => x.removeAttribute('tabindex'));
             return el.outerHTML;
           }).join('');
         } finally { appData.activeBoardIndex = keep; }
@@ -12455,7 +12456,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
         const tag = b.kind === 'finance' ? '<i class="fa-solid fa-sack-dollar"></i> Finanças' : (b.shared ? '<i class="fa-solid fa-user-group"></i> Compartilhada' : '<i class="fa-solid fa-chalkboard"></i> Lousa');
         const n = (b.notes || []).length;
         let th = ''; try { th = blThumb(b); } catch (e) { th = '<div class="bl-th"></div>'; }
-        return `<button type="button" class="bl-card${i === cur ? ' on' : ''}" data-i="${i}" onclick="if(blDragged){blDragged=false;return;}goBoard(${i})">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</button>`;
+        return `<div role="button" tabindex="0" class="bl-card${i === cur ? ' on' : ''}" data-i="${i}" onclick="if(blDragged){blDragged=false;return;}goBoard(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goBoard(${i});}">${th}<div class="bl-meta"><b>${html(b.name || 'Lousa')}</b><span>${tag} · ${b.shared ? '' : n + (n === 1 ? ' item' : ' itens')}</span></div>${i === cur ? '<em class="bl-now">aberta</em>' : ''}</div>`;
       }).join('');
       byId('boardListBody').innerHTML = bar + (cards ? '<div class="bl-grid">' + cards + '</div><p class="bl-hint">Segure uma lousa e arraste para mudar a ordem</p>' : '<p class="bl-hint" style="padding:30px 0">Nenhuma lousa nesta aba.</p>');
       blBindDrag();
