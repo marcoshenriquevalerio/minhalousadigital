@@ -140,6 +140,7 @@ html:has(#vSite:not([hidden])){overflow:hidden}
 .pc .f{margin:0 0 10px;font-size:12px}.pc .f b{color:var(--mu);font-weight:600;margin-left:4px}
 .pc input[type=range]{width:100%;padding:0;accent-color:var(--gr)}
 .trow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.trow b{min-width:42px;text-align:center;font-size:13px}
+.pc input[type=text],.pc textarea{width:100%}
 .pc .sk{background:var(--sf)}
 .pc .sk img,.pc .noimg{width:64px;height:64px}.pc .sk{padding:10px;gap:8px}
 .canvas{position:relative;min-width:0;min-height:0;background:radial-gradient(circle at 50% 0,#17382a55,transparent 60%),#07100c}
@@ -294,7 +295,7 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
     </header>
     <div class="edb">
      <div class="edp">
-      <div class="tabs" role="tablist"><button type="button" data-tab="el" aria-selected="true">Elemento</button><button type="button" data-tab="top" aria-selected="false">Topo</button><button type="button" data-tab="cd" aria-selected="false">Cards</button></div>
+      <div class="tabs" role="tablist"><button type="button" data-tab="el" aria-selected="true">Elemento</button><button type="button" data-tab="top" aria-selected="false">Topo</button><button type="button" data-tab="sc" aria-selected="false">Cenas</button><button type="button" data-tab="cd" aria-selected="false">Cards</button></div>
       <div class="pane" data-pane="el">
        <div class="pc"><h4>Letra</h4><span class="sub" id="fsL">Letra (selecione um texto):</span>
         <div class="trow"><button class="btn s" id="fsM" type="button" disabled aria-label="Diminuir letra">A&minus;</button><b id="fsV"></b><button class="btn s" id="fsP" type="button" disabled aria-label="Aumentar letra">A+</button><button class="btn s" id="fsR" type="button" disabled>Padrão</button></div></div>
@@ -312,6 +313,7 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
        <div class="pc"><h4>Faixa animada</h4>
         <label class="f">Subir / descer <b id="o_mq"></b><input type="range" id="r_mq" min="-300" max="300" step="2"></label></div>
       </div>
+      <div class="pane" data-pane="sc" hidden><div class="pc" id="sScn"></div></div>
       <div class="pane" data-pane="cd" hidden>
        <div class="pc"><h4>Cards flutuantes do topo</h4><div id="sFc"></div></div>
        <div class="pc"><h4>Cards extras</h4>
@@ -601,7 +603,7 @@ function sFit(){const box=$('sBox'),f=sf();if(!box.clientWidth)return;const bw=b
  else{const sc=Math.min(1,bw/1200);box.style.overflow='hidden';f.style.cssText='width:1200px;height:'+Math.round(bh/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
 async function siteOpen(){
  if(!sLoaded){
-  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};SS.mv=SS.mv||{};SS.fc=SS.fc||{};sFc();sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
+  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};SS.mv=SS.mv||{};SS.fc=SS.fc||{};SS.sc=SS.sc||{};sFc();sScn();sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
   catch(e){toast(e.message||'Não foi possível abrir o site.',true);return}}
  sFit()}
 sf().onload=()=>{
@@ -717,6 +719,31 @@ $('fsM').onclick=()=>fsSet(fsCur()-10);$('fsP').onclick=()=>fsSet(fsCur()+10);$(
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));document.querySelectorAll('.pane').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab)});
 $('edBack').onclick=()=>{if(SS&&!$('sSave').disabled&&!confirm('Há alterações não publicadas. Sair mesmo assim?'))return;go($('nav').querySelector('button').dataset.v)};
 
+/* cenas do quadro verde grande: manter o desenho ou usar imagem PNG + título + texto */
+let SCI=0;
+const SCD={mode:'img',img:'',iw:70,ix:0,iy:0,title:'',text:'',ts:38,xs:18};
+function sScnGo(n){try{const d=sf().contentDocument,el=d.querySelector('.st[data-i="'+n+'"]');if(el)el.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}}
+function sScn(){if(!SS)return;const c=SS.sc[SCI]||{},im=c.mode==='img';
+ const sl=(f,n,lo,hi,u,st)=>'<label class="f">'+n+' <b>'+(c[f]==null?SCD[f]:c[f])+u+'</b><input type="range" data-sf="'+f+'" data-u="'+u+'" min="'+lo+'" max="'+hi+'"'+(st?' step="'+st+'"':'')+' value="'+(c[f]==null?SCD[f]:c[f])+'"></label>';
+ let h='<h4>Cenas do quadro grande</h4><div class="trow">'+[0,1,2,3,4].map(i=>'<button class="btn s'+(i===SCI?' p':'')+'" type="button" data-sci="'+i+'">Cena '+(i+1)+'</button>').join('')+'</div>'
+ +'<div class="trow"><button class="btn s'+(im?'':' p')+'" type="button" data-scm="draw">Desenho original</button><button class="btn s'+(im?' p':'')+'" type="button" data-scm="img">Imagem PNG</button></div>';
+ if(im)h+='<div class="trow">'+(c.img?'<img src="'+SIMG(c.img)+'" alt="" style="width:44px;height:44px;object-fit:contain">':'')+'<label class="btn s">'+(c.img?'Trocar PNG':'Escolher PNG')+'<input type="file" accept="image/*" data-scup hidden></label>'+(c.img?'<button class="btn s d" type="button" data-scrm>Tirar</button>':'')+'</div>'
+ +'<div style="margin-top:10px">'+sl('iw','Tamanho da imagem',10,150,'%',1)+sl('ix','Horizontal',-100,100,'%',1)+sl('iy','Vertical',-100,100,'%',1)+'</div>'
+ +'<label class="f">Título (opcional)<input type="text" data-sf="title" maxlength="120" value="'+esc(c.title||'')+'"></label>'+sl('ts','Tamanho do título',14,120,'px',1)
+ +'<label class="f">Texto (opcional)<textarea data-sf="text" rows="3" maxlength="400" style="width:100%">'+esc(c.text||'')+'</textarea></label>'+sl('xs','Tamanho do texto',10,60,'px',1);
+ $('sScn').innerHTML=h}
+$('sScn').addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+ if(t.dataset.sci!==undefined){SCI=+t.dataset.sci;sScn();sScnGo(SCI);return}
+ if(t.dataset.scm){if(t.dataset.scm==='img')SS.sc[SCI]=Object.assign({},SCD,SS.sc[SCI],{mode:'img'});else if(SS.sc[SCI])SS.sc[SCI].mode='draw';sScn();sApply();sDirty(true);return}
+ if(t.dataset.scrm!==undefined){SS.sc[SCI].img='';sScn();sApply();sDirty(true)}});
+$('sScn').addEventListener('input',e=>{const f=e.target.dataset.sf;if(!f||!SS.sc[SCI])return;
+ SS.sc[SCI][f]=e.target.type==='range'?+e.target.value:e.target.value;
+ if(e.target.type==='range')e.target.parentNode.querySelector('b').textContent=e.target.value+e.target.dataset.u;
+ sApply();sDirty(true)});
+$('sScn').addEventListener('change',async e=>{if(!e.target.matches('[data-scup]'))return;const f=e.target.files[0];e.target.value='';if(!f)return;
+ toast('Enviando imagem...');try{SS.sc[SCI].img=await sUpload(f,1400,false);sScn();sApply();sDirty(true);toast('Imagem pronta.')}catch(err){toast(err.message,true)}});
+document.querySelector('.tabs [data-tab="sc"]').addEventListener('click',()=>sScnGo(SCI));
+
 /* cards flutuantes do topo: manter o card ou virar só uma imagem PNG */
 const FCK=[['hero.fc1','Card 1 (responder clientes)'],['hero.fc2','Card 2 (ideia nova)'],['hero.fc3','Card 3 (R$ entrou)']];
 function sFc(){if(!SS)return;$('sFc').innerHTML=FCK.map(([k,n])=>{const c=SS.fc[k]||{},im=c.mode==='img';
@@ -757,7 +784,7 @@ $('sCards').addEventListener('change',async e=>{if(!e.target.matches('[data-up]'
 
 /* salvar / restaurar */
 $('sSave').onclick=async()=>{const r=await run($('sSave'),()=>call('saveSite',{site:SS}),'Site publicado');
- if(r){SS=r.site;SS.fc=SS.fc||{};SS.mv=SS.mv||{};SS.mq=SS.mq||{y:0,ym:0};sFc();sCards();sHero();sApply();sDirty(false)}};
+ if(r){SS=r.site;SS.fc=SS.fc||{};SS.sc=SS.sc||{};SS.mv=SS.mv||{};SS.mq=SS.mq||{y:0,ym:0};sFc();sScn();sCards();sHero();sApply();sDirty(false)}};
 $('sReset').onclick=()=>{if(!confirm('Voltar todos os textos e tamanhos de letra ao original? Só vale depois de salvar.'))return;SS.texts={};SS.fs={};sApply();fsShow();sDirty(true)};
 
 /* sessão */
