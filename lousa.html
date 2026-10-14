@@ -825,17 +825,43 @@
     #notifPanel { position: fixed; z-index: 10040; top: 58px; right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; }
     .nt-row { background: rgba(0,0,0,.28); border: 1px solid rgba(251,191,36,.25); border-radius: 10px; padding: 9px 10px; margin-bottom: 7px; color: #fef3c7; }
     /* ===== buracos negros: arrastar linha de tabela para outra lousa ligada ===== */
-    .bh-portal { position: fixed; z-index: 99990; width: 96px; height: 96px; margin: -48px 0 0 -48px; transform: scale(0) rotate(-120deg); opacity: 0; transition: transform .5s cubic-bezier(.2,1.3,.4,1), opacity .3s; pointer-events: none; }
-    .bh-portal.open { transform: scale(1) rotate(0); opacity: 1; }
-    .bh-portal.open.near { transform: scale(1.25); }
-    .bh-portal.closing { transform: scale(0) rotate(200deg); opacity: 0; transition: transform .5s ease-in, opacity .5s; }
+    .bh-portal { position: fixed; z-index: 99990; width: 150px; height: 150px; margin: -75px 0 0 -75px; transform: scale(0); opacity: 0; transition: transform .7s cubic-bezier(.2,1.25,.35,1), opacity .35s; pointer-events: none; }
+    .bh-portal.open { transform: scale(1); opacity: 1; }
+    .bh-portal.open.near { transform: scale(1.18); }
+    .bh-portal.closing { transform: scale(0); opacity: 0; transition: transform .55s ease-in, opacity .55s; }
+    @media (max-width: 600px) { .bh-portal { width: 120px; height: 120px; margin: -60px 0 0 -60px; } }
     .bh-hole { position: absolute; inset: 0; border-radius: 50%; }
-    .bh-core { position: absolute; inset: 27%; border-radius: 50%; background: radial-gradient(circle, #000 55%, #08001a); box-shadow: 0 0 16px 8px #000, 0 0 34px 14px rgba(139,92,246,.6); }
-    .bh-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 8%, rgba(251,191,36,.95) 24%, rgba(236,72,153,.9) 44%, transparent 58%, rgba(99,102,241,.85) 80%, transparent 96%); -webkit-mask: radial-gradient(circle, transparent 33%, #000 40%, #000 60%, transparent 70%); mask: radial-gradient(circle, transparent 33%, #000 40%, #000 60%, transparent 70%); animation: bhspin 1.5s linear infinite; }
-    .bh-ring.r2 { inset: 9%; animation-duration: 2.4s; animation-direction: reverse; opacity: .7; }
+    .bh-hole > i, .bh-hole > div, .bh-flat > i { position: absolute; display: block; }
+    /* sombra: o buraco "engole" a luz de quem está em volta */
+    .bh-shade { inset: 6%; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,.92) 0 30%, rgba(0,0,0,.55) 48%, rgba(0,0,0,0) 72%); }
+    /* leve distorção/turvação do que está atrás (lente gravitacional) */
+    .bh-lens { inset: 12%; border-radius: 50%; -webkit-backdrop-filter: blur(1.6px) saturate(1.4); backdrop-filter: blur(1.6px) saturate(1.4); -webkit-mask: radial-gradient(circle, #000 55%, transparent 72%); mask: radial-gradient(circle, #000 55%, transparent 72%); }
+    .bh-glow { inset: -4%; border-radius: 50%; background: radial-gradient(circle, rgba(255,170,70,0) 22%, rgba(255,150,50,.42) 34%, rgba(214,90,30,.2) 46%, rgba(110,70,190,.1) 58%, rgba(0,0,0,0) 70%); animation: bhbreath 3.2s ease-in-out infinite; }
+    @keyframes bhbreath { 50% { transform: scale(1.07); opacity: .8; } }
+    /* anel de fótons / imagem lenteada do disco (circular, em volta da sombra) */
+    .bh-halo { inset: 21%; border-radius: 50%;
+      background: conic-gradient(from 90deg, #3b1305 0%, #8f3407 14%, #ff9d3a 34%, #fff4d6 50%, #ffa646 64%, #a13a08 82%, #3b1305 100%);
+      -webkit-mask: radial-gradient(circle closest-side, transparent 55%, #000 61%, rgba(0,0,0,.65) 76%, transparent 100%); mask: radial-gradient(circle closest-side, transparent 55%, #000 61%, rgba(0,0,0,.65) 76%, transparent 100%);
+      filter: blur(.4px) brightness(1.15); }
+    /* horizonte de eventos */
+    .bh-core { inset: 33%; border-radius: 50%; background: #000; box-shadow: 0 0 10px 3px #000, inset 0 0 8px 2px #000; }
+    .bh-photon { inset: 32.4%; border-radius: 50%; border: 1.5px solid rgba(255,236,200,.9); box-shadow: 0 0 5px 1px rgba(255,190,100,.9), 0 0 14px 2px rgba(255,120,40,.5), inset 0 0 5px rgba(255,170,80,.55); }
+    /* disco de acreção: achatado e inclinado; metade de trás fica atrás do horizonte, a da frente cruza por cima */
+    .bh-flat { inset: 0; transform: rotate(-9deg) scaleY(.23); }
+    .bh-flat.back { clip-path: inset(0 0 50% 0); }
+    .bh-flat.front { clip-path: inset(50% 0 0 0); }
+    .bh-dc, .bh-ds { inset: 0; border-radius: 50%; -webkit-mask: radial-gradient(circle closest-side, transparent 30%, #000 36%, rgba(0,0,0,.9) 52%, rgba(0,0,0,.4) 78%, transparent 100%); mask: radial-gradient(circle closest-side, transparent 30%, #000 36%, rgba(0,0,0,.9) 52%, rgba(0,0,0,.4) 78%, transparent 100%); }
+    /* cor com efeito Doppler: lado que se aproxima (esquerda) mais claro/azulado-quente, lado que se afasta (direita) escuro/avermelhado */
+    .bh-dc { background: radial-gradient(circle closest-side, rgba(255,255,255,.95) 30%, rgba(255,245,215,0) 52%),
+                         conic-gradient(from 90deg, #2a0d04 0%, #7a2b06 12%, #e8721a 30%, #ffd58a 44%, #fffaf0 50%, #ffd58a 56%, #ee7a1c 70%, #8a3207 88%, #2a0d04 100%); }
+    /* riscos de turbulência girando */
+    .bh-ds { background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0) 0 7deg, rgba(255,255,255,.34) 11deg, rgba(255,255,255,0) 17deg, rgba(0,0,0,.28) 22deg, rgba(0,0,0,0) 28deg); mix-blend-mode: overlay; animation: bhspin 2.6s linear infinite; }
+    .bh-flat.front .bh-ds { animation-duration: 2.6s; }
     @keyframes bhspin { to { transform: rotate(360deg); } }
-    .bh-portal.eat .bh-core { animation: bhpulse .35s ease-out; }
-    @keyframes bhpulse { 50% { transform: scale(1.6); } }
+    .bh-portal.eat .bh-glow { animation: bhflash .38s ease-out; }
+    .bh-portal.eat .bh-photon { animation: bhflash2 .38s ease-out; }
+    @keyframes bhflash { 40% { transform: scale(1.35); opacity: 1; filter: brightness(1.8); } }
+    @keyframes bhflash2 { 40% { box-shadow: 0 0 10px 3px rgba(255,220,160,1), 0 0 28px 8px rgba(255,140,50,.9); } }
     .bh-name { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px; max-width: 124px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 700 13px 'Patrick Hand', system-ui, sans-serif; color: #fde68a; background: rgba(0,0,0,.72); padding: 2px 10px; border-radius: 999px; }
     .bh-portal.bh-back .bh-name { background: #fbbf24; color: #1c1917; }
     .bh-ghost { position: fixed; left: 0; top: 0; z-index: 99999; pointer-events: none; background: rgba(33,72,53,.97); border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.6), 0 0 0 1.5px rgba(253,230,138,.7); will-change: transform; }
@@ -6318,14 +6344,17 @@
       function showPortals(board, backId) {
         hidePortals(true);
         let list = []; try { list = finLinkedBoards(board, null); } catch (e) {}
-        const n = list.length, x = innerWidth - 74;
+        const n = list.length, x = innerWidth - (innerWidth < 600 ? 66 : 84);
         if (n) { sndForm(); humStart(); }
         list.forEach((b, i) => {
-          const y = Math.max(70, Math.min(innerHeight - 90, innerHeight / 2 + (i - (n - 1) / 2) * 124));
+          const y = Math.max(70, Math.min(innerHeight - 90, innerHeight / 2 + (i - (n - 1) / 2) * 176));
           const el = document.createElement('div');
           el.className = 'bh-portal' + (b.id === backId ? ' bh-back' : '');
           el.style.left = x + 'px'; el.style.top = y + 'px';
-          el.innerHTML = '<div class="bh-hole"><i class="bh-ring"></i><i class="bh-ring r2"></i><i class="bh-core"></i></div><span class="bh-name"></span>';
+          el.innerHTML = '<div class="bh-hole"><i class="bh-shade"></i><i class="bh-lens"></i><i class="bh-glow"></i>'
+            + '<div class="bh-flat back"><i class="bh-dc"></i><i class="bh-ds"></i></div>'
+            + '<i class="bh-halo"></i><i class="bh-core"></i><i class="bh-photon"></i>'
+            + '<div class="bh-flat front"><i class="bh-dc"></i><i class="bh-ds"></i></div></div><span class="bh-name"></span>';
           el.querySelector('.bh-name').textContent = (b.id === backId ? '↩ ' : '') + (b.name || 'Finanças');
           el._board = b; el._x = x; el._y = y;
           document.body.appendChild(el); portals.push(el);
@@ -6344,14 +6373,28 @@
         c.querySelectorAll('input,button').forEach(i => { i.tabIndex = -1; });
         g.appendChild(c);
         g.style.transformOrigin = st.gX + 'px ' + st.gY + 'px';
+        g.style.transition = 'none'; g.style.transform = `translate(${rect.left}px,${rect.top}px)`;
         document.body.appendChild(g); st.ghost = g; st.gw = rect.width; st.gh = rect.height;
         r.style.opacity = '.12';
       }
-      function setGhost(x, y, sc, ms, rot) {
+      function setGhost(x, y, sc, ms, rot, pull, ease) {
         const g = st.ghost; if (!g) return;
-        g.style.transition = ms ? `transform ${ms}ms cubic-bezier(.55,0,.75,.35), opacity ${ms}ms` : 'none';
+        const p = pull || { a: 0, sx: 1, sy: 1, dx: 0, dy: 0 };
+        g.style.transition = ms ? `transform ${ms}ms ${ease || 'cubic-bezier(.55,0,.75,.35)'}, opacity ${ms}ms` : 'none';
         g.style.opacity = sc < .2 ? '0' : '1';
-        g.style.transform = `translate(${x - st.gX}px,${y - st.gY}px) scale(${sc}) rotate(${rot || 0}deg)`;
+        g.style.transform = `translate(${x - st.gX + p.dx}px,${y - st.gY + p.dy}px) scale(${sc}) rotate(${rot || 0}deg) rotate(${p.a}deg) scale(${p.sx},${p.sy}) rotate(${-p.a}deg)`;
+      }
+      /* quanto mais perto do buraco, mais a linha é esticada na direção dele e puxada para ele */
+      function pullFx(x, y) {
+        let best = null, bd = 1e9;
+        portals.forEach(el => { const d = Math.hypot(el._x - x, el._y - y); if (d < bd) { bd = d; best = el; } });
+        const none = { a: 0, sx: 1, sy: 1, dx: 0, dy: 0, sc: 1 };
+        if (!best) return none;
+        const t = Math.max(0, Math.min(1, 1 - bd / 240));
+        if (t <= 0) return none;
+        const a = Math.atan2(best._y - y, best._x - x) * 180 / Math.PI, k = t * t;
+        st.pa = a;
+        return { a, sx: 1 + 1.7 * k, sy: 1 - .55 * k, dx: (best._x - x) * k * .28, dy: (best._y - y) * k * .28, sc: 1 - .3 * k * t };
       }
       function hoverTable(x, y) {
         const el = document.elementFromPoint(x, y), wr = el && el.closest && el.closest('.chalk-note');
@@ -6365,7 +6408,8 @@
         if (st.over) { st.over.classList.remove('bh-over'); st.over = null; }
       }
       function ghostMove(x, y) {
-        setGhost(x, y, 1, 0, 0);
+        const pf = pullFx(x, y), easing = st.easeUntil && performance.now() < st.easeUntil;
+        setGhost(x, y, pf.sc, easing ? 120 : 0, 0, pf, 'cubic-bezier(.2,.8,.3,1)');
         nearFx(x, y);
         const h = hoverTable(x, y);
         if (!h) { clearSlot(); return; }
@@ -6391,12 +6435,34 @@
       }
       function gotoBoard(b) { const i = appData.boards.indexOf(b); if (i < 0) return; appData.activeBoardIndex = i; selectedNoteId = null; renderNotes(); }
 
+      /* a linha só "sai" da tabela (e o buraco negro só nasce) quando o ponteiro passa da borda da tabela */
+      function srcRect() { return st.srcWr && st.srcWr.isConnected ? st.srcWr.getBoundingClientRect() : null; }
+      function pullOut() {
+        const rc = st.row.getBoundingClientRect();
+        st.orig = { left: rc.left, top: rc.top };
+        makeGhost();                      // clone flutuante, solto da tabela (não é cortado pelo overflow)
+        st.row.style.opacity = ''; st.row.style.display = 'none';   // a linha sai do lugar: a tabela se fecha
+        void st.ghost.offsetWidth;
+        st.easeUntil = performance.now() + 220;
+        showPortals(st.cur, st.fromBoard.id);
+        st.armed = !portalAt(st.x, st.y);
+      }
+      function pullBack() {
+        clearSlot();
+        if (st.ghost) { st.ghost.remove(); st.ghost = null; }
+        st.row.style.display = ''; st.row.style.opacity = '';
+        st.easeUntil = 0;
+        hidePortals(false);
+        place(st.y);
+      }
+
       function enterPortal(p) {
         if (st.busy) return;
-        st.busy = true; sndSuck();
+        st.busy = true; st.hopped = true; sndSuck();
         if (!st.ghost) { makeGhost(); setGhost(st.x, st.y, 1, 0, 0); void st.ghost.offsetWidth; }
         p.classList.add('eat');
-        setGhost(p._x, p._y, .06, 330, 540);
+        const sa = st.pa || 0;
+        setGhost(p._x, p._y, .06, 330, 540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 });
         const prev = st.cur;
         setTimeout(() => {
           if (!st) return;
@@ -6406,8 +6472,8 @@
           const back = portals.find(el => el._board === prev) || { _x: st.x, _y: st.y };
           st.prevPortalBoard = prev;
           document.querySelectorAll('[data-row="' + st.rowId + '"]').forEach(r => { r.style.display = 'none'; });
-          setGhost(back._x, back._y, .06, 0, -540); void st.ghost.offsetWidth;
-          setGhost(st.x, st.y, 1, 360, 0);
+          setGhost(back._x, back._y, .06, 0, -540, { a: sa, sx: 3.2, sy: .14, dx: 0, dy: 0 }); void st.ghost.offsetWidth;
+          setGhost(st.x, st.y, 1, 380, 0);
           setTimeout(() => { if (!st) return; st.busy = false; if (st.release) finishGhost(st.release === 'commit'); else ghostMove(st.x, st.y); }, 380);
         }, 340);
       }
@@ -6434,9 +6500,12 @@
         // soltou fora: a linha volta ao buraco negro de onde veio
         clearSlot();
         const s0 = st, back = portals.find(el => el._board === s0.fromBoard) || portals.find(el => el._board === s0.prevPortalBoard);
-        if (s0.cur === s0.fromBoard || !back) {   // já está na lousa de origem: só volta ao lugar
-          g.style.transition = 'opacity .25s'; g.style.opacity = '0';
-          endAll(); setTimeout(() => { g.remove(); renderNotes(); }, 260);
+        if (s0.cur === s0.fromBoard || !back) {   // já está na lousa de origem: a linha volta voando para o lugar
+          if (s0.orig && s0.cur === s0.fromBoard) {
+            g.style.transformOrigin = '0 0'; g.style.transition = 'transform .28s cubic-bezier(.2,.8,.3,1)';
+            g.style.transform = `translate(${s0.orig.left}px,${s0.orig.top}px) scale(1)`;
+          } else { g.style.transition = 'opacity .25s'; g.style.opacity = '0'; }
+          endAll(); setTimeout(() => { g.remove(); renderNotes(); }, 290);
           return;
         }
         s0.busy = true; back.classList.add('eat'); sndSuck();
@@ -6463,7 +6532,10 @@
           if (note && note.type === 'fintable') {
             st.rowId = f.row.getAttribute('data-row');
             st.fromBoard = finBoardOfRow(st.rowId) || finSrcOf(note); st.cur = getActiveBoard();
-            showPortals(st.cur, st.fromBoard.id); st.armed = !portalAt(x, y);
+            st.srcWr = f.box.closest('.chalk-note');
+            let nl = []; try { nl = finLinkedBoards(st.cur, null); } catch (e) {}
+            st.canPortal = nl.length > 0 && !!st.srcWr;   // só vira "arrastar p/ outra lousa" se houver lousa ligada
+            st.armed = true;
           }
         }
         if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
@@ -6483,6 +6555,15 @@
         e.preventDefault(); e.stopPropagation();
         st.x = e.clientX; st.y = e.clientY;
         if (st.busy) return;
+        if (st.canPortal && !st.hopped) {
+          const sr = srcRect();
+          if (sr) {
+            const out = st.x < sr.left || st.x > sr.right || st.y < sr.top || st.y > sr.bottom;
+            const deepIn = st.x > sr.left + 16 && st.x < sr.right - 16 && st.y > sr.top + 16 && st.y < sr.bottom - 16;
+            if (!st.ghost && out) pullOut();
+            else if (st.ghost && deepIn) pullBack();
+          }
+        }
         if (portals.length) {
           if (!portalAt(st.x, st.y, 1.25)) st.armed = true;
           else if (st.armed) { const p = portalAt(st.x, st.y); if (p) { enterPortal(p); return; } }
