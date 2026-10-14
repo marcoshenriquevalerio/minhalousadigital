@@ -166,7 +166,7 @@ footer p+p{margin-top:6px}
 </head>
 <body>
 <canvas id="bg"></canvas><div class="gl"></div><div class="gl b"></div>
-<header class="nav"><a class="logo" href="#topo">Lousa Digital</a><nav><a href="#como" data-k="nav.1">Como funciona</a><a href="#tudo" data-k="nav.2">Recursos</a><a href="#planos" data-k="nav.3">Planos</a><a class="btn o" href="login.html" data-k="nav.4">Entrar</a><a class="btn" href="#planos" data-buy="pro" data-k="nav.5">Assinar agora</a></nav></header>
+<header class="nav"><a class="logo" href="#topo" data-mv="logo">Lousa Digital</a><nav data-mv="nav"><a href="#como" data-k="nav.1">Como funciona</a><a href="#tudo" data-k="nav.2">Recursos</a><a href="#planos" data-k="nav.3">Planos</a><a class="btn o" href="login.html" data-k="nav.4">Entrar</a><a class="btn" href="#planos" data-buy="pro" data-k="nav.5">Assinar agora</a></nav></header>
 
 <main id="topo">
 <section class="hero" data-h="150">
@@ -175,9 +175,9 @@ footer p+p{margin-top:6px}
  <div class="fc" style="right:20%;top:52%;animation-delay:-2s;color:var(--r)" data-p="-.2" data-k="hero.fc2">ideia nova!</div>
  <div class="fc" style="right:6%;top:70%;animation-delay:-4s;color:var(--b)" data-p="-.08" data-k="hero.fc3">R$ 4.280 entrou</div>
  <h1 data-k="hero.title">Sua lousa de giz, feita para o futuro.</h1>
- <svg class="ul" viewBox="0 0 560 30" preserveAspectRatio="none"><path pathLength="1" d="M4 20 C120 4 260 28 380 12 S520 8 556 14"/></svg>
+ <svg class="ul" data-mv="hero.ul" viewBox="0 0 560 30" preserveAspectRatio="none"><path pathLength="1" d="M4 20 C120 4 260 28 380 12 S520 8 556 14"/></svg>
  <p class="lead" data-k="hero.lead">Listas, setas que se mexem, post-its, finanças e equipe ao vivo, tudo numa lousa verde que dá gosto de usar. Abre no navegador e no celular, sem instalar nada.</p>
- <div class="row"><a class="btn" href="#planos" data-buy="pro" data-k="hero.btn1">Assinar agora</a><a class="btn o" href="#como" data-k="hero.btn2">Ver como funciona</a></div>
+ <div class="row" data-mv="hero.row"><a class="btn" href="#planos" data-buy="pro" data-k="hero.btn1">Assinar agora</a><a class="btn o" href="#como" data-k="hero.btn2">Ver como funciona</a></div>
  <small data-k="hero.small">Sem instalar. Funciona no celular. Comece grátis.</small>
 </section>
 <div class="mq" aria-hidden="true"><div><span>listas</span><span>setas animadas</span><span>post-its</span><span>imagens e adesivos</span><span>finanças</span><span>calendário</span><span>equipe ao vivo</span><span>vários quadros</span><span>minijogos</span><span>giz ou canetão</span><span>listas</span><span>setas animadas</span><span>post-its</span><span>imagens e adesivos</span><span>finanças</span><span>calendário</span><span>equipe ao vivo</span><span>vários quadros</span><span>minijogos</span><span>giz ou canetão</span></div></div>
@@ -351,9 +351,23 @@ if(!ED){setInterval(function(){if(!document.hidden)load()},10000);document.addEv
    el.style.transition="none";el.style.fontSize="";
    if(k){var px=parseFloat(getComputedStyle(el).fontSize);if(px)el.style.fontSize=(px*k/100)+"px"}
    void el.offsetWidth;el.style.transition=""})}
- var rt;addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(fsApply,120)});
+ var MV={};
+ /* posição e tamanho de cada elemento (separado para computador e celular) */
+ function mvApply(){var dv=matchMedia("(max-width:860px)").matches?"m":"d";
+  q("[data-k],[data-mv]").forEach(function(el){
+   var key=el.dataset.k||el.dataset.mv,m=MV[key]||{},x=(dv==="m"?m.xm:m.x)||0,y=(dv==="m"?m.ym:m.y)||0,z=(dv==="m"?m.zm:m.z)||100,f=100/z,mv=!!(x||y);
+   if(el.classList.contains("fc")){
+    if(el.dataset.t0===undefined){el.dataset.t0=el.style.top;el.dataset.r0=el.style.right}
+    el.style.top=mv?"calc("+el.dataset.t0+" + "+(y*f)+"px)":el.dataset.t0;
+    el.style.right=mv?"calc("+el.dataset.r0+" - "+(x*f)+"px)":el.dataset.r0}
+   else{
+    el.style.translate=mv?(x*f)+"px "+(y*f)+"px":"";
+    if(mv&&el.dataset.dm===undefined&&getComputedStyle(el).display==="inline"){el.dataset.dm="1";el.style.display="inline-block"}
+    else if(!mv&&el.dataset.dm){el.style.display="";delete el.dataset.dm}}
+   el.style.zoom=z!==100?z/100:""})}
+ var rt;addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(function(){fsApply();mvApply()},120)});
  window.applySite=function(S){
-  S=S||{};var T=S.texts||{};FS=S.fs||{};
+  S=S||{};var T=S.texts||{};FS=S.fs||{};MV=S.mv||{};
   q("[data-k]").forEach(function(el){
    if(el.dataset.d===undefined)el.dataset.d=el.textContent;
    var v=typeof T[el.dataset.k]==="string"?T[el.dataset.k]:el.dataset.d;
@@ -378,7 +392,7 @@ if(!ED){setInterval(function(){if(!document.hidden)load()},10000);document.addEv
    pv("--hxm",H.xm==null?null:H.xm+"%");pv("--hym",H.ym==null?null:H.ym+"%");
    st.setProperty("--ho",(H.op==null?100:H.op)/100)}
   else{im.hidden=true;im.removeAttribute("src")}
-  fsApply();
+  fsApply();mvApply();
  };
 })();
 </script>

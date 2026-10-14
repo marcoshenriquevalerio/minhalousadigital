@@ -123,9 +123,11 @@ tr.clk td:first-child{cursor:pointer}tr.clk:hover{background:var(--bg)}
 
 main:has(#vSite:not([hidden])){max-width:1600px}
 .hp{position:relative}.hp summary{list-style:none;cursor:pointer}.hp summary::-webkit-details-marker{display:none}
-.hpb{position:absolute;left:0;top:calc(100% + 6px);z-index:8;width:min(320px,92vw);padding:12px;margin:0;box-shadow:0 12px 32px #0008}
-.hpb .f{margin:0 0 8px;font-size:12px}
-.hpc{width:min(380px,92vw);max-height:70vh;overflow:auto}.hpc .sk{margin-bottom:10px}
+.sctl{display:grid;gap:8px;margin:4px 0 12px}
+.hpb{margin:6px 0 0;padding:10px 12px}
+.hpg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 16px}
+.hpg .f{margin:0;font-size:12px}
+.hpc{max-height:42vh;overflow:auto}.hpc .sk{margin-bottom:10px}
 .sg{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .sc2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:14px;align-items:start}
 .stb{position:sticky;top:0;z-index:6;background:var(--bg);padding:10px 0;margin-bottom:6px}
@@ -256,27 +258,32 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
 
   <!-- SITE -->
   <section id="vSite" hidden>
-   <h1>Site</h1><p class="sub">Clique em qualquer texto da prévia para editar. Arraste a faixa animada para cima ou para baixo direto na prévia (vale para o aparelho escolhido: Computador ou Celular). Cards e imagem de fundo ficam na coluna ao lado. Nada vai para o ar até você clicar em Salvar e publicar.</p>
-   <div class="row stb">
-    <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
-    <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
-    <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
-    <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
+   <h1>Site</h1>
+   <div class="sctl">
+    <details class="hp" id="sHero" open><summary class="btn s">Topo e faixa animada</summary><div class="box hpb">
+      <div class="row" style="margin-bottom:8px;align-items:center"><label class="btn s">Imagem de fundo<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button><span class="sub" id="hMode" style="margin:0;font-size:12px"></span></div>
+      <div class="hpg">
+       <label class="f">Tamanho: <b id="o_sz"></b><input type="range" id="r_sz" min="50" max="2400" step="10"></label>
+       <label class="f">Horizontal: <b id="o_px"></b><input type="range" id="r_px" min="-20" max="120"></label>
+       <label class="f">Vertical: <b id="o_py"></b><input type="range" id="r_py" min="-20" max="120"></label>
+       <label class="f">Opacidade: <b id="o_op"></b><input type="range" id="r_op" min="5" max="100"></label>
+       <label class="f">Faixa animada (subir / descer): <b id="o_mq"></b><input type="range" id="r_mq" min="-300" max="300" step="2"></label>
+       <label class="f">Tamanho dos cards extras: <b id="o_cw"></b><input type="range" id="r_cw" min="140" max="420" step="10"></label>
+      </div>
+     </div></details>
     <details class="hp" id="sCardsP"><summary class="btn s">Cards extras</summary><div class="box hpb hpc">
       <p class="sub" style="margin:0 0 8px;font-size:12px">Aparecem acima de "Tudo que cabe na sua lousa". Use PNG com fundo transparente (a imagem vira quadrada, sem cortar).</p>
       <div id="sCards"></div>
       <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
      </div></details>
-    <details class="hp" id="sHero"><summary class="btn s">Topo e faixa animada</summary><div class="box hpb">
-      <p class="sub" id="hMode" style="margin:0 0 8px;font-size:12px"></p>
-      <div class="row" style="margin-bottom:8px"><label class="btn s">Imagem de fundo<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button></div>
-      <label class="f">Tamanho: <b id="o_sz"></b><input type="range" id="r_sz" min="50" max="2400" step="10"></label>
-      <label class="f">Horizontal: <b id="o_px"></b><input type="range" id="r_px" min="-20" max="120"></label>
-      <label class="f">Vertical: <b id="o_py"></b><input type="range" id="r_py" min="-20" max="120"></label>
-      <label class="f">Opacidade: <b id="o_op"></b><input type="range" id="r_op" min="5" max="100"></label>
-      <label class="f" style="border-top:1px solid var(--ln);padding-top:8px">Faixa animada (subir / descer): <b id="o_mq"></b><input type="range" id="r_mq" min="-300" max="300" step="2"></label>
-      <label class="f" style="border-top:1px solid var(--ln);padding-top:8px">Tamanho dos cards extras: <b id="o_cw"></b><input type="range" id="r_cw" min="140" max="420" step="10"></label>
-     </div></details>
+   </div>
+   <div class="row stb">
+    <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
+    <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
+    <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
+    <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
+    <button class="btn s" id="mvB" type="button" aria-pressed="false">Mover elementos</button>
+    <span class="row fsb"><span class="sub" id="zL" style="margin:0;font-size:13px">Elemento:</span><button class="btn s" id="zM" type="button" disabled aria-label="Diminuir elemento">&minus;</button><b id="zV" style="min-width:44px;text-align:center"></b><button class="btn s" id="zP" type="button" disabled aria-label="Aumentar elemento">+</button><button class="btn s" id="zR" type="button" disabled>Voltar ao lugar</button></span>
     <span class="row fsb"><span class="sub" id="fsL" style="margin:0;font-size:13px">Clique num texto para mudar o tamanho da letra</span><button class="btn s" id="fsM" type="button" disabled aria-label="Diminuir letra">A&minus;</button><b id="fsV" style="min-width:44px;text-align:center"></b><button class="btn s" id="fsP" type="button" disabled aria-label="Aumentar letra">A+</button><button class="btn s" id="fsR" type="button" disabled>Padrão</button></span>
    </div>
    <div class="sg">
@@ -559,12 +566,12 @@ function sFit(){const box=$('sBox'),f=sf();if(!box.clientWidth)return;
  else{const W=1200,sc=Math.min(1,box.clientWidth/W),h=Math.max(520,Math.round(innerHeight*.78));box.style.overflow='hidden';box.style.height=h+'px';f.style.cssText='width:'+W+'px;height:'+Math.round(h/sc)+'px;transform:scale('+sc+');transform-origin:0 0;display:block'}}
 async function siteOpen(){
  if(!sLoaded){
-  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
+  try{SS=await call('getSite');sLoaded=true;SS.fs=SS.fs||{};SS.cardW=SS.cardW||230;SS.mq=SS.mq||{y:0,ym:0};SS.mv=SS.mv||{};sCards();sHero();fsShow();sDirty(false);sf().src='site.html?edit=1'}
   catch(e){toast(e.message||'Não foi possível abrir o site.',true);return}}
  sFit()}
 sf().onload=()=>{
  const d=sf().contentDocument;if(!d)return;
- const st=d.createElement('style');st.textContent='html{color-scheme:dark}html.nosb{scrollbar-width:none}html.nosb::-webkit-scrollbar{display:none}[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}[data-k].sel{outline:2px solid #9be3c0}.mq{outline:1px dashed #f7d56bcc;outline-offset:-1px;cursor:ns-resize;touch-action:none}.mq *{user-select:none}';d.head.appendChild(st);
+ const st=d.createElement('style');st.textContent='html{color-scheme:dark}html.nosb{scrollbar-width:none}html.nosb::-webkit-scrollbar{display:none}[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}[data-k].sel{outline:2px solid #9be3c0}html.mvmode,html.mvmode *{transition:none!important}html.mvmode [data-k],html.mvmode [data-mv]{outline:1px dashed #6bb8ffcc!important;outline-offset:2px;cursor:move!important;user-select:none;-webkit-user-select:none}html.mvmode .sel{outline:2px solid #6bb8ff!important}.mq{outline:1px dashed #f7d56bcc;outline-offset:-1px;cursor:ns-resize;touch-action:none}.mq *{user-select:none}';d.head.appendChild(st);
  d.querySelectorAll('[data-k]').forEach(el=>{el.setAttribute('contenteditable','plaintext-only');if(el.contentEditable!=='plaintext-only')el.setAttribute('contenteditable','true')});
  d.querySelectorAll('details').forEach(x=>x.open=true);
  d.addEventListener('click',e=>{if(e.target.closest('a,summary'))e.preventDefault()},true);
@@ -580,7 +587,7 @@ sf().onload=()=>{
  d.addEventListener('focusin',e=>{const el=e.target.closest&&e.target.closest('[data-k]');if(!el)return;
   d.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');SEL=el.dataset.k;fsShow()});
  /* arrastar a imagem de fundo direto na prévia (clique numa parte da imagem que não tenha texto) */
- const hb=d.getElementById('hbg'),EX='[data-k],a,button,summary,.xk,.nav,.mq';let drag=false;
+ const hb=d.getElementById('hbg'),EX='[data-k],[data-mv],a,button,summary,.xk,.nav,.mq';let drag=false;
  const inHb=e=>{if(!hb||hb.hidden)return false;const r=hb.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
  d.addEventListener('pointermove',e=>{if(!drag)d.documentElement.style.cursor=(inHb(e)&&!e.target.closest(EX))?'move':''});
  d.addEventListener('pointerdown',e=>{
@@ -590,6 +597,16 @@ sf().onload=()=>{
   const mv=ev=>{SS.hero[kx]=Math.round(x0+(ev.clientX-sx)/hero.width*100);SS.hero[ky]=Math.round(y0+(ev.clientY-sy)/hero.height*100);sApply();sHero();sDirty(true)};
   const up=()=>{drag=false;d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);d.removeEventListener('pointercancel',up)};
   d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up)});
+ /* modo mover: arrasta qualquer texto, botão ou bloco (computador e celular separados) */
+ d.addEventListener('pointerdown',e=>{
+  if(!MVMODE)return;const el=e.target.closest&&e.target.closest('[data-k],[data-mv]');if(!el)return;
+  e.preventDefault();e.stopPropagation();
+  const key=el.dataset.k||el.dataset.mv;SEL=key;d.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');fsShow();
+  const m=SDEV==='m',kx=m?'xm':'x',ky=m?'ym':'y',o=SS.mv[key]=Object.assign({x:0,y:0,z:100,xm:0,ym:0,zm:100},SS.mv[key]),sx=e.clientX,sy=e.clientY,x0=o[kx],y0=o[ky];
+  const mv=ev=>{o[kx]=Math.round(x0+ev.clientX-sx);o[ky]=Math.round(y0+ev.clientY-sy);sApply();sDirty(true)};
+  const up=()=>{d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);d.removeEventListener('pointercancel',up);mvClean(key);zShow()};
+  d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up)},true);
+ mvSet(MVMODE);
  /* arrastar a faixa animada para cima ou para baixo direto na prévia (vale para o aparelho selecionado) */
  const mqe=d.querySelector('.mq');
  if(mqe)mqe.addEventListener('pointerdown',e=>{
@@ -621,7 +638,7 @@ async function sUpload(file,max,square){
 /* fundo do topo: tamanho e posição valem para o aparelho que estiver na prévia (computador ou celular) */
 const hk=()=>SDEV==='m'?{sz:'wm',x:'xm',y:'ym'}:{sz:'w',x:'x',y:'y'};
 function sHero(){const h=SS.hero,k=hk(),set=(r,o,v,u)=>{$(r).value=v;$(o).textContent=v+u};
- $('hMode').textContent=SDEV==='m'?'Ajustando para o CELULAR. Você também pode arrastar a imagem direto na prévia.':'Ajustando para o COMPUTADOR. Você também pode arrastar a imagem direto na prévia.';
+ $('hMode').textContent=SDEV==='m'?'Ajustando: CELULAR':'Ajustando: COMPUTADOR';
  $('r_sz').max=SDEV==='m'?1200:2400;
  set('r_sz','o_sz',h[k.sz],' px');set('r_px','o_px',h[k.x],'%');set('r_py','o_py',h[k.y],'%');set('r_op','o_op',h.op,'%');
  set('r_cw','o_cw',SS.cardW,' px');set('r_mq','o_mq',(SS.mq||{})[SDEV==='m'?'ym':'y']||0,' px');$('hRm').hidden=!h.img}
@@ -629,7 +646,6 @@ $('sHero').addEventListener('input',e=>{const id=e.target.id,k=hk();
  const map={r_sz:k.sz,r_px:k.x,r_py:k.y,r_op:'op'};if(!map[id])return;
  SS.hero[map[id]]=+e.target.value;sHero();sApply();sDirty(true)});
 $('r_mq').addEventListener('input',e=>{SS.mq=SS.mq||{y:0,ym:0};SS.mq[SDEV==='m'?'ym':'y']=+e.target.value;sHero();sApply();sDirty(true)});
-document.querySelectorAll('.hp').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('.hp').forEach(o=>{if(o!==d)o.open=false})}));
 $('r_cw').addEventListener('input',e=>{SS.cardW=+e.target.value;sHero();sApply();sDirty(true)});
 $('hUp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
  toast('Enviando imagem...');
@@ -637,9 +653,24 @@ $('hUp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)re
  catch(err){toast(err.message,true)}};
 $('hRm').onclick=()=>{SS.hero.img='';sHero();sApply();sDirty(true)};
 
+/* mover e redimensionar elementos */
+let MVMODE=false;
+function mvSet(on){MVMODE=on;$('mvB').setAttribute('aria-pressed',on);$('mvB').classList.toggle('p',on);
+ try{const d=sf().contentDocument;if(!d||!d.documentElement)return;d.documentElement.classList.toggle('mvmode',on);
+  d.querySelectorAll('[data-k]').forEach(el=>{if(on)el.setAttribute('contenteditable','false');else{el.setAttribute('contenteditable','plaintext-only');if(el.contentEditable!=='plaintext-only')el.setAttribute('contenteditable','true')}});
+  if(on&&d.activeElement&&d.activeElement.blur)d.activeElement.blur()}catch(e){}}
+$('mvB').onclick=()=>mvSet(!MVMODE);
+const mvZk=()=>SDEV==='m'?'zm':'z';
+function mvClean(k){const o=SS.mv[k];if(o&&!o.x&&!o.y&&!o.xm&&!o.ym&&o.z===100&&o.zm===100)delete SS.mv[k]}
+const zCur=()=>((SS.mv[SEL]||{})[mvZk()])||100;
+function zShow(){const on=!!SEL&&!!SS;['zM','zP','zR'].forEach(i=>$(i).disabled=!on);$('zV').textContent=on?zCur()+'%':''}
+function zSet(v){if(!SEL)return;v=Math.max(30,Math.min(300,v));const o=SS.mv[SEL]=Object.assign({x:0,y:0,z:100,xm:0,ym:0,zm:100},SS.mv[SEL]);o[mvZk()]=v;mvClean(SEL);sApply();zShow();sDirty(true)}
+$('zM').onclick=()=>zSet(zCur()-10);$('zP').onclick=()=>zSet(zCur()+10);
+$('zR').onclick=()=>{if(!SEL)return;const o=SS.mv[SEL];if(!o)return;const m=SDEV==='m';if(m){o.xm=0;o.ym=0;o.zm=100}else{o.x=0;o.y=0;o.z=100}mvClean(SEL);sApply();zShow();sDirty(true)};
+
 /* tamanho da letra do texto selecionado na prévia */
 const fsCur=()=>((SS.fs[SEL]||{})[SDEV])||100;
-function fsShow(){const on=!!SEL&&!!SS;['fsM','fsP','fsR'].forEach(i=>$(i).disabled=!on);
+function fsShow(){zShow();const on=!!SEL&&!!SS;['fsM','fsP','fsR'].forEach(i=>$(i).disabled=!on);
  $('fsV').textContent=on?fsCur()+'%':'';
  $('fsL').textContent=on?'Letra ('+(SDEV==='m'?'celular':'computador')+'):':'Clique num texto para mudar o tamanho da letra'}
 function fsSet(v){if(!SEL)return;v=Math.max(30,Math.min(300,v));const o=SS.fs[SEL]=Object.assign({d:100,m:100},SS.fs[SEL]);o[SDEV]=v;
