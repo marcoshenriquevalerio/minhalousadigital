@@ -6734,22 +6734,102 @@
       }
       /* --- Time Vortex (estilo Doctor Who): túnel de nuvens douradas em shader WebGL, com lente gravitacional nos buracos --- */
       const VX_FS = `precision highp float;
-uniform vec2 R; uniform float T; uniform vec4 H[4];
+uniform vec2 R; uniform float T,TV,F; uniform vec4 H[4];
+float h11(float x){return fract(sin(x*127.1+311.7)*43758.5453);}
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float n3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);
   return mix(mix(mix(h31(i),h31(i+vec3(1.,0.,0.)),f.x),mix(h31(i+vec3(0.,1.,0.)),h31(i+vec3(1.,1.,0.)),f.x),f.y),
              mix(mix(h31(i+vec3(0.,0.,1.)),h31(i+vec3(1.,0.,1.)),f.x),mix(h31(i+vec3(0.,1.,1.)),h31(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}
 float fbm(vec3 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n3(p);p=p*2.03+vec3(1.7,9.2,3.1);a*=.5;}return s;}
+float fbm5(vec3 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n3(p);p=p*2.03+vec3(1.7,9.2,3.1);a*=.5;}return s;}
+
+vec3 stars(vec2 p){
+  vec3 c=vec3(0.);
+  for(int l=0;l<3;l++){
+    float fl=float(l);
+    vec2 q=p*(20.+fl*28.)+vec2(T*(.25+fl*.2),T*.05);
+    vec2 id=floor(q), f=fract(q)-.5;
+    float h=h21(id+fl*17.);
+    if(h>.84){
+      vec2 o=(vec2(h21(id+3.1),h21(id+7.7))-.5)*.6;
+      float d=length(f-o);
+      float sz=(.09+.16*h21(id+9.))*(1.-fl*.28);
+      float tw=.65+.35*sin(T*(1.5+h*5.)+h*40.);
+      c+=mix(vec3(.7,.82,1.),vec3(1.,.86,.66),h21(id+5.))*(1.-smoothstep(0.,sz,d))*tw*(1.25-.3*fl);
+    }
+  }
+  return c;
+}
+float shoot(vec2 p,float seed){
+  float per=5.+seed*2.3, tt=T/per+seed*3.7, id=floor(tt), f=fract(tt), dur=.17;
+  if(f>dur) return 0.;
+  float u=f/dur;
+  vec2 hf=.5*R/min(R.x,R.y);
+  vec2 st=vec2((h11(id*3.1+seed)*2.-1.)*hf.x*1.1,(.1+h11(id*5.7+seed*2.)*.9)*hf.y);
+  vec2 dir=normalize(vec2(-1.,-.3-h11(id+seed)*.45));
+  vec2 head=st+dir*u*1.3, d=p-head;
+  float t=-dot(d,dir), perp=abs(d.x*dir.y-d.y*dir.x);
+  float life=smoothstep(0.,.12,u)*(1.-smoothstep(.7,1.,u));
+  float tail=step(0.,t)*exp(-t*11.)*(1.-smoothstep(.0004,.0035,perp));
+  float hg=exp(-dot(d,d)*4e4);
+  return (tail+hg*1.2)*life;
+}
+vec3 earth(vec2 p,vec3 bg){
+  float m=min(R.x,R.y); vec2 hf=.5*R/m;
+  vec2 ec=vec2(-hf.x*.55,-hf.y*.62); float er=min(hf.x,hf.y)*1.1;
+  vec2 v=(p-ec)/er; float d2=dot(v,v);
+  vec3 L=normalize(vec3(.75,.45,.55));
+  if(d2>=1.){
+    float dd=sqrt(d2);
+    float lt=.25+.75*clamp(dot(normalize(v),L.xy/length(L.xy))*.5+.5,0.,1.);
+    return bg+vec3(.18,.45,1.)*exp(-(dd-1.)*16.)*.7*lt;
+  }
+  float z=sqrt(1.-d2); vec3 n=vec3(v,z);
+  float ca=cos(T*.035),sa=sin(T*.035);
+  vec3 sp=vec3(n.x*ca+n.z*sa,n.y,-n.x*sa+n.z*ca);
+  float tl=.41; sp=vec3(sp.x*cos(tl)-sp.y*sin(tl),sp.x*sin(tl)+sp.y*cos(tl),sp.z);
+  float h=fbm5(sp*2.0+5.3);
+  float land=smoothstep(.5,.54,h), elev=smoothstep(.52,.78,h);
+  vec3 ocean=mix(vec3(.01,.045,.19),vec3(.03,.2,.4),smoothstep(.25,.5,h));
+  float lat=abs(sp.y);
+  float dry=smoothstep(.45,.75,n3(sp*2.5+11.))*(1.-smoothstep(.25,.8,lat));
+  vec3 lc=mix(vec3(.08,.25,.07),vec3(.55,.44,.26),dry);
+  lc=mix(lc,vec3(.36,.32,.28),elev*.7);
+  lc*=.78+.44*n3(sp*18.);
+  vec3 surf=mix(ocean,lc,land);
+  float ice=smoothstep(.8,.93,lat+(n3(sp*8.)-.5)*.12);
+  surf=mix(surf,vec3(.93,.96,1.),ice);
+  float cl=smoothstep(.5,.78,fbm(sp*3.2+vec3(T*.012,0.,T*.008)+n3(sp*1.5)*.5));
+  float dif=dot(n,L), d=clamp(dif,0.,1.);
+  vec3 col=surf*(.1+d*1.0);
+  col=mix(col,vec3(1.)*(.1+d*.95),cl*.85);
+  float spec=pow(max(reflect(-L,n).z,0.),50.)*(1.-land)*(1.-cl)*d;
+  col+=vec3(1.,.95,.85)*spec*.9;
+  float nt=1.-smoothstep(-.05,.22,dif);
+  col+=vec3(1.,.72,.3)*land*(1.-cl*.8)*smoothstep(.64,.8,n3(sp*55.))*nt*.9;
+  float fr=pow(1.-z,2.6);
+  col+=vec3(.25,.55,1.)*fr*(.2+d*1.3);
+  return col;
+}
 void main(){
   vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y);
   for(int i=0;i<4;i++){ if(H[i].w>.5){ vec2 d=p-H[i].xy; float dd=max(length(d),1e-3); float Re=H[i].z; p=H[i].xy+d/dd*(dd-Re*Re/dd); } }
-  p-=vec2(sin(T*.31),cos(T*.23))*.035;
-  float r=length(p)+1e-4, a=atan(p.y,p.x);
+
+  /* o espaço lá fora: nebulosa fraca, estrelas, estrelas cadentes e a Terra */
+  vec3 sc=vec3(.002,.003,.011)+vec3(.05,.028,.11)*smoothstep(.35,.9,n3(vec3(p*1.6,1.3)))*.6;
+  sc+=stars(p);
+  sc+=vec3(.85,.93,1.)*(shoot(p,1.)+shoot(p,2.)+shoot(p,3.7));
+  sc=earth(p,sc);
+
+  /* o túnel do vórtice por cima, semitransparente */
+  vec2 pt=p-vec2(sin(TV*.31),cos(TV*.23))*.035;
+  float r=length(pt)+1e-4, a=atan(pt.y,pt.x);
   float z=.22/(r+.03);
-  float tw=a+z*.55+T*.12;
-  float zt=z-T*.9;
+  float tw=a+z*.55+TV*.12;
+  float zt=z-TV*.9;
   float n1=fbm(vec3(cos(tw)*1.7,sin(tw)*1.7,zt*.55));
-  float n2=fbm(vec3(cos(tw*2.+1.)*2.4,sin(tw*2.+1.)*2.4,zt*.35+4.-T*.3)+n1*.8);
+  float n2=fbm(vec3(cos(tw*2.+1.)*2.4,sin(tw*2.+1.)*2.4,zt*.35+4.-TV*.3)+n1*.8);
   float c=smoothstep(.22,.82,n1*.65+n2*.5);
   vec3 dark=vec3(.05,.015,.0), mid=vec3(.95,.38,.05), gold=vec3(1.,.74,.28), hot=vec3(1.,.96,.82);
   vec3 col=mix(dark,mid,smoothstep(.0,.45,c));
@@ -6757,15 +6837,21 @@ void main(){
   col=mix(col,hot,smoothstep(.82,1.,c));
   float b=smoothstep(.55,.82,n2)*(1.-c);
   col+=vec3(.04,.2,.55)*b*.9;
-  float rg=1.-abs(fbm(vec3(cos(tw*3.)*3.,sin(tw*3.)*3.,zt*.7-T*.5))*2.-1.);
-  col+=vec3(.75,.88,1.)*pow(rg,10.)*.55;
-  float streak=pow(n3(vec3(a*7.+T*.2,floor(T*3.)*.37,3.)),6.)*exp(-r*2.5);
+  float rg=1.-abs(fbm(vec3(cos(tw*3.)*3.,sin(tw*3.)*3.,zt*.7-TV*.5))*2.-1.);
+  float rgp=pow(rg,10.);
+  col+=vec3(.75,.88,1.)*rgp*.55;
+  float streak=pow(n3(vec3(a*7.+TV*.2,floor(TV*3.)*.37,3.)),6.)*exp(-r*2.5);
   col+=vec3(1.,.85,.5)*streak*.6;
   float core=exp(-r*6.);
   col=mix(col,vec3(1.,.97,.88),clamp(core*1.25,0.,1.));
   col+=vec3(1.,.78,.35)*exp(-r*2.2)*.35;
-  col*=1.-.4*smoothstep(.4,1.2,r);
-  gl_FragColor=vec4(pow(col,vec3(.95)),1.);
+  float al=clamp(.1+.82*c+.5*streak+.4*b+.5*rgp,0.,1.);
+  al=max(al,clamp(core*1.4,0.,1.));
+  al*=mix(1.,.62,smoothstep(.3,1.1,r));
+  vec3 fin=mix(sc,col,al);
+  fin*=1.-.25*smoothstep(.5,1.3,r);
+  fin=mix(fin,vec3(1.,.95,.82),F);
+  gl_FragColor=vec4(pow(fin,vec3(.95)),1.);
 }`;
       function vxInitGL(host) {
         try {
@@ -6781,11 +6867,22 @@ void main(){
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
           const lq = gl.getAttribLocation(pr, 'q'); gl.enableVertexAttribArray(lq); gl.vertexAttribPointer(lq, 2, gl.FLOAT, false, 0, 0);
           host.insertBefore(cv, host.firstChild);
-          return { cv, gl, uR: gl.getUniformLocation(pr, 'R'), uT: gl.getUniformLocation(pr, 'T'), uH: gl.getUniformLocation(pr, 'H'), hb: new Float32Array(16) };
+          return { cv, gl, uR: gl.getUniformLocation(pr, 'R'), uT: gl.getUniformLocation(pr, 'T'), uTV: gl.getUniformLocation(pr, 'TV'), uF: gl.getUniformLocation(pr, 'F'), uH: gl.getUniformLocation(pr, 'H'), hb: new Float32Array(16) };
         } catch (e) { console.warn('vortex GL indisponível, usando canvas 2D', e); return null; }
       }
-      function vxDrawGL(v, t, W, H, ms) {
+      function vxDrawGL(v, t, W, H, ms, now, dt) {
         const g = v.gl, gl = g.gl; if (gl.isContextLost()) return;
+        /* saída: o túnel acelera, um clarão dourado cobre a tela e tudo se dissolve com leve zoom */
+        let kc = 0, fl = 0;
+        if (v.closing) {
+          kc = Math.min(1, (now - v.ck0) / 650);
+          fl = kc < .35 ? kc / .35 : 1 - (kc - .35) / .65; fl = fl * fl * (3 - 2 * fl);
+          const fo = Math.max(0, (kc - .45) / .55);
+          v.el.style.opacity = String(1 - fo * fo * (3 - 2 * fo));
+          v.el.style.transform = 'scale(' + (1 + kc * kc * .35) + ')';
+        }
+        v.tv = (v.tv || 0) + dt * (1 + kc * kc * 14);
+        gl.uniform1f(g.uTV, v.tv); gl.uniform1f(g.uF, fl);
         gl.viewport(0, 0, g.cv.width, g.cv.height);
         gl.uniform2f(g.uR, g.cv.width, g.cv.height); gl.uniform1f(g.uT, t);
         g.hb.fill(0);
@@ -6839,9 +6936,12 @@ void main(){
       }
       function closeVortex(ox, oy) {
         const v = vx; if (!v || v.closing) return; v.closing = true;
-        v.el.style.transition = 'clip-path .6s cubic-bezier(.5,0,.8,.4),-webkit-clip-path .6s cubic-bezier(.5,0,.8,.4)';
-        const cc = 'circle(0px at ' + ox + 'px ' + oy + 'px)'; v.el.style.clipPath = cc; v.el.style.webkitClipPath = cc;
-        setTimeout(() => { cancelAnimationFrame(v.raf); removeEventListener('resize', v.fitFn); v.el.remove(); if (vx === v) vx = null; }, 650);
+        if (v.gl) {
+          v.ck0 = performance.now(); v.el.style.transition = 'none'; v.el.style.transformOrigin = ox + 'px ' + oy + 'px';
+        } else {
+          v.el.style.transition = 'opacity .6s ease'; void v.el.offsetWidth; v.el.style.opacity = '0';
+        }
+        setTimeout(() => { cancelAnimationFrame(v.raf); removeEventListener('resize', v.fitFn); v.el.remove(); if (vx === v) vx = null; }, 670);
       }
       function vFrame(now) {
         const v = vx; if (!v) return;
@@ -6863,7 +6963,7 @@ void main(){
           h.s = eb * h.ns; h.R = v.R0 * h.s; h._hit = e > .7 ? v.R0 * 2.2 * h.ns : 0; h.e = e;
         });
 
-        if (v.gl) vxDrawGL(v, t, W, H, ms);
+        if (v.gl) vxDrawGL(v, t, W, H, ms, now, dt);
         else {
         /* braços de espiral + brilho central */
         c.globalCompositeOperation = 'lighter';
