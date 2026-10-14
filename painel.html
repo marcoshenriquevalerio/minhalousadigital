@@ -742,7 +742,12 @@ $('sScn').addEventListener('input',e=>{const f=e.target.dataset.sf;if(!f||!SS.sc
  sApply();sDirty(true)});
 $('sScn').addEventListener('change',async e=>{if(!e.target.matches('[data-scup]'))return;const f=e.target.files[0];e.target.value='';if(!f)return;
  toast('Enviando imagem...');try{SS.sc[SCI].img=await sUpload(f,1400,false);sScn();sApply();sDirty(true);toast('Imagem pronta.')}catch(err){toast(err.message,true)}});
-document.querySelector('.tabs [data-tab="sc"]').addEventListener('click',()=>sScnGo(SCI));
+/* ao trocar de aba, a prévia rola até a parte correspondente do site */
+const sNav={
+ top:d=>{const el=d.querySelector('.hero');if(el)el.scrollIntoView({block:'start',behavior:'smooth'})},
+ sc:()=>sScnGo(SCI),
+ cd:d=>{const x=d.getElementById('extra'),el=x&&!x.hidden?x:d.querySelector('[data-k="tudo.title"]');if(el)el.scrollIntoView({block:'center',behavior:'smooth'})}};
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{try{const f=sNav[b.dataset.tab];if(f)f(sf().contentDocument)}catch(e){}}));
 
 /* cards flutuantes do topo: manter o card ou virar só uma imagem PNG */
 const FCK=[['hero.fc1','Card 1 (responder clientes)'],['hero.fc2','Card 2 (ideia nova)'],['hero.fc3','Card 3 (R$ entrou)']];
