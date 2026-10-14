@@ -1,8 +1,7 @@
 // GET /api/public -> preço, recursos de cada plano e as linhas dos cards (usado no site, no login e na lousa)
 const { getBilling, getPlans, getMp, bullets, CATALOG, wrap, cfgRef } = require("../lib/server");
 module.exports = wrap(async (req, res) => {
-  const [b, plans, m, up, sd] = await Promise.all([getBilling(), getPlans(), getMp(), cfgRef("update").get(), cfgRef("site").get()]);
-  const st = sd.exists ? sd.data() : {};
+  const [b, plans, m, up] = await Promise.all([getBilling(), getPlans(), getMp(), cfgRef("update").get()]);
   const u = up.exists ? up.data() : {};
   res.setHeader("Cache-Control", "s-maxage=10");
   res.status(200).json({
@@ -12,8 +11,6 @@ module.exports = wrap(async (req, res) => {
     // aviso de atualização enviado pelo painel (id vazio = nenhum aviso ativo)
     update: u.id ? { id: String(u.id), title: u.title || "", message: u.message || "", at: u.at || 0 } : null,
     catalog: CATALOG.map((c) => ({ id: c.id, label: c.label })),
-    // textos, cards extras e fundo do topo editados no painel (aba Site)
-    site: { texts: st.texts || {}, cards: st.cards || [], hero: st.hero || {} },
     cards: { free: bullets(plans.free, "free"), pro: bullets(plans.pro, "pro") }
   });
 });
