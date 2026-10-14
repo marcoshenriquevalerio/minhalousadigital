@@ -125,6 +125,7 @@ main:has(#vSite:not([hidden])){max-width:1600px}
 .hp{position:relative}.hp summary{list-style:none;cursor:pointer}.hp summary::-webkit-details-marker{display:none}
 .hpb{position:absolute;left:0;top:calc(100% + 6px);z-index:8;width:min(320px,92vw);padding:12px;margin:0;box-shadow:0 12px 32px #0008}
 .hpb .f{margin:0 0 8px;font-size:12px}
+.hpc{width:min(380px,92vw);max-height:70vh;overflow:auto}.hpc .sk{margin-bottom:10px}
 .sg{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .sc2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:14px;align-items:start}
 .stb{position:sticky;top:0;z-index:6;background:var(--bg);padding:10px 0;margin-bottom:6px}
@@ -261,6 +262,11 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
     <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
     <button class="btn" id="sReset" type="button">Restaurar textos originais</button>
     <span class="sub" id="sSt" style="margin:0;font-size:13px"></span>
+    <details class="hp" id="sCardsP"><summary class="btn s">Cards extras</summary><div class="box hpb hpc">
+      <p class="sub" style="margin:0 0 8px;font-size:12px">Aparecem acima de "Tudo que cabe na sua lousa". Use PNG com fundo transparente (a imagem vira quadrada, sem cortar).</p>
+      <div id="sCards"></div>
+      <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
+     </div></details>
     <details class="hp" id="sHero"><summary class="btn s">Topo e faixa animada</summary><div class="box hpb">
       <p class="sub" id="hMode" style="margin:0 0 8px;font-size:12px"></p>
       <div class="row" style="margin-bottom:8px"><label class="btn s">Imagem de fundo<input type="file" accept="image/png,image/jpeg,image/webp" id="hUp" hidden></label><button class="btn s d" id="hRm" type="button">Remover</button></div>
@@ -275,13 +281,6 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
    </div>
    <div class="sg">
     <div id="sBox"><iframe id="sFrame" title="Prévia do site"></iframe></div>
-    <div class="sc2">
-     <div class="box">
-      <h2>Cards extras</h2><p class="h">Aparecem logo acima de "Tudo que cabe na sua lousa". Use PNG com fundo transparente: a imagem é ajustada para 1:1 (quadrado), sem cortar.</p>
-      <div id="sCards"></div>
-      <button class="btn p s" id="sAdd" type="button">Adicionar card</button>
-     </div>
-    </div>
    </div>
   </section>
 
@@ -622,6 +621,7 @@ $('sHero').addEventListener('input',e=>{const id=e.target.id,k=hk();
  const map={r_sz:k.sz,r_px:k.x,r_py:k.y,r_op:'op'};if(!map[id])return;
  SS.hero[map[id]]=+e.target.value;sHero();sApply();sDirty(true)});
 $('r_mq').addEventListener('input',e=>{SS.mq=SS.mq||{y:0,ym:0};SS.mq[SDEV==='m'?'ym':'y']=+e.target.value;sHero();sApply();sDirty(true)});
+document.querySelectorAll('.hp').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('.hp').forEach(o=>{if(o!==d)o.open=false})}));
 $('r_cw').addEventListener('input',e=>{SS.cardW=+e.target.value;sHero();sApply();sDirty(true)});
 $('hUp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
  toast('Enviando imagem...');
