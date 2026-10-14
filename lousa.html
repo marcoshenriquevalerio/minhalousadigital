@@ -824,6 +824,26 @@
     #moreDot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
     #notifPanel { position: fixed; z-index: 10040; top: 58px; right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; }
     .nt-row { background: rgba(0,0,0,.28); border: 1px solid rgba(251,191,36,.25); border-radius: 10px; padding: 9px 10px; margin-bottom: 7px; color: #fef3c7; }
+    /* ===== buracos negros: arrastar linha de tabela para outra lousa ligada ===== */
+    .bh-portal { position: fixed; z-index: 99990; width: 96px; height: 96px; margin: -48px 0 0 -48px; transform: scale(0) rotate(-120deg); opacity: 0; transition: transform .5s cubic-bezier(.2,1.3,.4,1), opacity .3s; pointer-events: none; }
+    .bh-portal.open { transform: scale(1) rotate(0); opacity: 1; }
+    .bh-portal.open.near { transform: scale(1.25); }
+    .bh-portal.closing { transform: scale(0) rotate(200deg); opacity: 0; transition: transform .5s ease-in, opacity .5s; }
+    .bh-hole { position: absolute; inset: 0; border-radius: 50%; }
+    .bh-core { position: absolute; inset: 27%; border-radius: 50%; background: radial-gradient(circle, #000 55%, #08001a); box-shadow: 0 0 16px 8px #000, 0 0 34px 14px rgba(139,92,246,.6); }
+    .bh-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 8%, rgba(251,191,36,.95) 24%, rgba(236,72,153,.9) 44%, transparent 58%, rgba(99,102,241,.85) 80%, transparent 96%); -webkit-mask: radial-gradient(circle, transparent 33%, #000 40%, #000 60%, transparent 70%); mask: radial-gradient(circle, transparent 33%, #000 40%, #000 60%, transparent 70%); animation: bhspin 1.5s linear infinite; }
+    .bh-ring.r2 { inset: 9%; animation-duration: 2.4s; animation-direction: reverse; opacity: .7; }
+    @keyframes bhspin { to { transform: rotate(360deg); } }
+    .bh-portal.eat .bh-core { animation: bhpulse .35s ease-out; }
+    @keyframes bhpulse { 50% { transform: scale(1.6); } }
+    .bh-name { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px; max-width: 124px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 700 13px 'Patrick Hand', system-ui, sans-serif; color: #fde68a; background: rgba(0,0,0,.72); padding: 2px 10px; border-radius: 999px; }
+    .bh-portal.bh-back .bh-name { background: #fbbf24; color: #1c1917; }
+    .bh-ghost { position: fixed; left: 0; top: 0; z-index: 99999; pointer-events: none; background: rgba(33,72,53,.97); border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.6), 0 0 0 1.5px rgba(253,230,138,.7); will-change: transform; }
+    .bh-ghost > .fin-row { opacity: 1 !important; }
+    .bh-over { outline: 2px dashed #fbbf24; outline-offset: 4px; }
+    .bh-slot { border: 2px dashed rgba(253,230,138,.85); border-radius: 8px; background: rgba(253,230,138,.1); margin: 2px 0; }
+    .bh-return { animation: bhret .9s ease-out; }
+    @keyframes bhret { 0%,60% { background: rgba(253,230,138,.35); } 100% { background: transparent; } }
     .bl-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
     .bl-tab { padding: 8px 14px; border-radius: 999px; background: #292524; border: 1.5px solid #44403c; color: #d6d3d1; font-weight: 700; font-size: 13px; cursor: pointer; }
     .bl-tab span { opacity: .65; margin-left: 4px; }
@@ -6232,10 +6252,41 @@
       document.addEventListener('focusin', e => { const el = e.target; if (!isL(el)) return; if (!el.dataset.l) el.dataset.l = el.getAttribute('list'); if (el.value.trim()) el.removeAttribute('list'); else el.setAttribute('list', el.dataset.l); }, true);
       document.addEventListener('input', e => { const el = e.target; if (isL(el) && el.dataset.l) el.setAttribute('list', el.dataset.l); }, true);
     })();
-    /* ---- segurar ~1s uma linha (tabela ou lista de tarefas) e arrastar para reposicionar ---- */
+    /* ---- segurar ~1s uma linha (tabela ou lista de tarefas) e arrastar para reposicionar ----
+       Linha de tabela de finanças também pode ser arrastada para um "buraco negro" (um por lousa ligada):
+       ao encostar nele a pessoa vai para a outra lousa ainda segurando a linha e solta onde quiser. */
     (function () {
-      const HOLD = 1000, MOVE_TOL = 8;
-      let timer = null, pend = null, st = null;
+      const HOLD = 1000, MOVE_TOL = 8, PR = 62;
+      let timer = null, pend = null, st = null, portals = [];
+      /* ---------- sons do buraco negro (WebAudio, sem arquivos) ---------- */
+      let ac = null, hum = null;
+      const AC = () => { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch (e) { return null; } };
+      function sweep(type, f0, f1, dur, vol, lp) {
+        const c = AC(); if (!c) return; const t = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+        o.type = type; f.type = 'lowpass'; f.frequency.setValueAtTime(lp || 900, t);
+        o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      }
+      function sndForm() { sweep('sawtooth', 55, 380, 0.8, 0.09, 700); sweep('sine', 110, 760, 0.8, 0.07, 1500); }
+      function sndSuck() { sweep('sawtooth', 950, 60, 0.38, 0.1, 1200); }
+      function sndVanish() { sweep('sine', 420, 35, 0.65, 0.12, 900); sweep('sawtooth', 160, 40, 0.6, 0.05, 400); }
+      function humStart() {
+        if (hum) return; const c = AC(); if (!c) return;
+        const g = c.createGain(), f = c.createBiquadFilter(), lfo = c.createOscillator(), lg = c.createGain();
+        g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime(0.05, c.currentTime + 0.6);
+        f.type = 'lowpass'; f.frequency.value = 320;
+        lfo.frequency.value = 2.2; lg.gain.value = 0.02; lfo.connect(lg); lg.connect(g.gain);
+        const o1 = c.createOscillator(), o2 = c.createOscillator();
+        o1.type = 'sine'; o1.frequency.value = 55; o2.type = 'triangle'; o2.frequency.value = 82.5;
+        o1.connect(f); o2.connect(f); f.connect(g); g.connect(c.destination);
+        o1.start(); o2.start(); lfo.start(); hum = { g, stop: () => { o1.stop(); o2.stop(); lfo.stop(); } };
+      }
+      function humStop() {
+        if (!hum) return; const h = hum; hum = null; const c = AC(); if (!c) return;
+        try { h.g.gain.cancelScheduledValues(c.currentTime); h.g.gain.setValueAtTime(Math.max(h.g.gain.value, 0.0001), c.currentTime); h.g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.4); setTimeout(() => { try { h.stop(); } catch (e) {} }, 450); } catch (e) {}
+      }
       const find = t => {
         if (!t || !t.closest) return null;
         const fr = t.closest('.fin-row[data-row]');
@@ -6245,6 +6296,8 @@
         return null;
       };
       const kids = (box, kind) => Array.from(box.children).filter(c => kind === 'fin' ? c.hasAttribute('data-row') : c.tagName === 'DIV');
+      const noteOfBox = box => { const wr = box && box.closest && box.closest('.chalk-note'); return wr ? findPieceAnywhere(wr.id) : null; };
+      const stopTouch = e => { if (st) e.preventDefault(); };
       function place(y) {
         const r = st.row; r.style.transform = 'none';
         const sibs = kids(st.box, st.kind).filter(c => c !== r);
@@ -6255,15 +6308,164 @@
         const nat = r.getBoundingClientRect().top;
         r.style.transform = `translateY(${y - st.grab - nat}px) scale(1.02)`;
       }
+
+      /* ---------- buracos negros ---------- */
+      function hidePortals(now) {
+        const els = portals; portals = [];
+        if (!now && els.length) { sndVanish(); humStop(); }
+        els.forEach(el => { if (now) { el.remove(); return; } el.classList.remove('open', 'near'); el.classList.add('closing'); setTimeout(() => el.remove(), 520); });
+      }
+      function showPortals(board, backId) {
+        hidePortals(true);
+        let list = []; try { list = finLinkedBoards(board, null); } catch (e) {}
+        const n = list.length, x = innerWidth - 74;
+        if (n) { sndForm(); humStart(); }
+        list.forEach((b, i) => {
+          const y = Math.max(70, Math.min(innerHeight - 90, innerHeight / 2 + (i - (n - 1) / 2) * 124));
+          const el = document.createElement('div');
+          el.className = 'bh-portal' + (b.id === backId ? ' bh-back' : '');
+          el.style.left = x + 'px'; el.style.top = y + 'px';
+          el.innerHTML = '<div class="bh-hole"><i class="bh-ring"></i><i class="bh-ring r2"></i><i class="bh-core"></i></div><span class="bh-name"></span>';
+          el.querySelector('.bh-name').textContent = (b.id === backId ? '↩ ' : '') + (b.name || 'Finanças');
+          el._board = b; el._x = x; el._y = y;
+          document.body.appendChild(el); portals.push(el);
+          requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open')));
+        });
+      }
+      function portalAt(x, y, k) { for (const el of portals) if (Math.hypot(x - el._x, y - el._y) < PR * (k || 1)) return el; return null; }
+      function nearFx(x, y) { portals.forEach(el => el.classList.toggle('near', Math.hypot(x - el._x, y - el._y) < PR * 1.6)); }
+
+      /* ---------- fantasma da linha (segue o dedo entre lousas) ---------- */
+      function makeGhost() {
+        const r = st.row, rect = r.getBoundingClientRect(), cs = getComputedStyle(st.box);
+        const g = document.createElement('div'); g.className = 'bh-ghost chalk-ink font-chalk';
+        g.style.width = rect.width + 'px'; g.style.fontSize = cs.fontSize; g.style.color = cs.color;
+        const c = r.cloneNode(true); c.classList.remove('drag-lift'); c.style.transform = ''; c.style.position = 'static';
+        c.querySelectorAll('input,button').forEach(i => { i.tabIndex = -1; });
+        g.appendChild(c);
+        g.style.transformOrigin = st.gX + 'px ' + st.gY + 'px';
+        document.body.appendChild(g); st.ghost = g; st.gw = rect.width; st.gh = rect.height;
+        r.style.opacity = '.12';
+      }
+      function setGhost(x, y, sc, ms, rot) {
+        const g = st.ghost; if (!g) return;
+        g.style.transition = ms ? `transform ${ms}ms cubic-bezier(.55,0,.75,.35), opacity ${ms}ms` : 'none';
+        g.style.opacity = sc < .2 ? '0' : '1';
+        g.style.transform = `translate(${x - st.gX}px,${y - st.gY}px) scale(${sc}) rotate(${rot || 0}deg)`;
+      }
+      function hoverTable(x, y) {
+        const el = document.elementFromPoint(x, y), wr = el && el.closest && el.closest('.chalk-note');
+        const n = wr && findPieceAnywhere(wr.id);
+        if (!n || n.type !== 'fintable') return null;
+        const sc = wr.querySelector('.fin-scroll');
+        return sc ? { wr, n, sc } : null;
+      }
+      function clearSlot() {
+        if (st.slot) { const sc = st.slot.parentNode; st.slot.remove(); const em = sc && sc.querySelector('.fin-empty'); if (em) em.style.display = ''; }
+        if (st.over) { st.over.classList.remove('bh-over'); st.over = null; }
+      }
+      function ghostMove(x, y) {
+        setGhost(x, y, 1, 0, 0);
+        nearFx(x, y);
+        const h = hoverTable(x, y);
+        if (!h) { clearSlot(); return; }
+        if (st.over !== h.wr) { clearSlot(); h.wr.classList.add('bh-over'); st.over = h.wr; }
+        h.sc.querySelectorAll('[data-row="' + st.rowId + '"]').forEach(r => { r.style.display = 'none'; });
+        const slot = st.slot || (st.slot = Object.assign(document.createElement('div'), { className: 'bh-slot' }));
+        slot.style.height = st.gh + 'px';
+        const em = h.sc.querySelector('.fin-empty'); if (em) em.style.display = 'none';
+        const rows = kids(h.sc, 'fin').filter(c => c.getAttribute('data-row') !== st.rowId);
+        let before = null;
+        for (const c of rows) { const b = c.getBoundingClientRect(); if (y < b.top + b.height / 2) { before = c; break; } }
+        if (before) { if (slot.nextSibling !== before || slot.parentNode !== h.sc) h.sc.insertBefore(slot, before); } else h.sc.appendChild(slot);
+        const bb = h.sc.getBoundingClientRect();
+        if (y < bb.top + 24) h.sc.scrollTop -= 10; else if (y > bb.bottom - 24) h.sc.scrollTop += 10;
+      }
+      function endAll() {
+        const s0 = st; st = null;
+        if (s0.touchEl) s0.touchEl.removeEventListener('touchmove', stopTouch);
+        document.body.classList.remove('drag-reordering');
+        window.__noClickUntil = Date.now() + 350;
+        hidePortals(false);
+        return s0;
+      }
+      function gotoBoard(b) { const i = appData.boards.indexOf(b); if (i < 0) return; appData.activeBoardIndex = i; selectedNoteId = null; renderNotes(); }
+
+      function enterPortal(p) {
+        if (st.busy) return;
+        st.busy = true; sndSuck();
+        if (!st.ghost) { makeGhost(); setGhost(st.x, st.y, 1, 0, 0); void st.ghost.offsetWidth; }
+        p.classList.add('eat');
+        setGhost(p._x, p._y, .06, 330, 540);
+        const prev = st.cur;
+        setTimeout(() => {
+          if (!st) return;
+          const dest = p._board;
+          gotoBoard(dest); st.cur = dest; st.armed = false;
+          showPortals(dest, prev.id);
+          const back = portals.find(el => el._board === prev) || { _x: st.x, _y: st.y };
+          st.prevPortalBoard = prev;
+          document.querySelectorAll('[data-row="' + st.rowId + '"]').forEach(r => { r.style.display = 'none'; });
+          setGhost(back._x, back._y, .06, 0, -540); void st.ghost.offsetWidth;
+          setGhost(st.x, st.y, 1, 360, 0);
+          setTimeout(() => { if (!st) return; st.busy = false; if (st.release) finishGhost(st.release === 'commit'); else ghostMove(st.x, st.y); }, 380);
+        }, 340);
+      }
+
+      function finishGhost(commit) {
+        const g = st.ghost, h = commit ? hoverTable(st.x, st.y) : null;
+        if (h) {   // solta na tabela: a linha muda de lousa/posição
+          const src = st.fromBoard, dest = finSrcOf(h.n);
+          const sRows = finData(src).rows, i0 = sRows.findIndex(r => r.id === st.rowId);
+          let idx = 0, ok = i0 >= 0;
+          if (ok) {
+            for (const c of h.sc.children) { if (c === st.slot) break; if (c.hasAttribute && c.hasAttribute('data-row') && c.getAttribute('data-row') !== st.rowId) idx++; }
+            const [row] = sRows.splice(i0, 1);
+            const dRows = finData(dest).rows; dRows.splice(Math.min(idx, dRows.length), 0, row);
+            try { finDropMasks(['fintable', 'fincards']); } catch (e) {}
+            saveData();
+          }
+          const sl = st.slot && st.slot.getBoundingClientRect();
+          if (sl) { g.style.transition = 'transform .2s ease-out'; g.style.transform = `translate(${sl.left}px,${sl.top}px) scale(1)`; g.style.transformOrigin = '0 0'; }
+          endAll();
+          setTimeout(() => { g.remove(); renderNotes(); }, 210);
+          return;
+        }
+        // soltou fora: a linha volta ao buraco negro de onde veio
+        clearSlot();
+        const s0 = st, back = portals.find(el => el._board === s0.fromBoard) || portals.find(el => el._board === s0.prevPortalBoard);
+        if (s0.cur === s0.fromBoard || !back) {   // já está na lousa de origem: só volta ao lugar
+          g.style.transition = 'opacity .25s'; g.style.opacity = '0';
+          endAll(); setTimeout(() => { g.remove(); renderNotes(); }, 260);
+          return;
+        }
+        s0.busy = true; back.classList.add('eat'); sndSuck();
+        setGhost(back._x, back._y, .06, 380, 540);
+        setTimeout(() => {
+          const s1 = endAll(); g.remove();
+          gotoBoard(s1.fromBoard);
+          setTimeout(() => { const r = document.querySelector('[data-row="' + s1.rowId + '"]'); if (r) { r.classList.add('bh-return'); setTimeout(() => r.classList.remove('bh-return'), 900); } }, 30);
+        }, 400);
+      }
+
       function activate() {
         if (!pend) return;
-        const { f, x, y } = pend; pend = null;
+        const { f, x, y, el } = pend; pend = null;
         const ae = document.activeElement; if (ae && ae.blur) ae.blur();
         try { window.getSelection().removeAllRanges(); } catch (e) {}
         kids(f.box, f.kind).forEach((c, i) => { c.dataset.oi = i; });
         const rect = f.row.getBoundingClientRect();
-        st = { row: f.row, box: f.box, kind: f.kind, grab: y - rect.top, y };
+        st = { row: f.row, box: f.box, kind: f.kind, grab: y - rect.top, gX: x - rect.left, gY: y - rect.top, x, y };
         f.row.classList.add('drag-lift'); f.box.classList.add('drag-active'); document.body.classList.add('drag-reordering');
+        if (el) { st.touchEl = el; el.addEventListener('touchmove', stopTouch, { passive: false }); }
+        if (f.kind === 'fin') {
+          const note = noteOfBox(f.box);
+          if (note && note.type === 'fintable') {
+            st.rowId = f.row.getAttribute('data-row');
+            st.fromBoard = finBoardOfRow(st.rowId) || finSrcOf(note); st.cur = getActiveBoard();
+            showPortals(st.cur, st.fromBoard.id); st.armed = !portalAt(x, y);
+          }
+        }
         if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
         place(y);
       }
@@ -6272,14 +6474,21 @@
         if (e.button > 0 || st) return;
         if (e.target.closest && e.target.closest('button, .chalk-check, .item-remove')) return;
         const f = find(e.target); if (!f) return;
-        pend = { f, x: e.clientX, y: e.clientY };
+        pend = { f, x: e.clientX, y: e.clientY, el: e.target };
         clearTimeout(timer); timer = setTimeout(activate, HOLD);
       }, true);
       document.addEventListener('pointermove', e => {
         if (pend && Math.hypot(e.clientX - pend.x, e.clientY - pend.y) > MOVE_TOL) cancelPend();
         if (!st) return;
         e.preventDefault(); e.stopPropagation();
-        st.y = e.clientY;
+        st.x = e.clientX; st.y = e.clientY;
+        if (st.busy) return;
+        if (portals.length) {
+          if (!portalAt(st.x, st.y, 1.25)) st.armed = true;
+          else if (st.armed) { const p = portalAt(st.x, st.y); if (p) { enterPortal(p); return; } }
+        }
+        if (st.ghost) { ghostMove(st.x, st.y); return; }
+        nearFx(st.x, st.y);
         const bb = st.box.getBoundingClientRect();
         if (e.clientY < bb.top + 24) st.box.scrollTop -= 10; else if (e.clientY > bb.bottom - 24) st.box.scrollTop += 10;
         place(e.clientY);
@@ -6287,9 +6496,10 @@
       function finish(commit) {
         cancelPend();
         if (!st) return;
-        const s0 = st; st = null;
-        s0.row.classList.remove('drag-lift'); s0.row.style.transform = ''; s0.box.classList.remove('drag-active'); document.body.classList.remove('drag-reordering');
-        window.__noClickUntil = Date.now() + 350;
+        if (st.busy) { st.release = commit ? 'commit' : 'cancel'; return; }
+        if (st.ghost) { finishGhost(commit); return; }
+        const s0 = endAll();
+        s0.row.classList.remove('drag-lift'); s0.row.style.transform = ''; s0.box.classList.remove('drag-active');
         if (!commit) { renderNotes(); return; }
         try {
           const order = kids(s0.box, s0.kind);
