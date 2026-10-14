@@ -256,7 +256,7 @@ textarea{padding:10px 13px;border-radius:10px;border:1px solid var(--ln);backgro
 
   <!-- SITE -->
   <section id="vSite" hidden>
-   <h1>Site</h1><p class="sub">Clique em qualquer texto da prévia para editar. Cards e imagem de fundo ficam na coluna ao lado. Nada vai para o ar até você clicar em Salvar e publicar.</p>
+   <h1>Site</h1><p class="sub">Clique em qualquer texto da prévia para editar. Arraste a faixa animada para cima ou para baixo direto na prévia (vale para o aparelho escolhido: Computador ou Celular). Cards e imagem de fundo ficam na coluna ao lado. Nada vai para o ar até você clicar em Salvar e publicar.</p>
    <div class="row stb">
     <span class="row dv"><button class="btn s" type="button" data-dev="d" aria-pressed="true">Computador</button><button class="btn s" type="button" data-dev="m" aria-pressed="false">Celular</button></span>
     <button class="btn p" id="sSave" type="button" disabled>Salvar e publicar</button>
@@ -564,7 +564,7 @@ async function siteOpen(){
  sFit()}
 sf().onload=()=>{
  const d=sf().contentDocument;if(!d)return;
- const st=d.createElement('style');st.textContent='html{color-scheme:dark}html.nosb{scrollbar-width:none}html.nosb::-webkit-scrollbar{display:none}[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}[data-k].sel{outline:2px solid #9be3c0}';d.head.appendChild(st);
+ const st=d.createElement('style');st.textContent='html{color-scheme:dark}html.nosb{scrollbar-width:none}html.nosb::-webkit-scrollbar{display:none}[data-k]{outline:1px dashed #9be3c099;outline-offset:3px;cursor:text}[data-k]:hover{outline:2px solid #f7d56b}[data-k].sel{outline:2px solid #9be3c0}.mq{outline:1px dashed #f7d56bcc;outline-offset:-1px;cursor:ns-resize;touch-action:none}.mq *{user-select:none}';d.head.appendChild(st);
  d.querySelectorAll('[data-k]').forEach(el=>{el.setAttribute('contenteditable','plaintext-only');if(el.contentEditable!=='plaintext-only')el.setAttribute('contenteditable','true')});
  d.querySelectorAll('details').forEach(x=>x.open=true);
  d.addEventListener('click',e=>{if(e.target.closest('a,summary'))e.preventDefault()},true);
@@ -580,7 +580,7 @@ sf().onload=()=>{
  d.addEventListener('focusin',e=>{const el=e.target.closest&&e.target.closest('[data-k]');if(!el)return;
   d.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');SEL=el.dataset.k;fsShow()});
  /* arrastar a imagem de fundo direto na prévia (clique numa parte da imagem que não tenha texto) */
- const hb=d.getElementById('hbg'),EX='[data-k],a,button,summary,.xk,.nav';let drag=false;
+ const hb=d.getElementById('hbg'),EX='[data-k],a,button,summary,.xk,.nav,.mq';let drag=false;
  const inHb=e=>{if(!hb||hb.hidden)return false;const r=hb.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
  d.addEventListener('pointermove',e=>{if(!drag)d.documentElement.style.cursor=(inHb(e)&&!e.target.closest(EX))?'move':''});
  d.addEventListener('pointerdown',e=>{
@@ -589,6 +589,14 @@ sf().onload=()=>{
   const hero=hb.parentElement.getBoundingClientRect(),m=SDEV==='m',kx=m?'xm':'x',ky=m?'ym':'y',sx=e.clientX,sy=e.clientY,x0=SS.hero[kx],y0=SS.hero[ky];
   const mv=ev=>{SS.hero[kx]=Math.round(x0+(ev.clientX-sx)/hero.width*100);SS.hero[ky]=Math.round(y0+(ev.clientY-sy)/hero.height*100);sApply();sHero();sDirty(true)};
   const up=()=>{drag=false;d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);d.removeEventListener('pointercancel',up)};
+  d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up)});
+ /* arrastar a faixa animada para cima ou para baixo direto na prévia (vale para o aparelho selecionado) */
+ const mqe=d.querySelector('.mq');
+ if(mqe)mqe.addEventListener('pointerdown',e=>{
+  e.preventDefault();SS.mq=SS.mq||{y:0,ym:0};
+  const k=SDEV==='m'?'ym':'y',sy=e.clientY,y0=SS.mq[k]||0;
+  const mv=ev=>{SS.mq[k]=Math.max(-300,Math.min(300,Math.round(y0+ev.clientY-sy)));sApply();sHero();sDirty(true)};
+  const up=()=>{d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);d.removeEventListener('pointercancel',up)};
   d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up)});
  sApply();sFit()};
 new ResizeObserver(()=>sFit()).observe($('sBox'));
