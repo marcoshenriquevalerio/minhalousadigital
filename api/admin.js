@@ -95,7 +95,8 @@ function cleanSite(s) {
     if (v.mode !== "img") return;
     fc[k] = { mode: "img", img: SITE_IMG.test(v.img || "") ? v.img : "", w: num(v.w, 40, 1200, 200) };
   });
-  return { texts, fs, cards, cardW, hero, mq, mv, fc };
+  const xpad = num(s.xpad, 0, 300, 40);   // espaço acima e abaixo dos cards extras
+  return { texts, fs, cards, cardW, hero, mq, mv, fc, xpad };
 }
 
 const actions = {
