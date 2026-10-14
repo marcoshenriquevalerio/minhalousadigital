@@ -2118,24 +2118,26 @@
       return rects.some(q => x >= q.l - PAD && x <= q.r + PAD && y >= q.t - PAD && y <= q.b + PAD);
     }
 
-    /* seta/forma: acerta só perto do traço (tolerância de ~10px na tela) */
+    /* seta/forma: acerta só onde o traço aparece de fato (tolerância de ~3px na tela).
+       A opacidade NÃO exclui mais a peça da busca: ela continua pegável mesmo transparente. */
     function ckShapeHitOne(el, x, y) {
       const svg = el.querySelector('.shape-svg');
       if (!svg || !svg.getScreenCTM) return false;
       const m = svg.getScreenCTM();
       if (!m) return false;
       const pt = new DOMPoint(x, y).matrixTransform(m.inverse());
-      const tol = 10 / (Math.hypot(m.a, m.b) || 1);
-      const els = svg.querySelectorAll('g[stroke="currentColor"]:not([opacity]) > *');
-      for (const g of els) {
+      const scale = Math.hypot(m.a, m.b) || 1;
+      const tol = 3 / scale;
+      const geos = svg.querySelectorAll('path, line, polyline, polygon, rect, ellipse, circle');
+      for (const g of geos) {
         if (typeof g.isPointInStroke !== 'function') continue;
-        const base = parseFloat(getComputedStyle(g).strokeWidth) || 3.6;
+        const cs = getComputedStyle(g);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.stroke === 'none') continue;
+        const base = parseFloat(cs.strokeWidth) || 3.6;
         g.style.setProperty('stroke-width', (base + tol * 2) + 'px', 'important');
-        g.style.setProperty('stroke-dasharray', 'none', 'important');
         let ok = false;
         try { ok = g.isPointInStroke(pt); } catch (err) {}
         g.style.removeProperty('stroke-width');
-        g.style.removeProperty('stroke-dasharray');
         if (ok) return true;
       }
       return false;
