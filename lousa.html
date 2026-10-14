@@ -847,7 +847,7 @@
     .bh-core { inset: 33%; border-radius: 50%; background: #000; box-shadow: 0 0 10px 3px #000, inset 0 0 8px 2px #000; }
     .bh-photon { inset: 32.4%; border-radius: 50%; border: 1.5px solid rgba(255,236,200,.9); box-shadow: 0 0 5px 1px rgba(255,190,100,.9), 0 0 14px 2px rgba(255,120,40,.5), inset 0 0 5px rgba(255,170,80,.55); }
     /* disco de acreção: achatado e inclinado; metade de trás fica atrás do horizonte, a da frente cruza por cima */
-    .bh-flat { inset: 0; transform: rotate(-9deg) scaleY(.23); }
+    .bh-flat { display: none; }
     .bh-flat.back { clip-path: inset(0 0 50% 0); }
     .bh-flat.front { clip-path: inset(50% 0 0 0); }
     .bh-dc, .bh-ds { inset: 0; border-radius: 50%; -webkit-mask: radial-gradient(circle closest-side, transparent 30%, #000 36%, rgba(0,0,0,.9) 52%, rgba(0,0,0,.4) 78%, transparent 100%); mask: radial-gradient(circle closest-side, transparent 30%, #000 36%, rgba(0,0,0,.9) 52%, rgba(0,0,0,.4) 78%, transparent 100%); }
@@ -6375,8 +6375,8 @@
       requestAnimationFrame(frame);
     })();
 
-    /* ---- efeitos do buraco negro: faíscas saindo do anel, pedras realistas e pedaços da lousa ----
-       Lê window.__bhState (p = progresso da sucção, portals = centro e raio de cada buraco). */
+    /* ---- efeitos do buraco negro: faíscas no anel de luz, pedaços arrancados da lousa (desbotados),
+       madeira crua por trás deles e fogo realista onde a lousa queima. Lê window.__bhState. ---- */
     (function () {
       const cv = document.createElement('canvas');
       cv.id = 'bhFx';
@@ -6385,11 +6385,33 @@
       const ctx = cv.getContext('2d');
       const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
       fit(); addEventListener('resize', fit);
-      let parts = [], last = 0;
+      let parts = [], scars = [], fires = [], last = 0;
       const rnd = (a, b) => a + Math.random() * (b - a);
-      const pick = a => a[Math.floor(Math.random() * a.length)];
 
-      /* forma irregular (contorno de pedra/fragmento) */
+      /* textura de madeira crua (sem pintura) */
+      const woodC = document.createElement('canvas'); woodC.width = woodC.height = 256;
+      (function () {
+        const x = woodC.getContext('2d');
+        x.fillStyle = '#b07a48'; x.fillRect(0, 0, 256, 256);
+        for (let i = 0; i < 140; i++) {
+          const y0 = rnd(0, 256), amp = rnd(1, 4), f = rnd(0.01, 0.04), dark = Math.random() < 0.6;
+          x.strokeStyle = dark ? `rgba(80,44,16,${rnd(.12, .38)})` : `rgba(235,195,145,${rnd(.1, .25)})`;
+          x.lineWidth = rnd(0.5, 2.2); x.beginPath();
+          for (let X = 0; X <= 256; X += 8) { const Y = y0 + Math.sin(X * f + i) * amp; X ? x.lineTo(X, Y) : x.moveTo(X, Y); }
+          x.stroke();
+        }
+      })();
+      const woodPat = ctx.createPattern(woodC, 'repeat');
+
+      /* sprite de chama (gradiente branco-amarelo-laranja-vermelho) */
+      const flameC = document.createElement('canvas'); flameC.width = flameC.height = 64;
+      (function () {
+        const x = flameC.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(255,255,235,1)'); g.addColorStop(0.22, 'rgba(255,214,90,.95)');
+        g.addColorStop(0.5, 'rgba(255,120,30,.6)'); g.addColorStop(1, 'rgba(150,20,0,0)');
+        x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+      })();
+
       function jagged(size, n) {
         const pts = [];
         for (let i = 0; i < n; i++) {
@@ -6398,107 +6420,146 @@
         }
         return pts;
       }
-      /* ponto no anel do buraco: [x, y, direção tangente] */
       function ringPoint(c) {
-        const a = Math.random() * Math.PI * 2, R = (c.R || 52) * rnd(0.96, 1.08);
-        return { x: c.x + Math.cos(a) * R, y: c.y + Math.sin(a) * R, a, R };
+        const a = Math.random() * Math.PI * 2, R = (c.R || 52) * rnd(0.97, 1.04);
+        return { x: c.x + Math.cos(a) * R, y: c.y + Math.sin(a) * R, a };
       }
       function spawnSpark(c) {
         const q = ringPoint(c), dir = Math.random() < 0.5 ? 1 : -1;
-        const tang = 260 * dir, out = rnd(120, 420);            // sai do anel, orbita e depois se afasta
-        const tx = -Math.sin(q.a) * tang, ty = Math.cos(q.a) * tang;
-        const ox = Math.cos(q.a) * out, oy = Math.sin(q.a) * out;
-        parts.push({ kind: 'spark', x: q.x, y: q.y, vx: tx + ox, vy: ty + oy,
+        const tang = 260 * dir, out = rnd(120, 420);
+        parts.push({ kind: 'spark', x: q.x, y: q.y,
+          vx: -Math.sin(q.a) * tang + Math.cos(q.a) * out, vy: Math.cos(q.a) * tang + Math.sin(q.a) * out,
           life: rnd(0.45, 1.1), age: 0, hue: rnd(18, 48) });
       }
       function spawnRock(c, speedMin, speedMax) {
-        const q = ringPoint(c), sp = rnd(speedMin, speedMax), dir = Math.random() < 0.5 ? 1 : -1;
-        const tang = sp * 0.35 * dir;
-        const size = rnd(5, 13);
-        const g = Math.floor(rnd(70, 140));
+        const q = ringPoint(c), sp = rnd(speedMin, speedMax), dir = Math.random() < 0.5 ? 1 : -1, tang = sp * 0.35 * dir;
+        const size = rnd(5, 13), g = Math.floor(rnd(70, 140));
         parts.push({ kind: 'rock', x: q.x, y: q.y,
           vx: Math.cos(q.a) * sp - Math.sin(q.a) * tang, vy: Math.sin(q.a) * sp + Math.cos(q.a) * tang,
-          rot: rnd(0, 6), vr: rnd(-7, 7), pts: jagged(size, Math.floor(rnd(6, 9))), size,
-          base: g, life: rnd(2.6, 4.4), age: 0 });
+          rot: rnd(0, 6), vr: rnd(-7, 7), pts: jagged(size, Math.floor(rnd(6, 9))), size, base: g,
+          life: rnd(2.6, 4.4), age: 0 });
       }
+      /* um pedaço da lousa se solta: deixa uma cicatriz de madeira crua que queima */
       function spawnChunk(c) {
-        /* pedaço da lousa verde que se solta perto do buraco e é puxado para ele */
         const a = Math.random() * Math.PI * 2, d = (c.R || 52) * rnd(2.2, 4.2);
         const x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d;
-        const size = rnd(14, 34), sp = rnd(120, 260), swirl = (Math.random() < 0.5 ? 1 : -1) * rnd(60, 140);
-        const inx = -Math.cos(a), iny = -Math.sin(a);
-        parts.push({ kind: 'chunk', x, y,
-          vx: inx * sp - iny * swirl, vy: iny * sp + inx * swirl,
-          rot: rnd(0, 6), vr: rnd(-3, 3), pts: jagged(size, Math.floor(rnd(6, 9))), size,
-          life: rnd(2.2, 3.4), age: 0 });
+        const size = rnd(16, 36), pts = jagged(size, Math.floor(rnd(6, 9))), rot = rnd(0, 6);
+        const sp = rnd(120, 240), swirl = (Math.random() < 0.5 ? 1 : -1) * rnd(60, 140);
+        const inx = -Math.cos(a), iny = -Math.sin(a), life = rnd(2.4, 3.6);
+        parts.push({ kind: 'chunk', x, y, vx: inx * sp - iny * swirl, vy: iny * sp + inx * swirl,
+          rot, vr: rnd(-3, 3), pts, size, life, age: 0 });
+        scars.push({ x, y, rot, pts, size, life: life + 1.6, age: 0, burn: 0 });
+      }
+      function fireAt(x, y, big) {
+        fires.push({ x, y, vx: rnd(-22, 22), vy: rnd(-150, -60) * (big ? 1.3 : 1), life: rnd(0.4, 0.9), age: 0,
+          s: rnd(10, 22) * (big ? 1.2 : 1), ph: rnd(0, 6) });
       }
       window.__bhFxBurst = (n) => {
         const st = window.__bhState;
         const c = (st && st.portals && st.portals[0]) || { x: innerWidth - 84, y: innerHeight / 2, R: 52 };
         for (let i = 0; i < n; i++) {
           const r = Math.random();
-          if (r < 0.45) spawnSpark(c); else if (r < 0.85) spawnRock(c, 300, 1100); else spawnChunk(c);
+          if (r < 0.45) spawnSpark(c); else if (r < 0.8) spawnRock(c, 300, 1100); else spawnChunk(c);
         }
       };
-      function drawRock(p, fade) {
-        const pts = p.pts, s = p.size;
-        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
-        ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
-        const grd = ctx.createLinearGradient(-s, -s, s, s);
-        grd.addColorStop(0, `rgb(${p.base + 60},${p.base + 56},${p.base + 50})`);
-        grd.addColorStop(0.55, `rgb(${p.base},${p.base - 4},${p.base - 10})`);
-        grd.addColorStop(1, `rgb(${p.base - 45},${p.base - 48},${p.base - 52})`);
-        ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
-        ctx.fillStyle = grd; ctx.fill();
-        ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = 'rgba(20,20,20,.55)'; ctx.lineWidth = 1; ctx.stroke();
-        /* rachadura e brilho de lasca */
-        ctx.beginPath(); ctx.moveTo(pts[0][0] * .3, pts[0][1] * .3); ctx.lineTo(pts[2 % pts.length][0] * .6, pts[2 % pts.length][1] * .6);
-        ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.stroke();
+
+      function pathOf(p) { ctx.beginPath(); p.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); }
+      function drawScar(sc, fade) {
+        ctx.save(); ctx.translate(sc.x, sc.y); ctx.rotate(sc.rot); ctx.globalAlpha = fade;
+        pathOf(sc.pts);
+        ctx.fillStyle = woodPat; ctx.fill();
+        if (sc.burn > 0) {                           // carbonizando
+          ctx.globalAlpha = fade * 0.6 * sc.burn;
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, sc.size * 1.3);
+          g.addColorStop(0, 'rgba(12,6,2,.9)'); g.addColorStop(0.7, 'rgba(60,20,4,.7)'); g.addColorStop(1, 'rgba(255,90,20,.6)');
+          ctx.fillStyle = g; ctx.fill();
+        }
+        ctx.globalAlpha = fade; ctx.strokeStyle = 'rgba(25,10,0,.8)'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.restore();
       }
       function drawChunk(p, fade) {
-        const pts = p.pts, s = p.size;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
         ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
-        const grd = ctx.createLinearGradient(-s, -s, s, s);
-        grd.addColorStop(0, '#2d5e47'); grd.addColorStop(0.6, '#1f4534'); grd.addColorStop(1, '#17332a');
-        ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
-        ctx.fillStyle = grd; ctx.fill();
+        pathOf(p.pts);
+        const g = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
+        g.addColorStop(0, '#56695e'); g.addColorStop(0.6, '#3a4a41'); g.addColorStop(1, '#2a362f');   // lousa já desbotada
+        ctx.fillStyle = g; ctx.fill();
         ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = 'rgba(253,230,138,.35)'; ctx.lineWidth = 1.2; ctx.stroke();   // borda de giz
+        ctx.strokeStyle = 'rgba(230,230,220,.25)'; ctx.lineWidth = 1.2; ctx.stroke();
         ctx.restore();
       }
+      function drawRock(p, fade) {
+        const s = p.size;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
+        ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+        const g = ctx.createLinearGradient(-s, -s, s, s);
+        g.addColorStop(0, `rgb(${p.base + 60},${p.base + 56},${p.base + 50})`);
+        g.addColorStop(0.55, `rgb(${p.base},${p.base - 4},${p.base - 10})`);
+        g.addColorStop(1, `rgb(${p.base - 45},${p.base - 48},${p.base - 52})`);
+        pathOf(p.pts); ctx.fillStyle = g; ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(20,20,20,.55)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p.pts[0][0] * .3, p.pts[0][1] * .3); ctx.lineTo(p.pts[2 % p.pts.length][0] * .6, p.pts[2 % p.pts.length][1] * .6);
+        ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.stroke();
+        ctx.restore();
+      }
+
       function frame(now) {
         requestAnimationFrame(frame);
         const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
         const st = window.__bhState;
         if (st && st.portals && st.portals.length) {
-          const k = st.p;
-          const c = () => st.portals[Math.floor(Math.random() * st.portals.length)];
+          const k = st.p, c = () => st.portals[Math.floor(Math.random() * st.portals.length)];
           for (let i = 0; i < k * 7; i++) if (Math.random() < 0.7) spawnSpark(c());
           if (Math.random() < k * 0.45) spawnRock(c(), 120, 320 + 260 * k);
           if (k > 0.55 && Math.random() < (k - 0.55) * 1.6) spawnChunk(c());
         }
+        /* cicatrizes: queimam aos poucos e somem no fim */
+        scars = scars.filter(sc => sc.age < sc.life);
+        for (const sc of scars) {
+          sc.age += dt; sc.burn = Math.min(1, sc.age / 1.2);
+          if (sc.burn > 0.05 && sc.age < sc.life - 0.4) {
+            const n = Math.round(1 + sc.burn * 3);
+            for (let i = 0; i < n; i++) {
+              const j = Math.floor(Math.random() * sc.pts.length), q = sc.pts[j], q2 = sc.pts[(j + 1) % sc.pts.length], t = Math.random();
+              const lx = q[0] + (q2[0] - q[0]) * t, ly = q[1] + (q2[1] - q[1]) * t;
+              fireAt(sc.x + lx * Math.cos(sc.rot) - ly * Math.sin(sc.rot), sc.y + lx * Math.sin(sc.rot) + ly * Math.cos(sc.rot), sc.burn > 0.7);
+            }
+          }
+        }
         ctx.clearRect(0, 0, cv.width, cv.height);
+        for (const sc of scars) drawScar(sc, Math.min(1, (sc.life - sc.age) / 0.6));
+        /* glow do fogo sobre as cicatrizes */
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (const sc of scars) if (sc.burn > 0) {
+          const fl = 0.75 + 0.25 * Math.sin(now / 70 + sc.x), g = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, sc.size * 2.2);
+          g.addColorStop(0, `rgba(255,150,60,${0.35 * sc.burn * fl})`); g.addColorStop(1, 'rgba(255,80,20,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sc.x, sc.y, sc.size * 2.2, 0, Math.PI * 2); ctx.fill();
+        }
+        /* chamas */
+        fires = fires.filter(f => f.age < f.life);
+        for (const f of fires) {
+          f.age += dt; f.x += (f.vx + Math.sin(now / 90 + f.ph) * 14) * dt; f.y += f.vy * dt;
+          const t = f.age / f.life, a = (1 - t) * (0.85 + 0.15 * Math.sin(now / 55 + f.ph));
+          const sz = f.s * (1 - 0.5 * t);
+          ctx.globalAlpha = Math.max(0, a);
+          ctx.drawImage(flameC, f.x - sz, f.y - sz * 1.25, sz * 2, sz * 2.5);
+        }
+        ctx.restore();
+        /* peças voando */
         parts = parts.filter(p => p.age < p.life && p.x > -80 && p.x < innerWidth + 80 && p.y > -80 && p.y < innerHeight + 80);
         for (const p of parts) {
-          p.age += dt;
-          p.x += p.vx * dt; p.y += p.vy * dt;
-          const drag = Math.pow(p.kind === 'spark' ? 0.25 : 0.45, dt);
-          p.vx *= drag; p.vy *= drag;
+          p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+          const drag = Math.pow(p.kind === 'spark' ? 0.25 : 0.45, dt); p.vx *= drag; p.vy *= drag;
           const fade = Math.min(1, (p.life - p.age) / 0.4);
-          if (p.kind === 'rock') {
-            p.rot += p.vr * dt; p.vy += 60 * dt;
-            drawRock(p, fade);
-          } else if (p.kind === 'chunk') {
-            p.rot += p.vr * dt;
-            drawChunk(p, fade);
-          } else {
+          if (p.kind === 'rock') { p.rot += p.vr * dt; p.vy += 60 * dt; drawRock(p, fade); }
+          else if (p.kind === 'chunk') { p.rot += p.vr * dt; drawChunk(p, fade); }
+          else {
+            /* faísca: se cair numa cicatriz, ela pega fogo */
+            for (const sc of scars) if (Math.hypot(p.x - sc.x, p.y - sc.y) < sc.size * 1.2 && Math.random() < 0.3) { fireAt(p.x, p.y, false); sc.burn = Math.min(1, sc.burn + 0.02); break; }
             const sp = Math.hypot(p.vx, p.vy) || 1, len = 6 + 12 * (1 - p.age / p.life);
             ctx.save(); ctx.globalAlpha = fade; ctx.lineCap = 'round';
-            ctx.strokeStyle = `hsl(${p.hue},100%,62%)`; ctx.shadowColor = `hsl(${p.hue},100%,55%)`; ctx.shadowBlur = 8;
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = `hsl(${p.hue},100%,62%)`; ctx.shadowColor = `hsl(${p.hue},100%,55%)`; ctx.shadowBlur = 8; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx / sp * len, p.y - p.vy / sp * len); ctx.stroke();
             ctx.restore();
           }
