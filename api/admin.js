@@ -86,7 +86,16 @@ function cleanSite(s) {
     const e = { x: num(v.x, -3000, 3000, 0), y: num(v.y, -3000, 3000, 0), z: num(v.z, 30, 300, 100), xm: num(v.xm, -3000, 3000, 0), ym: num(v.ym, -3000, 3000, 0), zm: num(v.zm, 30, 300, 100) };
     if (e.x || e.y || e.xm || e.ym || e.z !== 100 || e.zm !== 100) mv[k] = e;
   });
-  return { texts, fs, cards, cardW, hero, mq, mv };
+  // cards flutuantes do topo que viram só uma imagem PNG (sem o fundo de card)
+  const fc = {};
+  const f0 = s.fc && typeof s.fc === "object" ? s.fc : {};
+  Object.keys(f0).slice(0, 20).forEach((k) => {
+    if (!KEY.test(k)) return;
+    const v = f0[k] || {};
+    if (v.mode !== "img") return;
+    fc[k] = { mode: "img", img: SITE_IMG.test(v.img || "") ? v.img : "", w: num(v.w, 40, 1200, 200) };
+  });
+  return { texts, fs, cards, cardW, hero, mq, mv, fc };
 }
 
 const actions = {
