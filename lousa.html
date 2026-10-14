@@ -884,7 +884,12 @@
     .bl-card.on { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.25); }
     .bl-th { aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #1f4a35, #0d241a 75%); border: 1px solid #ffffff14; display: grid; place-items: center; }
     .bl-th img { width: 100%; height: 100%; display: block; object-fit: contain; }
-    .bl-th svg { width: 100%; height: 100%; display: block; }
+    .bl-th > svg { width: 100%; height: 100%; display: block; }
+    .bl-th { position: relative; }
+    .bl-stage { position: absolute; left: 0; top: 0; width: 4000px; height: 3000px; transform-origin: 0 0; pointer-events: none; user-select: none; -webkit-user-select: none; }
+    .bl-stage, .bl-stage * { pointer-events: none !important; caret-color: transparent; animation: none !important; transition: none !important; }
+    .bl-stage .bl-note { opacity: 1; }
+    .bl-ink { position: absolute; left: 0; top: 0; width: 4000px; height: 3000px; overflow: visible; z-index: 7000; }
     .bl-empty { display: grid; justify-items: center; gap: 4px; color: #ffffff55; font-size: 12px; }
     .bl-empty i { font-size: 20px; }
     .bl-meta { padding: 8px 4px 2px; display: grid; gap: 2px; }
@@ -3420,43 +3425,10 @@
     }
 
     /* ---------- RENDERIZAÇÃO ---------- */
-    function renderNotes() {
-      const board = getActiveBoard();
-      normalizeZ(board);
-      const container = document.getElementById('notesContainer');
-      const emptyMsg = document.getElementById('emptyBoardMsg');
-      
-      container.innerHTML = '';
-      updateBoardWidgetControls();
-
-      if (board.notes.length === 0 && !(board.strokes && board.strokes.length)) {
-        if (emptyMsg) emptyMsg.classList.remove('hidden');
-      } else {
-        if (emptyMsg) emptyMsg.classList.add('hidden');
-      }
-
-      board.notes.forEach(note => {
-        const wrapper = document.createElement('div');
-        const colorObj = POSTIT_COLORS.find(c => c.id === note.color) || POSTIT_COLORS[0];
-        const isChalk = true;   // todas as peças (inclusive post-its) seguem a regra do triplo clique
-        
-        wrapper.id = note.id;
-        wrapper.className = isChalk ? 'absolute group style-wrapper chalk-note' : 'absolute group style-wrapper';
-        wrapper.style.left = `${note.x}px`;
-        wrapper.style.top = `${note.y}px`;
-        wrapper.style.width = `${note.width || 320}px`;
-        wrapper.style.zIndex = noteZ(note);
-        if (note.type === 'chalktext') wrapper.classList.add('ck-text');
-        if (note.type === 'shape') wrapper.classList.add('ck-ghost');   // setas e formas só "pegam" onde há traço visível
-        if (isChalk && note.id === selectedNoteId) wrapper.classList.add('is-selected');
-        if (note.type === 'shape') {
-          wrapper.style.height = `${note.height || 80}px`;
-        }
-        if (note.type === 'checklist' && note.height) wrapper.style.height = `${note.height}px`;
-        if (isFinType(note.type)) {
-          wrapper.style.height = `${note.height || 320}px`;
-        }
-
+    /* HTML interno de uma peça (usado pela lousa e pelas miniaturas de "Minhas lousas") */
+    function noteInnerHtml(note) {
+      const wrapper = { innerHTML: '' };
+      const colorObj = POSTIT_COLORS.find(c => c.id === note.color) || POSTIT_COLORS[0];
         if (isFinType(note.type)) {
           wrapper.innerHTML = buildFinHtml(note);
         } else if (note.type === 'checklist') {
@@ -3518,6 +3490,47 @@
           </div>
         `;
         }
+      return wrapper.innerHTML;
+    }
+
+    function renderNotes() {
+      const board = getActiveBoard();
+      normalizeZ(board);
+      const container = document.getElementById('notesContainer');
+      const emptyMsg = document.getElementById('emptyBoardMsg');
+      
+      container.innerHTML = '';
+      updateBoardWidgetControls();
+
+      if (board.notes.length === 0 && !(board.strokes && board.strokes.length)) {
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+      } else {
+        if (emptyMsg) emptyMsg.classList.add('hidden');
+      }
+
+      board.notes.forEach(note => {
+        const wrapper = document.createElement('div');
+        const colorObj = POSTIT_COLORS.find(c => c.id === note.color) || POSTIT_COLORS[0];
+        const isChalk = true;   // todas as peças (inclusive post-its) seguem a regra do triplo clique
+        
+        wrapper.id = note.id;
+        wrapper.className = isChalk ? 'absolute group style-wrapper chalk-note' : 'absolute group style-wrapper';
+        wrapper.style.left = `${note.x}px`;
+        wrapper.style.top = `${note.y}px`;
+        wrapper.style.width = `${note.width || 320}px`;
+        wrapper.style.zIndex = noteZ(note);
+        if (note.type === 'chalktext') wrapper.classList.add('ck-text');
+        if (note.type === 'shape') wrapper.classList.add('ck-ghost');   // setas e formas só "pegam" onde há traço visível
+        if (isChalk && note.id === selectedNoteId) wrapper.classList.add('is-selected');
+        if (note.type === 'shape') {
+          wrapper.style.height = `${note.height || 80}px`;
+        }
+        if (note.type === 'checklist' && note.height) wrapper.style.height = `${note.height}px`;
+        if (isFinType(note.type)) {
+          wrapper.style.height = `${note.height || 320}px`;
+        }
+
+        wrapper.innerHTML = noteInnerHtml(note);
 
         container.appendChild(wrapper);
         updateEdgeClasses(wrapper);
@@ -12324,9 +12337,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
         return r;
       };
     })();
-    function blThumb(b) {   // miniatura: foto real da lousa; se ainda não existe, um desenho em escala
-      const shot = blGet(b.id);
-      if (shot && (b.notes || []).length) return '<div class="bl-th"><img alt="" src="' + shot + '"></div>';
+    function blThumbSvg(b) {   // plano B: desenho simplificado em escala
       const ns = (b.notes || []).filter(n => n && isFinite(n.x) && isFinite(n.y));
       const est = (n) => {
         if (n.height) return n.height;
@@ -12369,6 +12380,62 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       });
       return base + `<svg viewBox="${x0} ${y0} ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g}</svg></div>`;
     }
+
+    /* ===== Miniatura REAL: a própria lousa redesenhada em escala (HTML/CSS reais, sem print) ===== */
+    function blStrip(h) { return h.replace(/\s(?:id|list|for|name)="[^"]*"/g, '').replace(/\son[a-z]+="[^"]*"/g, '').replace(/\scontenteditable="[^"]*"/g, ''); }
+    function blThumb(b) {
+      try {
+        const ns = (b.notes || []).filter(n => n && isFinite(n.x) && isFinite(n.y));
+        const sk = (b.strokes || []).filter(s => s && s.p && s.p.length >= 2);
+        if (!ns.length && !sk.length) return blThumbSvg(b);
+        const keep = appData.activeBoardIndex, bi = appData.boards.indexOf(b);
+        let html = '';
+        try {
+          if (bi >= 0) appData.activeBoardIndex = bi;   // só durante a montagem do HTML (nada é salvo nem redesenhado)
+          html = ns.slice().sort((p, q) => noteZ(p) - noteZ(q)).map(n => {
+            let inner = '';
+            try { inner = blStrip(noteInnerHtml(n)); } catch (e) { inner = ''; }
+            const cls = 'absolute group style-wrapper chalk-note bl-note' + (n.type === 'chalktext' ? ' ck-text' : '') + (n.type === 'shape' ? ' ck-ghost' : '');
+            let st = `left:${n.x}px;top:${n.y}px;width:${n.width || 320}px;z-index:${noteZ(n)};`;
+            if (n.type === 'shape') st += `height:${n.height || 80}px;`;
+            else if (n.type === 'checklist' && n.height) st += `height:${n.height}px;`;
+            else if (isFinType(n.type)) st += `height:${n.height || 320}px;`;
+            return `<div class="${cls}" style="${st}">${inner}</div>`;
+          }).join('');
+        } finally { appData.activeBoardIndex = keep; }
+        let ink = '', sb = '';
+        if (sk.length) {
+          let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+          sk.forEach(s => { for (let i = 0; i < s.p.length; i += 2) { x0 = Math.min(x0, s.p[i]); x1 = Math.max(x1, s.p[i]); y0 = Math.min(y0, s.p[i + 1]); y1 = Math.max(y1, s.p[i + 1]); } });
+          sb = ` data-sb="${x0},${y0},${x1},${y1}"`;
+          ink = `<svg class="bl-ink" aria-hidden="true"><g style="filter:url(#chalkSoft)">${sk.map(s => `<path d="${strokePath(s.p)}" stroke="${chalkHex(s.c)}" stroke-width="${strokeWidth(s)}" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.93"/>`).join('')}</g></svg>`;
+        }
+        return `<div class="bl-th bl-live"><div class="bl-stage"${sb} style="visibility:hidden">${html}${ink}</div></div>`;
+      } catch (e) { console.warn('miniatura:', e); return blThumbSvg(b); }
+    }
+    function blFitOne(th) {
+      const st = th.querySelector('.bl-stage'); if (!st) return;
+      const tw = th.clientWidth, thh = th.clientHeight; if (!tw || !thh) return;
+      st.style.transform = 'none';
+      st.querySelectorAll('textarea').forEach(ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; });
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      st.querySelectorAll(':scope > .bl-note').forEach(el => {
+        x0 = Math.min(x0, el.offsetLeft); y0 = Math.min(y0, el.offsetTop);
+        x1 = Math.max(x1, el.offsetLeft + el.offsetWidth); y1 = Math.max(y1, el.offsetTop + el.offsetHeight);
+      });
+      if (st.dataset.sb) { const q = st.dataset.sb.split(',').map(Number); x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[2]); y1 = Math.max(y1, q[3]); }
+      if (!isFinite(x0) || x1 <= x0 || y1 <= y0) return;
+      const m = 8, bw = x1 - x0, bh = y1 - y0;
+      const s = Math.min((tw - 2 * m) / bw, (thh - 2 * m) / bh, 1);
+      const l = (tw - bw * s) / 2 - x0 * s, t = (thh - bh * s) / 2 - y0 * s;
+      st.style.transform = `translate(${l}px,${t}px) scale(${s})`;
+      st.style.visibility = 'visible';
+    }
+    function blFitAll() {
+      const body = byId('boardListBody'); if (!body) return;
+      body.querySelectorAll('.bl-th.bl-live').forEach(blFitOne);
+    }
+    window.addEventListener('resize', () => { const m = byId('boardListModal'); if (m && !m.classList.contains('hidden')) blFitAll(); });
     let blTab = 'normal', blDragged = false;
     const blKind = (b) => b.kind === 'finance' ? 'finance' : (b.shared ? 'shared' : 'normal');
     function blSetTab(t) { blTab = t; openBoardList(true); }
@@ -12389,6 +12456,11 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       byId('boardListBody').innerHTML = bar + (cards ? '<div class="bl-grid">' + cards + '</div><p class="bl-hint">Segure uma lousa e arraste para mudar a ordem</p>' : '<p class="bl-hint" style="padding:30px 0">Nenhuma lousa nesta aba.</p>');
       blBindDrag();
       openOv('boardListModal');
+      blFitAll();
+      requestAnimationFrame(blFitAll);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(blFitAll);
+      setTimeout(blFitAll, 400);   // imagens/fontes que chegam depois
+      try { hydrateImages(); } catch (e) {}
     }
     function blBindDrag() {
       const grid = byId('boardListBody').querySelector('.bl-grid'); if (!grid) return;
