@@ -7154,6 +7154,7 @@ void main(){
       }
       function endAll() {
         const s0 = st; st = null;
+        clearInterval(s0.dwellIv);
         if (s0.touchEl) s0.touchEl.removeEventListener('touchmove', stopTouch);
         document.body.classList.remove('drag-reordering');
         window.__noClickUntil = Date.now() + 350;
@@ -7183,8 +7184,22 @@ void main(){
         place(st.y);
       }
 
+      /* a linha só entra no buraco negro (da lousa ou do vórtice) se ficar DWELL ms em cima dele;
+         encostar de passagem não conta. Verifica a cada 80 ms (vale também se o buraco se mexer até o ponteiro parado). */
+      const DWELL = 1000;
+      function dwellTick() {
+        if (!st || st.busy) return;
+        if (!targets().length || !portalAt(st.x, st.y, 1.25)) { if (targets().length) st.armed = true; st.dwellP = null; return; }
+        if (!st.armed) return;
+        const p = portalAt(st.x, st.y);
+        if (!p) { st.dwellP = null; return; }
+        const now = performance.now();
+        if (st.dwellP !== p) { st.dwellP = p; st.dwellT0 = now; return; }
+        if (now - st.dwellT0 >= DWELL) { st.dwellP = null; enterPortal(p); }
+      }
       function enterPortal(p) {
         if (st.busy) return;
+        st.dwellP = null;
         st.busy = true; st.hopped = true; sndSuck();
         if (!st.ghost) { makeGhost(); setGhost(st.x, st.y, 1, 0, 0); void st.ghost.offsetWidth; }
         const sa = st.pa || 0, px = p._x, py = p._y, gate = !!p.classList, prev = st.cur;
@@ -7269,6 +7284,7 @@ void main(){
         kids(f.box, f.kind).forEach((c, i) => { c.dataset.oi = i; });
         const rect = f.row.getBoundingClientRect();
         st = { row: f.row, box: f.box, kind: f.kind, grab: y - rect.top, gX: x - rect.left, gY: y - rect.top, x, y };
+        st.dwellIv = setInterval(dwellTick, 80);
         f.row.classList.add('drag-lift'); f.box.classList.add('drag-active'); document.body.classList.add('drag-reordering');
         if (el) { st.touchEl = el; el.addEventListener('touchmove', stopTouch, { passive: false }); }
         if (f.kind === 'fin') {
@@ -7308,10 +7324,8 @@ void main(){
             else if (st.ghost && deepIn) pullBack();
           }
         }
-        if (targets().length) {
-          if (!portalAt(st.x, st.y, 1.25)) st.armed = true;
-          else if (st.armed) { const p = portalAt(st.x, st.y); if (p) { enterPortal(p); return; } }
-        }
+        if (targets().length && !portalAt(st.x, st.y, 1.25)) { st.armed = true; st.dwellP = null; }
+        /* entrar no buraco negro exige ficar ~1s em cima dele: ver dwellTick() */
         if (st.ghost) { ghostMove(st.x, st.y); return; }
         nearFx(st.x, st.y);
         const bb = st.box.getBoundingClientRect();
