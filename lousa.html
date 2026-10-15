@@ -8988,7 +8988,7 @@ void main(){
     async function wxLoad(c) {
       const key = [c.lat, c.lon, c.unit].join('|'), hit = WX_CACHE[key];
       if (hit && Date.now() - hit.t < 600000) return hit.d;
-      const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7&temperature_unit=${c.unit === 'f' ? 'fahrenheit' : 'celsius'}&wind_speed_unit=${c.unit === 'f' ? 'mph' : 'kmh'}`;
+      const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7&temperature_unit=${c.unit === 'f' ? 'fahrenheit' : 'celsius'}&wind_speed_unit=${c.unit === 'f' ? 'mph' : 'kmh'}`;
       const r = await fetch(u); if (!r.ok) throw new Error('http ' + r.status);
       const d = await r.json(); WX_CACHE[key] = { t: Date.now(), d }; return d;
     }
@@ -9004,6 +9004,8 @@ void main(){
       }
       const draw = (d) => {
         const cu = d.current, day = !!cu.is_day, inf = wxInfo(cu.weather_code, day), dl = d.daily;
+        const hh = d.hourly || {}, hi0 = Math.max(0, (hh.time || []).findIndex(x => x >= cu.time.slice(0, 13) + ':00'));
+        const rainNow = hh.precipitation_probability ? hh.precipitation_probability[hi0] : null;   // chance de chuva na hora atual
         let h;
         if (s === 1) {
           const lo = Math.min(...dl.temperature_2m_min), hi = Math.max(...dl.temperature_2m_max), span = Math.max(1, hi - lo);
@@ -9018,7 +9020,7 @@ void main(){
         } else if (s === 3) {
           h = `<div class="wx-box font-chalk" style="display:flex;align-items:center;justify-content:center;gap:4cqw"><span style="width:30cqw">${wxIcon(cu.weather_code, day, '100%')}</span><span style="text-align:left"><span style="font-size:22cqw;line-height:1">${rd(cu.temperature_2m)}°</span><div style="font-size:6cqw">${gear}</div></span></div>`;
         } else {
-          h = `<div class="wx-box font-chalk"><div>${gear}</div><div style="width:46cqw;margin:0 auto">${wxIcon(cu.weather_code, day, '100%')}</div><div style="font-size:21cqw;line-height:1">${rd(cu.temperature_2m)}${U}</div><div style="font-size:7cqw;margin:1cqw 0 2cqw">${inf.t}</div><div style="display:flex;justify-content:center;flex-wrap:wrap;gap:1cqw 4cqw;font-size:5.2cqw;opacity:.9"><span>↑ ${rd(dl.temperature_2m_max[0])}°  ↓ ${rd(dl.temperature_2m_min[0])}°</span><span>sensação ${rd(cu.apparent_temperature)}°</span><span>💧 ${cu.relative_humidity_2m}%</span><span>💨 ${rd(cu.wind_speed_10m)} ${c.unit === 'f' ? 'mph' : 'km/h'}</span></div></div>`;
+          h = `<div class="wx-box font-chalk"><div>${gear}</div><div style="width:46cqw;margin:0 auto">${wxIcon(cu.weather_code, day, '100%')}</div><div style="font-size:21cqw;line-height:1">${rd(cu.temperature_2m)}${U}</div><div style="font-size:7cqw;margin:1cqw 0 2cqw">${inf.t}</div><div style="display:flex;justify-content:center;flex-wrap:wrap;gap:1cqw 4cqw;font-size:5.2cqw;opacity:.9"><span>↑ ${rd(dl.temperature_2m_max[0])}°  ↓ ${rd(dl.temperature_2m_min[0])}°</span><span>sensação ${rd(cu.apparent_temperature)}°</span>${rainNow != null ? `<span>☔ chuva ${rainNow}%</span>` : ''}<span>💧 umidade ${cu.relative_humidity_2m}%</span><span>💨 ${rd(cu.wind_speed_10m)} ${c.unit === 'f' ? 'mph' : 'km/h'}</span></div></div>`;
         }
         b.innerHTML = h;
       };
