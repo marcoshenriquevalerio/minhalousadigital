@@ -733,7 +733,11 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: 1.45em 7.4em 6.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em; gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em); gap: 6px; align-items: center; }
+    .fin-head > span { position: relative; }
+    .fin-rs { position: absolute; right: -6px; top: -2px; bottom: -2px; width: 12px; cursor: col-resize; touch-action: none; z-index: 2; }
+    .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
+    .fin-rs:hover::after, .fin-rs.on::after { opacity: .7; }
     .fin-head { padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
     .fin-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
     .fin-row { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.14); }
@@ -866,6 +870,7 @@
     .bh-portal.bh-back .bh-name { background: #fbbf24; color: #1c1917; }
     .bh-ghost { position: fixed; left: 0; top: 0; z-index: 99999; pointer-events: none; background: rgba(33,72,53,.97); border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.6), 0 0 0 1.5px rgba(253,230,138,.7); will-change: transform; }
     .bh-ghost > .fin-row { opacity: 1 !important; }
+    .theme-marker .bh-ghost { background: rgba(255,255,255,.98); box-shadow: 0 10px 26px rgba(15,23,42,.28), 0 0 0 1.5px rgba(15,23,42,.35); }
     .bh-over { outline: 2px dashed #fbbf24; outline-offset: 4px; }
     .bh-slot { border: 2px dashed rgba(253,230,138,.85); border-radius: 8px; background: rgba(253,230,138,.1); margin: 2px 0; }
     .bh-return { animation: bhret .9s ease-out; }
@@ -6468,7 +6473,7 @@
         const x = best.x, y = best.y;
         const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy) || 1, sp = rnd(150, 240);
         const life = rnd(2.4, 3.6);
-        parts.push({ kind: 'chunk', x, y, vx: dx / d * sp, vy: dy / d * sp, rot, vr: rnd(-2.5, 2.5), pts, size, life, age: 0 });
+        parts.push({ kind: 'chunk', x, y, vx: dx / d * sp * 0.5, vy: dy / d * sp * 0.5, rot, vr: rnd(-2.5, 2.5), pts, size, life: 9, age: 0, tx: c.x, ty: c.y, R: c.R || 50, sc: 1 });
         scars.push({ x, y, rot, pts, size, life: Infinity, age: 0, burn: 0 });   // o rasgo fica até o buraco sumir
       }
       /* brasa: sai do anel, cai na lousa e acende um fogo pequeno */
@@ -6510,14 +6515,15 @@
         ctx.restore();
       }
       function drawChunk(p, fade) {
-        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = fade;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(p.sc || 1, p.sc || 1); ctx.globalAlpha = fade;
         ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
         pathOf(p.pts);
         const g = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
-        g.addColorStop(0, '#56695e'); g.addColorStop(0.6, '#3a4a41'); g.addColorStop(1, '#2a362f');   // lousa já desbotada
+        if (isMarker()) { g.addColorStop(0, '#ffffff'); g.addColorStop(0.6, '#f1f5f9'); g.addColorStop(1, '#dde3ea'); }   // quadro branco
+        else { g.addColorStop(0, '#56695e'); g.addColorStop(0.6, '#3a4a41'); g.addColorStop(1, '#2a362f'); }   // lousa já desbotada
         ctx.fillStyle = g; ctx.fill();
         ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = 'rgba(230,230,220,.25)'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.strokeStyle = isMarker() ? 'rgba(15,23,42,.3)' : 'rgba(230,230,220,.25)'; ctx.lineWidth = 1.2; ctx.stroke();
         ctx.restore();
       }
 
@@ -6573,12 +6579,21 @@
           ctx.drawImage(flameC, f.x - sz, f.y - sz * 1.25, sz * 2, sz * 2.5);
         }
         ctx.restore();
-        parts = parts.filter(p => p.age < p.life && p.x > -80 && p.x < innerWidth + 80 && p.y > -80 && p.y < innerHeight + 80);
+        parts = parts.filter(p => !p.dead && p.age < p.life && p.x > -200 && p.x < innerWidth + 200 && p.y > -200 && p.y < innerHeight + 200);
         for (const p of parts) {
-          p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
-          const drag = Math.pow(0.5, dt); p.vx *= drag; p.vy *= drag;
-          p.rot += p.vr * dt;
-          drawChunk(p, Math.min(1, (p.life - p.age) / 0.4));
+          if (c) { p.tx = c.x; p.ty = c.y; p.R = c.R || p.R; }   // acompanha o buraco
+          p.age += dt;
+          /* é SUGADO: atração que cresce, giro em espiral, encolhe e some dentro do buraco */
+          const dx = p.tx - p.x, dy = p.ty - p.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+          const gr = 260 + p.age * 520;
+          p.vx += (ux * gr - uy * 150) * dt; p.vy += (uy * gr + ux * 150) * dt;
+          const drag = Math.pow(0.35, dt); p.vx *= drag; p.vy *= drag;
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          const near = Math.min(1, d / (p.R * 2.4 + 30));
+          p.rot += (p.vr + 5 * (1 - near)) * dt;
+          p.sc = 0.12 + 0.88 * near;
+          if (d < Math.max(14, p.R * 0.5)) { p.dead = true; continue; }
+          drawChunk(p, Math.min(1, 0.3 + near * 1.4));
         }
       }
       requestAnimationFrame(frame);
@@ -7094,6 +7109,7 @@ void main(){
         const r = st.row, rect = r.getBoundingClientRect(), cs = getComputedStyle(st.box);
         const g = document.createElement('div'); g.className = 'bh-ghost chalk-ink font-chalk';
         g.style.width = rect.width + 'px'; g.style.fontSize = cs.fontSize; g.style.color = cs.color;
+        const fcv = cs.getPropertyValue('--fc'); if (fcv && fcv.trim()) g.style.setProperty('--fc', fcv.trim());   // mesmas larguras de coluna
         const c = r.cloneNode(true); c.classList.remove('drag-lift'); c.style.transform = ''; c.style.position = 'static';
         c.querySelectorAll('input,button').forEach(i => { i.tabIndex = -1; });
         g.appendChild(c);
@@ -7438,16 +7454,39 @@ void main(){
       </div>`;
     }
 
+    /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
+    function finColTpl(note) {
+      const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
+      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 1em`;
+    }
+    document.addEventListener('pointerdown', (e) => {
+      const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
+      const note = findNote(h.dataset.nid); if (!note) return;
+      e.preventDefault(); e.stopPropagation();
+      const key = h.dataset.col, inv = !!h.dataset.inv;   // inv: a alça da Descrição ajusta o Valor (ao contrário)
+      const cell = inv ? h.parentElement.nextElementSibling : h.parentElement;   // célula cuja largura muda
+      const w0 = cell.getBoundingClientRect().width, x0 = e.clientX, wr = byId(note.id);
+      const apply = () => { const t = finColTpl(note); wr && wr.querySelectorAll('.fin-head, .fin-scroll').forEach(el => el.style.setProperty('--fc', t)); };
+      h.classList.add('on'); try { h.setPointerCapture(e.pointerId); } catch (_) {}
+      const mv = (ev) => {
+        const dx = ev.clientX - x0;
+        note.cw = Object.assign({}, note.cw, { [key]: Math.round(Math.max(40, Math.min(520, w0 + (inv ? -dx : dx)))) });
+        apply();
+      };
+      const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); saveData(); };
+      h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+    }, true);
+
     function finTableInner(note) {
       const rows = finData().rows, fs = note.fs || 18;
       const allDone = rows.length > 0 && rows.every(r => r.done);
       return `
         ${finTitleInput(note, '💰 Controle financeiro')}
-        <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px">
+        <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          <span data-ink>Data</span><span data-ink>Categoria</span><span data-ink>Destino</span><span data-ink>Descrição</span><span data-ink>Valor</span><span></span>
+          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Valor</span><span></span>
         </div>
-        <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px">
+        <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           ${rows.length ? rows.map(finRowHtml).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
         </div>
         <button class="fin-add chalk-ink font-chalk" style="font-size:${fs}px" onclick="finAddRow('${note.id}')"><span>＋</span> Novo lançamento</button>
