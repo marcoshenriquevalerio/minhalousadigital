@@ -6320,6 +6320,7 @@
       /* som de alerta nuclear: arquivo nuclear.mp3 (na mesma pasta do lousa.html).
          Começa 9s antes do alerta (aos 15s de espera) e toca por 9s. */
       let nuke = null;
+      try { nuke = new Audio('nuclear.mp3'); nuke.preload = 'auto'; nuke.volume = 0.3; nuke.load(); } catch (e) {}   // pré-carrega: toca no instante certo, sem atraso
       function nukeStart() {
         try {
           if (!nuke) { nuke = new Audio('nuclear.mp3'); nuke.volume = 0.3; }   // mais baixo que o buraco negro
@@ -6407,7 +6408,7 @@
       const ctx = cv.getContext('2d');
       const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
       fit(); addEventListener('resize', fit);
-      let parts = [], scars = [], fires = [], embers = [], last = 0, spot = null, nextChunk = 0, dyingT = 0;
+      let parts = [], scars = [], fires = [], embers = [], last = 0, spot = null, nextChunk = 0, dyingT = 0, chunkSpots = [];
       const rnd = (a, b) => a + Math.random() * (b - a);
 
       /* textura de madeira crua (sem pintura) */
@@ -6455,7 +6456,16 @@
       /* pedaço que se solta do ponto fixo e é puxado para o buraco */
       function spawnChunk(c) {
         const size = rnd(34, 56), pts = tearEdge(size), rot = rnd(0, 6);
-        const x = spot.x + rnd(-4, 4), y = spot.y + rnd(-4, 4);
+        /* cada pedaço sai de um lugar NOVO: nunca rasga de novo onde já foi rasgado */
+        let best = null, bestD = -1;
+        for (let k = 0; k < 24; k++) {
+          const cx = Math.min(innerWidth - 60, Math.max(60, c.x - rnd(160, 420))), cy = Math.min(innerHeight - 60, Math.max(60, c.y + rnd(-200, 200)));
+          const dmin = chunkSpots.reduce((m, q) => Math.min(m, Math.hypot(q.x - cx, q.y - cy)), Infinity);
+          if (dmin > bestD) { bestD = dmin; best = { x: cx, y: cy }; }
+          if (dmin > 150) break;
+        }
+        chunkSpots.push(best);
+        const x = best.x, y = best.y;
         const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy) || 1, sp = rnd(150, 240);
         const life = rnd(2.4, 3.6);
         parts.push({ kind: 'chunk', x, y, vx: dx / d * sp, vy: dy / d * sp, rot, vr: rnd(-2.5, 2.5), pts, size, life, age: 0 });
@@ -6524,7 +6534,7 @@
         /* cicatrizes: queimam aos poucos e somem no fim */
         if (st && c) dyingT = 0; else dyingT += dt;
         const scarFade = Math.max(0, 1 - dyingT / 1.2);
-        if (dyingT > 1.2) { scars = []; spot = null; }
+        if (dyingT > 1.2) { scars = []; spot = null; chunkSpots = []; }
         for (const sc of scars) {
           sc.age += dt; sc.burn = Math.min(1, sc.age / 1.2);
           if (sc.burn > 0.05 && sc.age < sc.life - 0.4) {
