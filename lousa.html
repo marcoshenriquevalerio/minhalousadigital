@@ -418,6 +418,7 @@
     /* ---- botões do cabeçalho: mini-lousas redondas com giz ---- */
     /* arrastar linhas (segurar 1s) */
     .drag-lift { position:relative; z-index:60; background:rgba(33,72,53,.97) !important; border-radius:10px; box-shadow:0 8px 22px rgba(0,0,0,.6), 0 0 0 1.5px rgba(253,230,138,.65); cursor:grabbing; transition:none !important; opacity:1 !important; }
+    .theme-marker .drag-lift { background:rgba(255,255,255,.98) !important; box-shadow:0 8px 22px rgba(15,23,42,.28), 0 0 0 1.5px rgba(15,23,42,.35); }
     .drag-active { overflow-y:auto; }
     body.drag-reordering, body.drag-reordering * { user-select:none !important; -webkit-user-select:none !important; cursor:grabbing !important; }
     .fin-row, .chalk-items > div { -webkit-touch-callout:none; }
@@ -7484,7 +7485,7 @@ void main(){
         ${finTitleInput(note, '💰 Controle financeiro')}
         <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Valor</span><span></span>
+          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink style="text-align:right;padding-right:2px">Valor</span><span></span>
         </div>
         <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           ${rows.length ? rows.map(finRowHtml).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
@@ -12290,7 +12291,7 @@ void main(){
       ${finTitleInput(n, '📈 Investimentos')}
       <div class="fin-head inv-cols font-chalk chalk-ink" style="font-size:${fs}px">
         <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="invToggleAll('${n.id}')" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-        <span data-ink>Data</span><span data-ink>Destino</span><span data-ink>Valor</span><span></span>
+        <span data-ink>Data</span><span data-ink>Destino</span><span data-ink style="text-align:right;padding-right:2px">Valor</span><span></span>
       </div>
       <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px">
         ${rows.length ? rows.map(r => rowHtml(n, r)).join('') : `<div class="fin-empty" data-ink>Nenhuma retirada ainda. Toque em “+ Nova retirada”.</div>`}
