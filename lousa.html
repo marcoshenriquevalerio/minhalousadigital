@@ -3745,7 +3745,7 @@
       for (let day = 1; day <= daysInMonth; day++) {
         const dateObj = new Date(year, month, day);
         const dateStr = getFormattedDateKey(dateObj);
-        const hasEvents = board.calendarEvents && board.calendarEvents[dateStr] && board.calendarEvents[dateStr].length > 0;
+        const hasEvents = calGlobal && calGlobal[dateStr] && calGlobal[dateStr].length > 0;
         const isSelected = dateStr === selectedCalDateStr;
         const isToday = dateStr === todayStr;
 
@@ -3781,7 +3781,7 @@
       badgeEl.innerText = selectedCalDateStr === getFormattedDateKey(new Date()) ? 'Hoje' : 'Data';
 
       container.innerHTML = '';
-      const events = (board.calendarEvents && board.calendarEvents[selectedCalDateStr]) || [];
+      const events = (calGlobal && calGlobal[selectedCalDateStr]) || [];
 
       if (events.length === 0) {
         container.innerHTML = `<div class="text-center py-6 text-stone-500 font-chalk text-base">Nenhuma anotação neste dia.</div>`;
@@ -3809,12 +3809,12 @@
       if (!input || !input.value.trim()) return;
 
       const board = getActiveBoard();
-      if (!board.calendarEvents) board.calendarEvents = {};
-      if (!board.calendarEvents[selectedCalDateStr]) {
-        board.calendarEvents[selectedCalDateStr] = [];
+      if (!calGlobal) calGlobal = {};
+      if (!calGlobal[selectedCalDateStr]) {
+        calGlobal[selectedCalDateStr] = [];
       }
 
-      board.calendarEvents[selectedCalDateStr].push(input.value.trim());
+      calGlobal[selectedCalDateStr].push(input.value.trim());
       input.value = '';
 
       saveData();
@@ -3823,7 +3823,7 @@
 
     function editCalendarEvent(dateStr, idx) {
       const board = getActiveBoard();
-      const list = board.calendarEvents && board.calendarEvents[dateStr];
+      const list = calGlobal && calGlobal[dateStr];
       const target = document.querySelector(`#dayEventsList [data-evt-idx="${idx}"]`);
       if (!list || list[idx] === undefined || !target) return;
       inlineEdit(target, list[idx],
@@ -3833,9 +3833,9 @@
 
     function removeCalendarEvent(dateStr, index) {
       const board = getActiveBoard();
-      if (board.calendarEvents && board.calendarEvents[dateStr]) {
-        board.calendarEvents[dateStr].splice(index, 1);
-        if (board.calendarEvents[dateStr].length === 0) delete board.calendarEvents[dateStr];
+      if (calGlobal && calGlobal[dateStr]) {
+        calGlobal[dateStr].splice(index, 1);
+        if (calGlobal[dateStr].length === 0) delete calGlobal[dateStr];
         saveData();
         renderCalendar();
       }
@@ -3869,7 +3869,7 @@
         const monthNum = String(d.getMonth() + 1).padStart(2, '0');
 
         const isToday = i === 0;
-        const events = (board.calendarEvents && board.calendarEvents[dateStr]) || [];
+        const events = (calGlobal && calGlobal[dateStr]) || [];
 
         const col = document.createElement('div');
         col.className = `bg-stone-800 rounded-xl border flex flex-col min-h-[300px] shadow-md overflow-hidden ${
@@ -3918,17 +3918,17 @@
       if (!input || !input.value.trim()) return;
 
       const board = getActiveBoard();
-      if (!board.calendarEvents) board.calendarEvents = {};
-      if (!board.calendarEvents[dateStr]) board.calendarEvents[dateStr] = [];
+      if (!calGlobal) calGlobal = {};
+      if (!calGlobal[dateStr]) calGlobal[dateStr] = [];
 
-      board.calendarEvents[dateStr].push(input.value.trim());
+      calGlobal[dateStr].push(input.value.trim());
       saveData();
       renderPlanner();
     }
 
     function editPlannerItem(dateStr, idx) {
       const board = getActiveBoard();
-      const list = board.calendarEvents && board.calendarEvents[dateStr];
+      const list = calGlobal && calGlobal[dateStr];
       const target = document.querySelector(`#plannerDaysGrid [data-plan-idx="${idx}"]`);
       /* o mesmo índice existe em cada coluna: pega a coluna do dia certo */
       const col = document.getElementById(`planner_input_${dateStr}`);
@@ -3941,9 +3941,9 @@
 
     function removePlannerItem(dateStr, index) {
       const board = getActiveBoard();
-      if (board.calendarEvents && board.calendarEvents[dateStr]) {
-        board.calendarEvents[dateStr].splice(index, 1);
-        if (board.calendarEvents[dateStr].length === 0) delete board.calendarEvents[dateStr];
+      if (calGlobal && calGlobal[dateStr]) {
+        calGlobal[dateStr].splice(index, 1);
+        if (calGlobal[dateStr].length === 0) delete calGlobal[dateStr];
         saveData();
         renderPlanner();
       }
@@ -3996,7 +3996,6 @@
         onConfirm: () => {
           purgeImages(board.notes);
           board.notes = [];
-          board.calendarEvents = {};
           saveData();
           renderNotes();
         }
@@ -4157,56 +4156,64 @@
        é gravado na hora e sincroniza em tempo real entre aparelhos.
        ========================================================================= */
     const CAL = { ready: false, sig: {}, unsub: null, busy: {} };
-    const calOf = (b) => stable(b.calendarEvents || {});
+    const CAL_ID = '_global';   // um único calendário para TODAS as lousas: users/{uid}/calendar/_global
+    let calGlobal = {};
+    const calOf = () => stable(calGlobal || {});
+    function calMerge(target, src) {
+      Object.keys(src || {}).forEach(k => {
+        const arr = Array.isArray(src[k]) ? src[k] : [];
+        if (!arr.length) return;
+        const t = target[k] || (target[k] = []);
+        arr.forEach(x => { if (!t.includes(x)) t.push(x); });
+      });
+    }
 
     async function calHydrate() {
-      CAL.ready = false; CAL.sig = {};
+      CAL.ready = false; CAL.sig = {}; calGlobal = {};
       let docs = null;
       try { docs = await FB.loadCalendars(); CAL.ready = true; }
       catch (e) { console.error('Erro ao carregar calendário:', e); setSyncStatus('error', 'calendário'); }
-      if (!docs) return;   // sem leitura não grava nada (evita apagar dados da nuvem)
-      appData.boards.forEach(b => {
-        if (docs[b.id]) { b.calendarEvents = docs[b.id]; CAL.sig[b.id] = stable(docs[b.id]); }
-        else if (b.shared) { b.calendarEvents = {}; }   // lousa compartilhada: o calendário é só seu
-        // lousa pessoal sem documento ainda: usa o que já existia e será gravado por calFlush()
-      });
+      if (!docs) {   // sem leitura não grava nada (evita apagar dados da nuvem); mostra o que há neste aparelho
+        appData.boards.forEach(b => calMerge(calGlobal, b.calendarEvents));
+        return;
+      }
+      if (docs[CAL_ID]) { calGlobal = docs[CAL_ID]; CAL.sig[CAL_ID] = stable(docs[CAL_ID]); }
+      else {
+        // primeira vez no calendário único: junta as anotações que cada lousa tinha (sem duplicar)
+        appData.boards.forEach(b => { calMerge(calGlobal, docs[b.id]); if (!b.shared) calMerge(calGlobal, b.calendarEvents); });
+      }
     }
 
     function calFlush() {
       if (!CAL.ready || !window.FB || !currentUser) return;
-      appData.boards.forEach(b => {
-        const sg = calOf(b), known = CAL.sig[b.id];
-        if (sg === known || (known === undefined && sg === '{}')) return;
-        CAL.sig[b.id] = sg;
-        const events = b.calendarEvents || {};
-        FB.saveCalendar(b.id, events).then(() => { if (!cloudSaveFailed) setSyncStatus('saved'); })
-          .catch((err) => {
-            console.error('Erro ao salvar calendário:', err);
-            if (CAL.sig[b.id] === sg) CAL.sig[b.id] = known;   // tenta de novo no próximo salvamento
-            setSyncStatus('error', err && err.message);
-            setTimeout(calFlush, 8000);
-          });
-      });
+      const sg = calOf(), known = CAL.sig[CAL_ID];
+      if (sg === known || (known === undefined && sg === '{}')) return;
+      CAL.sig[CAL_ID] = sg;
+      FB.saveCalendar(CAL_ID, calGlobal).then(() => { if (!cloudSaveFailed) setSyncStatus('saved'); })
+        .catch((err) => {
+          console.error('Erro ao salvar calendário:', err);
+          if (CAL.sig[CAL_ID] === sg) CAL.sig[CAL_ID] = known;   // tenta de novo no próximo salvamento
+          setSyncStatus('error', err && err.message);
+          setTimeout(calFlush, 8000);
+        });
     }
 
     function calStartWatch() {
       if (CAL.unsub) { try { CAL.unsub(); } catch (e) {} CAL.unsub = null; }
       if (!CAL.ready) return;
       CAL.unsub = FB.watchCalendars((id, events) => {
-        const b = appData.boards.find(x => x.id === id);
-        if (!b) return;
+        if (id !== CAL_ID) return;
         const sg = stable(events || {});
-        CAL.sig[id] = sg;
-        if (sg === calOf(b)) return;
-        b.calendarEvents = events || {};
-        try { localStorage.setItem(localKey(), JSON.stringify(appData)); } catch (e) {}
+        CAL.sig[CAL_ID] = sg;
+        if (sg === calOf()) return;
+        calGlobal = events || {};
         const open = (m) => { const el = byId(m); return el && !el.classList.contains('hidden'); };
         if (open('calendarModal')) renderCalendar();
         if (open('plannerModal')) renderPlanner();
         try { Object.keys(WG.draws).forEach(k => WG.draws[k]()); } catch (e) {}
       });
     }
-    function calStop() { if (CAL.unsub) { try { CAL.unsub(); } catch (e) {} CAL.unsub = null; } CAL.ready = false; }
+    function calStop() { calGlobal = {}; if (CAL.unsub) { try { CAL.unsub(); } catch (e) {} CAL.unsub = null; } CAL.ready = false; }
 
     async function handleSignedIn(user) {
       currentUser = user;
@@ -4249,7 +4256,8 @@
         createInitialDefaultBoard();
       }
 
-      await calHydrate();   // calendário/planner pessoais (users/{uid}/calendar/{lousa})
+      await calHydrate();   // calendário/planner único (users/{uid}/calendar/_global)
+      calFlush();           // grava já a migração das anotações antigas
 
       appReady = true;
       if (migrated) { try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (e) {} }
@@ -9174,7 +9182,7 @@ void main(){
         const now = new Date(), st = WG.cal[n.id] || (WG.cal[n.id] = { y: now.getFullYear(), m: now.getMonth() }), s = n.ws || 0;
         const MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         const draw = () => {
-          const ev = getActiveBoard().calendarEvents || {}, today = getFormattedDateKey(new Date());
+          const ev = calGlobal || {}, today = getFormattedDateKey(new Date());
           if (s === 2) {
             let h = '';
             for (let i = 0; i < 7; i++) {
