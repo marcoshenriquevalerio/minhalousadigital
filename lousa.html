@@ -4815,9 +4815,12 @@
         return { x: n.x || 0, y: n.y || 0, w: n.width || (el && el.offsetWidth) || 200, h: eh };
       });
       const free = (x, y) => !rects.some(r => x < r.x + r.w + gap && x + nw + gap > r.x && y < r.y + r.h + gap && y + nh + gap > r.y);
+      /* no computador a lousa não rola: a peça precisa caber INTEIRA na tela (largura e altura); no celular a lousa cresce para o lado */
+      const maxH = isMobileBar() ? H : Math.min(H, mn.offsetHeight || H);
       for (let x = 0, k = 0; x < cw - 4; x += fw, k++) {
         const px = Math.round(x + mx);
-        for (let y = 40; y + nh <= H - 10; y += 20) if (free(px, y)) return { x: px, y, w: nw, k };
+        if (!isMobileBar() && px + nw + mx > cw) continue;   // essa "tela do celular" ficaria cortada na borda direita
+        for (let y = 40; y + nh <= maxH - 10; y += 20) if (free(px, y)) return { x: px, y, w: nw, k };
       }
       const k = ((b && b.notes ? b.notes.length : 0) % 6);
       return { x: mx + k * 6, y: 40 + k * 22, w: nw, k: 0, full: true };
