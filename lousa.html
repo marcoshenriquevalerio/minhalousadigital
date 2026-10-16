@@ -6320,21 +6320,29 @@
        Quanto mais tempo a linha fica fora do buraco, mais as peças são puxadas e encolhem.
        Com 10s sem entrar: alerta (☢ + ⚠) e o arraste é cancelado. */
     (function () {
-      const SUCK_MS = 15000;
-      let t0 = 0, active = false, alertShown = false, soundStarted = false, soundAt = 0;
+      const SUCK_MS = 20000;   // 20s até o alerta
+      const NUKE_MS = 9000, NUKE_TIMES = 2;   // duração do nuclear.mp3 (9s exatos) e quantas vezes toca: 2 × 9s = 18s, inteiro, terminando um instante antes do alerta
+      let t0 = 0, active = false, alertShown = false, soundStarted = false, soundLoop = 0, nukeRun = false;
       const touched = new Set();
       /* som de alerta nuclear: arquivo nuclear.mp3 (na mesma pasta do lousa.html).
          Começa 9s antes do alerta (aos 15s de espera) e toca por 9s. */
       let nuke = null;
-      try { nuke = new Audio('nuclear.mp3'); nuke.preload = 'auto'; nuke.volume = 0.3; nuke.load(); } catch (e) {}   // pré-carrega: toca no instante certo, sem atraso
+      function nukeMake() {
+        const a = new Audio('nuclear.mp3'); a.preload = 'auto'; a.volume = 0.3;   // mais baixo que o buraco negro
+        /* a música NÃO é cortada por tempo: quando termina (inteira), recomeça sozinha até completar as repetições */
+        a.addEventListener('ended', () => { if (nukeRun && soundLoop < NUKE_TIMES) { soundLoop++; nukeStart(); } });
+        return a;
+      }
+      try { nuke = nukeMake(); nuke.load(); } catch (e) {}   // pré-carrega: toca no instante certo, sem atraso
       function nukeStart() {
         try {
-          if (!nuke) { nuke = new Audio('nuclear.mp3'); nuke.volume = 0.3; }   // mais baixo que o buraco negro
+          if (!nuke) nuke = nukeMake();
           nuke.currentTime = 0;
           const pr = nuke.play(); if (pr && pr.catch) pr.catch(() => {});
         } catch (e) {}
       }
       function nukeStop() {
+        nukeRun = false;
         if (!nuke) return;
         try { nuke.pause(); nuke.currentTime = 0; } catch (e) {}
       }
@@ -6393,8 +6401,7 @@
         if (!active) { active = true; t0 = now; alertShown = false; soundStarted = false; }
         if (alertShown) return;
         const p = Math.min(1, (now - t0) / SUCK_MS);
-        if (!soundStarted && now - t0 >= SUCK_MS - 9000) { soundStarted = true; soundAt = now; nukeStart(); }
-        if (soundStarted && now - soundAt >= 9000) nukeStop();   // o som dura 9s
+        if (!soundStarted && now - t0 >= SUCK_MS - NUKE_MS * NUKE_TIMES - 400) { soundStarted = true; soundLoop = 1; nukeRun = true; nukeStart(); }   // 400 ms de folga: as 2 voltas terminam antes do alerta
         window.__bhState = { p, t: now - t0, portals: portals.map(pt => { const r = pt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, R: r.width * 0.36 }; }) };
         const bvp = document.getElementById('boardViewport');
         if (bvp) bvp.style.filter = p > 0 ? `saturate(${(1 - 0.92 * p).toFixed(3)}) brightness(${(1 - 0.25 * p).toFixed(3)})` : '';
@@ -6415,6 +6422,7 @@
       const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
       fit(); addEventListener('resize', fit);
       let parts = [], scars = [], fires = [], embers = [], last = 0, spot = null, nextChunk = 0, dyingT = 0, chunkSpots = [];
+      let smokes = [], drops = [], splashes = [], bolts = [], nextBolt = 0, stormLast = 0, ac = null, stormI = 0;
       const rnd = (a, b) => a + Math.random() * (b - a);
 
       /* textura de madeira crua (sem pintura) */
@@ -6459,17 +6467,136 @@
         }
         return pts;
       }
+      /* sprite de fumaça */
+      const smokeC = document.createElement('canvas'); smokeC.width = smokeC.height = 64;
+      (function () {
+        const x = smokeC.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(78,78,84,.6)'); g.addColorStop(0.55, 'rgba(58,58,64,.3)'); g.addColorStop(1, 'rgba(40,40,46,0)');
+        x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+      })();
+      function spawnSmoke() {
+        if (!scars.length || smokes.length > 260) return;
+        const ns = Math.min(4, 1 + scars.length * 0.06);
+        for (let k = 0; k < ns; k++) {
+          if (Math.random() > 0.6) continue;
+          const sc = scars[Math.floor(Math.random() * scars.length)];
+          if (sc.burn < 0.4) continue;
+          smokes.push({ x: sc.x + rnd(-sc.size * 0.6, sc.size * 0.6), y: sc.y + rnd(-sc.size * 0.4, sc.size * 0.3), vx: rnd(-8, 14), vy: rnd(-95, -50), r: rnd(9, 16) * (0.7 + sc.size / 70), g: rnd(22, 46), life: rnd(2.2, 3.8), age: 0, a: rnd(0.2, 0.38) });
+        }
+      }
+      function drawSmoke(dt, now, fade) {
+        smokes = smokes.filter(s => s.age < s.life && s.y > -120);
+        for (const s of smokes) {
+          s.age += dt; s.x += (s.vx + Math.sin(now / 900 + s.y * 0.01) * 14) * dt; s.y += s.vy * dt; s.vy *= Math.pow(0.8, dt);
+          const u = s.age / s.life, r = s.r + s.g * s.age;
+          ctx.globalAlpha = Math.max(0, s.a * Math.min(1, u * 5) * Math.pow(1 - u, 1.3) * fade);
+          ctx.drawImage(smokeC, s.x - r, s.y - r, r * 2, r * 2);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      /* ---- tempestade: chuva em camadas, nuvens escuras, raios ramificados e trovão ---- */
+      function thunder(vol) {
+        try {
+          if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+          if (ac.state === 'suspended') ac.resume();
+          const len = Math.floor(ac.sampleRate * 3.2), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+          let lastv = 0; for (let i = 0; i < len; i++) { lastv = (lastv + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = lastv * 3.5; }   // ruído marrom = ronco grave
+          const src = ac.createBufferSource(); src.buffer = buf;
+          const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; const t = ac.currentTime;
+          lp.frequency.setValueAtTime(420, t); lp.frequency.exponentialRampToValueAtTime(110, t + 2.8);
+          const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+          src.connect(lp); lp.connect(g); g.connect(ac.destination); src.start(t); src.stop(t + 3.2);
+        } catch (e) {}
+      }
+      function newDrop(init) {
+        const W = cv.width, H = cv.height, z = rnd(0.35, 1), v = 700 + z * 900, vx = -v * 0.22, sp = Math.hypot(vx, v);
+        return { x: rnd(0, W + 400), y: init ? rnd(-H, H * 0.9) : rnd(-90, -10), v, vx, ux: vx / sp, uy: v / sp, len: 10 + z * 24, z, yEnd: rnd(0.45, 1) * H };
+      }
+      function makeBolt() {
+        const W = cv.width, H = cv.height, segs = [], ty = rnd(0.5, 0.92) * H;
+        let x = rnd(0.1, 0.9) * W, y = -10;
+        while (y < ty) {
+          const nx = x + rnd(-38, 38) + (Math.random() < 0.1 ? rnd(-60, 60) : 0), ny = y + rnd(18, 42);
+          segs.push([x, y, nx, ny, 2.6]);
+          if (Math.random() < 0.16) {   // ramificação
+            let bx = nx, by = ny; const dir = Math.random() < 0.5 ? -1 : 1, bl = Math.floor(rnd(3, 8));
+            for (let i = 0; i < bl; i++) { const bnx = bx + dir * rnd(10, 34), bny = by + rnd(10, 26); segs.push([bx, by, bnx, bny, 1.2]); bx = bnx; by = bny; }
+          }
+          x = nx; y = ny;
+        }
+        bolts.push({ segs, age: 0 });
+        setTimeout(() => thunder(rnd(0.3, 0.5)), rnd(250, 900));
+      }
+      function drawStorm(now, dt, I) {
+        if (I <= 0.001 && !bolts.length) { drops.length = 0; splashes.length = 0; nextBolt = 0; return; }
+        const W = cv.width, H = cv.height, mk = isMarker();
+        if (I > 0.001) {   // nuvens carregadas escurecendo o topo
+          const g = ctx.createLinearGradient(0, 0, 0, H * 0.75);
+          g.addColorStop(0, mk ? `rgba(55,65,90,${0.38 * I})` : `rgba(4,8,18,${0.5 * I})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        }
+        /* chuva: 3 camadas (longe → perto), as mais próximas respingam */
+        const target = Math.round(I * (innerWidth < 700 ? 180 : 420));
+        while (drops.length < target) drops.push(newDrop(true));
+        if (drops.length > target) drops.length = target;
+        const L = [[], [], []];
+        for (const d of drops) {
+          d.y += d.v * dt; d.x += d.vx * dt;
+          if (d.y >= d.yEnd) {
+            if (d.z > 0.75 && splashes.length < 140 && Math.random() < 0.55) splashes.push({ x: d.x, y: d.yEnd, age: 0 });
+            Object.assign(d, newDrop(false));
+          }
+          L[d.z < 0.6 ? 0 : d.z < 0.85 ? 1 : 2].push(d);
+        }
+        const cols = mk ? ['rgba(70,90,125,.22)', 'rgba(60,80,120,.35)', 'rgba(50,70,115,.5)'] : ['rgba(170,195,225,.16)', 'rgba(190,210,235,.28)', 'rgba(215,230,250,.42)'], lw = [0.7, 1.1, 1.6];
+        ctx.lineCap = 'round';
+        L.forEach((arr, i) => {
+          ctx.strokeStyle = cols[i]; ctx.lineWidth = lw[i]; ctx.beginPath();
+          for (const d of arr) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.ux * d.len, d.y - d.uy * d.len); }
+          ctx.stroke();
+        });
+        splashes = splashes.filter(s => (s.age += dt) < 0.35);
+        ctx.lineWidth = 1; ctx.strokeStyle = mk ? 'rgba(60,80,120,.5)' : 'rgba(210,225,245,.5)';
+        for (const s of splashes) { ctx.globalAlpha = Math.max(0, 1 - s.age / 0.35); ctx.beginPath(); ctx.ellipse(s.x, s.y, 2 + s.age * 30, 1 + s.age * 9, 0, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+        /* raios (quanto mais forte a tempestade, mais frequentes) */
+        if (I > 0.12) {
+          if (!nextBolt) nextBolt = now + 700;
+          if (now >= nextBolt) { makeBolt(); nextBolt = now + rnd(2000, 4500) * (1.6 - I); }
+        }
+        let flash = 0;
+        bolts = bolts.filter(b => (b.age += dt) < 0.6);
+        for (const b of bolts) {
+          const t = b.age, a = t < 0.05 ? 1 : t < 0.1 ? 0.15 : t < 0.18 ? 0.9 : Math.max(0, 0.55 - (t - 0.18) * 1.3);
+          flash = Math.max(flash, a);
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (const pass of [0, 1]) {
+            for (const s of b.segs) {
+              ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[2], s[3]);
+              if (pass === 0) { ctx.lineWidth = s[4] * 6; ctx.strokeStyle = mk ? `rgba(90,100,200,${a * 0.22})` : `rgba(170,190,255,${a * 0.2})`; }
+              else { ctx.lineWidth = s[4]; ctx.strokeStyle = mk ? `rgba(40,50,110,${a})` : `rgba(255,255,255,${a})`; }
+              ctx.stroke();
+            }
+          }
+        }
+        if (flash > 0) { ctx.fillStyle = mk ? `rgba(25,35,80,${flash * 0.2})` : `rgba(210,225,255,${flash * 0.3})`; ctx.fillRect(0, 0, W, H); }
+      }
+
       /* pedaço que se solta do ponto fixo e é puxado para o buraco */
       function spawnChunk(c) {
-        const size = rnd(34, 56), pts = tearEdge(size), rot = rnd(0, 6);
-        /* cada pedaço sai de um lugar NOVO: nunca rasga de novo onde já foi rasgado */
+        const stp = (window.__bhState && window.__bhState.p) || 0;
+        const size = rnd(34, 56) * (1 + 1.2 * stp), pts = tearEdge(size), rot = rnd(0, 6);   // os pedaços vão ficando maiores
+        /* cada pedaço sai de um lugar NOVO (qualquer ponto da lousa, o mais longe dos já rasgados) */
         let best = null, bestD = -1;
-        for (let k = 0; k < 24; k++) {
-          const cx = Math.min(innerWidth - 60, Math.max(60, c.x - rnd(160, 420))), cy = Math.min(innerHeight - 60, Math.max(60, c.y + rnd(-200, 200)));
+        for (let k = 0; k < 36; k++) {
+          const cx = rnd(60, innerWidth - 60), cy = rnd(90, innerHeight - 90);
+          if (Math.hypot(c.x - cx, c.y - cy) < (c.R || 50) * 2.5 + 60) continue;   // não nasce em cima do buraco
           const dmin = chunkSpots.reduce((m, q) => Math.min(m, Math.hypot(q.x - cx, q.y - cy)), Infinity);
           if (dmin > bestD) { bestD = dmin; best = { x: cx, y: cy }; }
-          if (dmin > 150) break;
+          if (dmin > 220) break;
         }
+        if (!best) best = { x: Math.max(60, c.x - 300), y: c.y };
         chunkSpots.push(best);
         const x = best.x, y = best.y;
         const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy) || 1, sp = rnd(150, 240);
@@ -6534,8 +6661,13 @@
         const st = window.__bhState;
         const c = st && st.portals && st.portals.length ? st.portals[0] : null;
         if (st && c) {
-          if (!spot) { spot = { x: c.x - rnd(200, 300), y: c.y + rnd(-110, 110) }; nextChunk = 7500; }
-          if (st.t >= nextChunk && st.p > 0.45) { spawnChunk(c); nextChunk = st.t + rnd(4000, 7000); }
+          if (!spot) { spot = { x: c.x - rnd(200, 300), y: c.y + rnd(-110, 110) }; nextChunk = 4000; }
+          if (st.t >= nextChunk) {   // a lousa é rasgada sem parar, cada vez mais rápido e em mais pedaços de uma vez
+            const nb = st.p > 0.85 ? 3 : st.p > 0.6 ? 2 : 1;
+            for (let i = 0; i < nb; i++) spawnChunk(c);
+            nextChunk = st.t + Math.max(380, 3000 - st.p * 2800) * rnd(0.7, 1.3);
+          }
+          spawnSmoke();
           if (Math.random() < 0.012 + st.p * 0.03) spawnEmber(c);
         }
         /* cicatrizes: queimam aos poucos e somem no fim */
@@ -6545,7 +6677,7 @@
         for (const sc of scars) {
           sc.age += dt; sc.burn = Math.min(1, sc.age / 1.2);
           if (sc.burn > 0.05 && sc.age < sc.life - 0.4) {
-            const n = Math.round(1 + sc.burn * 3);
+            const n = Math.min(Math.round(1 + sc.burn * 3), Math.max(1, Math.round(70 / scars.length)));   // com muitos rasgos, limita as chamas por quadro
             for (let i = 0; i < n; i++) {
               const j = Math.floor(Math.random() * sc.pts.length), q = sc.pts[j], q2 = sc.pts[(j + 1) % sc.pts.length], t = Math.random();
               const lx = q[0] + (q2[0] - q[0]) * t, ly = q[1] + (q2[1] - q[1]) * t;
@@ -6558,6 +6690,7 @@
 
         ctx.clearRect(0, 0, cv.width, cv.height);
         for (const sc of scars) drawScar(sc, scarFade);
+        drawSmoke(dt, now, scarFade);   // fumaça sobe dos rasgos queimando
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (const sc of scars) if (sc.burn > 0) {
           const fl = 0.75 + 0.25 * Math.sin(now / 70 + sc.x), g = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, sc.size * 2.2);
@@ -6580,6 +6713,10 @@
           ctx.drawImage(flameC, f.x - sz, f.y - sz * 1.25, sz * 2, sz * 2.5);
         }
         ctx.restore();
+        /* tempestade (chuva + raios + trovão): começa fraca e vai ficando violenta; some ao terminar */
+        const tgt = (st && c) ? Math.min(1, Math.max(0, (st.p - 0.22) / 0.4)) : 0;
+        stormI += (tgt - stormI) * Math.min(1, dt * (tgt > stormI ? 1.2 : 3));
+        drawStorm(now, dt, stormI);
         parts = parts.filter(p => !p.dead && p.age < p.life && p.x > -200 && p.x < innerWidth + 200 && p.y > -200 && p.y < innerHeight + 200);
         for (const p of parts) {
           if (c) { p.tx = c.x; p.ty = c.y; p.R = c.R || p.R; }   // acompanha o buraco
