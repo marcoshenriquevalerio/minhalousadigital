@@ -734,7 +734,7 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em 6.4em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 4.6em 1em); gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em 7.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 4.6em 1em); gap: 6px; align-items: center; }
     .fin-head > span { position: relative; }
     .fin-rs { position: absolute; right: -6px; top: -2px; bottom: -2px; width: 12px; cursor: col-resize; touch-action: none; z-index: 2; }
     .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
@@ -6265,6 +6265,8 @@
        Nos cálculos, a linha de crédito vira uma "linha" por parcela (com a data e o valor de cada uma;
        paga = entra em Entradas/Saídas, não paga = pendente). */
     const FIN_MODS = [['din', 'Dinheiro'], ['pix', 'Pix'], ['deb', 'Débito'], ['cred', 'Crédito']];
+    const FIN_MOD_COLOR = { din: 'green', pix: 'blue', deb: 'yellow', cred: 'pink' };
+    const FIN_MOD_ICON = { din: '💵', pix: '⚡', deb: '💳', cred: '💳' };
     function finIsCredit(r) { return !!r && r.mod === 'cred'; }
     function finSplitCents(total, n) {
       const base = Math.floor(total / n), out = [];
@@ -7724,8 +7726,8 @@ void main(){
       return `<div class="fin-row fin-cols ${(r.done || cred) ? '' : 'is-pending'}" data-row="${r.id}"${cred ? ' data-credit="1"' : ''}>
         ${lead}
         <div data-cell="date" data-ink><input type="date" class="fin-in" value="${escapeHtml(r.date || '')}" onchange="finSetField('${r.id}','date',this)"></div>
-        <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : isInv ? 'yellow' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar: Entrada → Saída → Investimento">${isIn ? '↑ Entrada' : isInv ? '📈 Invest.' : '↓ Saída'}</button></div>
-        <div data-cell="mod" data-ink><select class="fin-in fin-mod" onchange="finSetMod('${r.id}',this)" title="Modalidade de pagamento">${FIN_MODS.map(m => `<option value="${m[0]}"${m[0] === mod ? ' selected' : ''}>${m[1]}</option>`).join('')}</select></div>
+        <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : isInv ? 'yellow' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar: Entrada → Saída → Investimento">${isIn ? 'Entrada' : isInv ? 'Invest.' : 'Saída'}</button></div>
+        <div data-cell="mod" data-ink><button class="fin-cat" style="color:${finHex(FIN_MOD_COLOR[mod] || 'white')}" onclick="finCycleMod('${r.id}')" title="Toque para alternar: Dinheiro → Pix → Débito → Crédito">${(FIN_MODS.find(m => m[0] === mod) || FIN_MODS[0])[1]}</button></div>
         <div data-cell="dest" data-ink><input type="text" list="finDestList" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="finSetField('${r.id}','dest',this)"></div>
         <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
@@ -7738,7 +7740,7 @@ void main(){
     /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
     function finColTpl(note) {
       const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
-      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('mod', '6.4em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 4.6em 1em`;
+      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('mod', '7.6em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 4.6em 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
@@ -7985,6 +7987,11 @@ void main(){
       if (finIsCredit(r) && Array.isArray(r.plan)) finRebalance(r.plan, r.value || 0);
     }
     function finPlanTouched(r) { return Array.isArray(r.plan) && r.plan.some(p => p.paid || p.fix); }
+    function finCycleMod(id) {
+      const r = finRow(id); if (!r) return;
+      const i = FIN_MODS.findIndex(m => m[0] === (r.mod || 'din'));
+      finSetMod(id, { value: FIN_MODS[(i + 1) % FIN_MODS.length][0] });
+    }
     function finSetMod(id, el) {
       const r = finRow(id); if (!r) return;
       const nv = el.value;
