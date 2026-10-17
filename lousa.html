@@ -748,7 +748,7 @@
     .fin-rs-l { right: auto; left: -6px; }
     .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
     .fin-rs:hover::after, .fin-rs.on::after { opacity: .7; }
-    .fin-head { padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
+    .fin-head { overflow-x: clip; padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
     .fin-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
     .fin-row { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.14); }
     .theme-marker .fin-row { border-bottom-color: rgba(0,0,0,.16); }
@@ -6152,7 +6152,7 @@
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? Math.round((610 + (note.obs ? 110 : 0)) * (note.fs || 18) / 18) : note.type === 'invtable' ? 380 : 260, 170];
+      return [note.type === 'fintable' ? Math.round((680 + (note.obs ? 110 : 0)) * (note.fs || 18) / 18) : note.type === 'invtable' ? 380 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -7756,8 +7756,8 @@ void main(){
     function finFillKey(note) { return note && note.obs ? 'obs' : 'desc'; }
     function finColTpl(note) {
       if (note && note.cwv !== 2) { note.cw = {}; note.cwv = 2; }   // versão nova das larguras: zera ajustes antigos
-      const w = (note && note.cw) || {}, fill = finFillKey(note), px = (k, d) => (k !== fill && w[k]) ? w[k] + 'px' : d;
-      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,9em)')} ${px('desc', fill === 'desc' ? 'minmax(2.6em,1fr)' : 'minmax(2.6em,14em)')} ${px('val', 'minmax(4.6em,7.4em)')} ${px('parc', 'minmax(4em,4.6em)')}${note && note.obs ? ' minmax(5em,1fr)' : ''} 1em`;
+      const w = (note && note.cw) || {}, fill = finFillKey(note), px = (k, d) => (k !== fill && w[k]) ? `minmax(${Math.min(w[k], 40)}px,${w[k]}px)` : d;   // largura ajustada vale "até" esse tanto: encolhe junto com a tabela
+      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,9em)')} ${px('desc', fill === 'desc' ? 'minmax(7em,1fr)' : 'minmax(2.6em,14em)')} ${px('val', 'minmax(4.6em,7.4em)')} ${px('parc', 'minmax(4em,4.6em)')}${note && note.obs ? ' minmax(7em,1fr)' : ''} 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
