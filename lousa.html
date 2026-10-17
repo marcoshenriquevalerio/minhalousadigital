@@ -745,6 +745,7 @@
     .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em minmax(5.4em, 7.4em) minmax(4.2em, 6.6em) minmax(5em, 7.6em) minmax(2.6em, 1fr) minmax(2.6em, 1.2fr) minmax(4.6em, 7.4em) minmax(4em, 4.6em) 1em); gap: 6px; align-items: center; }
     .fin-head > span { position: relative; }
     .fin-rs { position: absolute; right: -6px; top: -2px; bottom: -2px; width: 12px; cursor: col-resize; touch-action: none; z-index: 2; }
+    .fin-rs-l { right: auto; left: -6px; }
     .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
     .fin-rs:hover::after, .fin-rs.on::after { opacity: .7; }
     .fin-head { padding: 0 6px 2px 0; border-bottom: 2px solid currentColor; font-weight: 700; opacity: .92; }
@@ -7749,22 +7750,30 @@ void main(){
     }
 
     /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
+    /* Colunas: cada uma tem largura própria (arraste a borda do cabeçalho). Só UMA coluna "preenche" o que sobra —
+       a Obs (se ligada) ou a Descrição —, então ao aumentar/diminuir a tabela só ela muda. A coluna do X não mexe. */
+    const FIN_COLS = [['date', 'Data'], ['cat', 'Categoria'], ['mod', 'Modalidade'], ['dest', 'Destino'], ['desc', 'Descrição'], ['val', 'Valor'], ['parc', 'Parcelas'], ['obs', 'Obs']];
+    function finFillKey(note) { return note && note.obs ? 'obs' : 'desc'; }
     function finColTpl(note) {
-      const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
-      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,1fr)')} ${px('desc', 'minmax(2.6em,1fr)')} ${px('val', 'minmax(4.6em,7.4em)')} ${px('parc', 'minmax(4em,4.6em)')}${note && note.obs ? ' ' + px('obs', 'minmax(5em,1fr)') : ''} 1em`;
+      if (note && note.cwv !== 2) { note.cw = {}; note.cwv = 2; }   // versão nova das larguras: zera ajustes antigos
+      const w = (note && note.cw) || {}, fill = finFillKey(note), px = (k, d) => (k !== fill && w[k]) ? w[k] + 'px' : d;
+      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,9em)')} ${px('desc', fill === 'desc' ? 'minmax(2.6em,1fr)' : 'minmax(2.6em,14em)')} ${px('val', 'minmax(4.6em,7.4em)')} ${px('parc', 'minmax(4em,4.6em)')}${note && note.obs ? ' minmax(5em,1fr)' : ''} 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
       const note = findNote(h.dataset.nid); if (!note) return;
       e.preventDefault(); e.stopPropagation();
-      const key = h.dataset.col, inv = !!h.dataset.inv;   // inv: a alça da Descrição ajusta o Valor (ao contrário)
-      const cell = inv ? h.parentElement.nextElementSibling : h.parentElement;   // célula cuja largura muda
-      const w0 = cell.getBoundingClientRect().width, x0 = e.clientX, wr = byId(note.id);
+      const key = h.dataset.col, inv = !!h.dataset.inv;   // inv: coluna depois da que preenche — a alça fica na borda esquerda e arrastar p/ esquerda aumenta
+      const cell = h.parentElement, wr = byId(note.id), x0 = e.clientX;
+      const sc = cell.offsetWidth ? cell.getBoundingClientRect().width / cell.offsetWidth : 1;   // zoom da lousa
+      const w0 = cell.getBoundingClientRect().width / sc;
+      const fillCell = cell.parentElement.querySelector(':scope > [data-fillcol]');
+      const room = fillCell ? Math.max(0, fillCell.getBoundingClientRect().width / sc - 48) : 9999;   // a coluna que preenche nunca some
       const apply = () => { const t = finColTpl(note); wr && wr.querySelectorAll('.fin-head, .fin-scroll').forEach(el => el.style.setProperty('--fc', t)); };
       h.classList.add('on'); try { h.setPointerCapture(e.pointerId); } catch (_) {}
       const mv = (ev) => {
-        const dx = ev.clientX - x0;
-        note.cw = Object.assign({}, note.cw, { [key]: Math.round(Math.max(40, Math.min(900, w0 + (inv ? -dx : dx)))) });
+        const dx = (ev.clientX - x0) / sc, want = w0 + (inv ? -dx : dx);
+        note.cw = Object.assign({}, note.cw, { [key]: Math.round(Math.max(40, Math.min(w0 + room, 900, want))) });
         apply();
       };
       const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); saveData(); };
@@ -7778,8 +7787,8 @@ void main(){
         ${finTitleInput(note, '💰 Controle financeiro')}
         <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          ${[['date', 'Data'], ['cat', 'Categoria'], ['mod', 'Modalidade'], ['dest', 'Destino'], ['desc', 'Descrição'], ['val', 'Valor'], ['parc', 'Parcelas']].concat(note.obs ? [['obs', 'Obs']] : []).map(c =>
-            `<span data-ink${c[0] === 'val' || c[0] === 'parc' ? ' style="text-align:right;padding-right:2px"' : ''}>${c[1]}<i class="fin-rs" data-col="${c[0]}" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span>`).join('')}
+          ${(() => { const fill = finFillKey(note), cols = FIN_COLS.filter(c => c[0] !== 'obs' || note.obs), fi = cols.findIndex(c => c[0] === fill);
+            return cols.map((c, i) => `<span data-ink${c[0] === fill ? ' data-fillcol="1"' : ''}${c[0] === 'val' || c[0] === 'parc' ? ' style="text-align:right;padding-right:2px"' : ''}>${c[1]}${c[0] === fill ? '' : `<i class="fin-rs${i > fi ? ' fin-rs-l' : ''}" data-col="${c[0]}"${i > fi ? ' data-inv="1"' : ''} data-nid="${note.id}" title="Arraste para ajustar a largura"></i>`}</span>`).join(''); })()}
           <span></span>
         </div>
         <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px;--fc:${finColTpl(note)}">
