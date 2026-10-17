@@ -7538,6 +7538,7 @@ void main(){
           if (ok) {
             for (const c of h.sc.children) { if (c === st.slot) break; if (c.hasAttribute && c.hasAttribute('data-row') && c.getAttribute('data-row') !== st.rowId) idx++; }
             const [row] = sRows.splice(i0, 1);
+            row.home = dest.id;   // linha movida fica FIXA na lousa onde foi solta, com ou sem ligação
             const dRows = finData(dest).rows; dRows.splice(Math.min(idx, dRows.length), 0, row);
             try { finDropMasks(['fintable', 'fincards']); } catch (e) {}
             saveData();
@@ -9209,6 +9210,30 @@ void main(){
       saveData(); renderNotes();
     }
 
+    /* Linha movida (buraco negro) fica fixa onde foi solta: se uma cópia dela aparecer em outra lousa
+       (sincronização, cópia antiga), ela é devolvida/limpa para a lousa de destino. */
+    function finEnforceHomes() {
+      let ch = false; const bs = finBoards();
+      bs.forEach(b => {
+        const f = finData(b);
+        for (let i = f.rows.length - 1; i >= 0; i--) {
+          const r = f.rows[i];
+          if (!r.home || r.home === b.id) continue;
+          const h = bs.find(x => x.id === r.home);
+          if (!h) { delete r.home; ch = true; continue; }
+          const hf = finData(h);
+          f.rows.splice(i, 1); ch = true;
+          if (!hf.rows.some(x => x.id === r.id)) hf.rows.push(r);
+        }
+      });
+      return ch;
+    }
+    (function () {
+      const rn = window.renderNotes;
+      if (typeof rn !== 'function') return;
+      window.renderNotes = function () { try { if (finEnforceHomes()) saveData(); } catch (e) { console.warn(e); } return rn.apply(this, arguments); };
+    })();
+
     /* ligação entre LOUSAS de finanças (simétrica: ligar A↔B vale para os dois lados) */
     function openFinLinkModal() { renderFinLinkModal(); openOv('finLinkModal'); }
     function renderFinLinkModal() {
@@ -9228,6 +9253,7 @@ void main(){
       const A = L.boards[a] || (L.boards[a] = []), B = L.boards[id] || (L.boards[id] = []);
       if (A.indexOf(id) >= 0) { L.boards[a] = A.filter(x => x !== id); L.boards[id] = B.filter(x => x !== a); }
       else { A.push(id); if (B.indexOf(a) < 0) B.push(a); }
+      try { finEnforceHomes(); } catch (e) {}
       saveData(); renderFinLinkModal(); renderNotes();
     }
 
