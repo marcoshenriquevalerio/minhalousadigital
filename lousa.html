@@ -1553,10 +1553,21 @@
         <button onclick="finParcCancel()" class="text-stone-400 hover:text-white p-1" title="Fechar sem salvar"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="flex-1 overflow-y-auto p-5">
+        <div class="rounded-xl border border-stone-600 bg-stone-900/50 p-3 mb-3">
+          <div class="text-[11px] text-stone-400 mb-1.5 font-bold uppercase tracking-wide">Registrar pagamento</div>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="flex-1 min-w-[8.5em] text-[11px] text-stone-400">Data
+              <input id="finParcPayDate" type="date" class="mt-0.5 w-full bg-stone-900 border border-stone-600 rounded-lg px-2 py-1.5 text-sm text-stone-100" style="color-scheme:dark"></label>
+            <label class="flex-1 min-w-[8.5em] text-[11px] text-stone-400">Valor pago
+              <input id="finParcPayVal" type="text" inputmode="decimal" placeholder="R$ 0,00" onkeydown="if(event.key==='Enter'){event.preventDefault();finParcCalc();}" class="mt-0.5 w-full bg-stone-900 border border-stone-600 rounded-lg px-2 py-1.5 text-sm text-right text-stone-100"></label>
+            <button onclick="finParcCalc()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm h-[34px]"><i class="fa-solid fa-calculator mr-1"></i>Calcular</button>
+          </div>
+          <div id="finParcMsg" class="text-xs text-emerald-300 mt-2" style="display:none"></div>
+        </div>
         <div id="finParcSummary" class="grid grid-cols-3 gap-2 mb-3"></div>
         <div id="finParcWarn" class="text-xs text-amber-300 bg-amber-900/30 border border-amber-700/60 rounded-lg px-3 py-2 mb-3" style="display:none"></div>
         <div id="finParcList"></div>
-        <p class="text-[11px] text-stone-400 mt-3 leading-snug">Altere o <b>valor</b> de uma parcela (ex.: pagou 1.000 em vez de 500) e as parcelas <b>não pagas</b> são recalculadas para fechar o total. Marque o <b>✓</b> quando a parcela for paga: ela deixa de ser recalculada e passa a somar nas Entradas/Saídas. A data pode ser qualquer uma.</p>
+        <p class="text-[11px] text-stone-400 mt-3 leading-snug"><b>Registrar pagamento:</b> informe a data e o valor e clique em <b>Calcular</b>. O pagamento vai para a parcela daquele mês e ela fica confirmada; se já houver pagamento no mês, o valor <b>soma</b> (adiantamento) e as parcelas seguintes não pagas são recalculadas. Toque numa parcela paga (ou no <i class="fa-solid fa-bars"></i>) para ver cada pagamento. Você também pode editar o valor de uma parcela ainda não paga, ou marcar o ✓ à mão. Nada vale até clicar em <b>Salvar</b>.</p>
       </div>
       <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-stone-600">
         <button onclick="finParcReset()" class="px-3 py-2 text-sm text-stone-300 hover:text-white border border-stone-600 rounded-lg" title="Solta os valores fixados e divide igualmente o que falta"><i class="fa-solid fa-rotate mr-1"></i>Dividir igual</button>
@@ -6288,7 +6299,10 @@
       const out = [];
       rows.forEach(r => {
         if (!finIsCredit(r) || !(r.value > 0)) { out.push(r); return; }
-        finPlanOf(r).forEach(p => out.push(Object.assign({}, r, { value: p.value, date: p.date, done: !!p.paid, _parcN: p.n })));
+        finPlanOf(r).forEach(p => {
+          if (p.paid && p.pays && p.pays.length) p.pays.forEach(y => out.push(Object.assign({}, r, { value: y.value, date: y.date, done: true, _parcN: p.n })));
+          else out.push(Object.assign({}, r, { value: p.value, date: p.date, done: !!p.paid, _parcN: p.n }));
+        });
       });
       return out;
     }
@@ -7704,7 +7718,7 @@ void main(){
       const anim = finLastToggled === r.id && r.done;
       const cred = finIsCredit(r), mod = r.mod || 'din';
       const lead = cred
-        ? `<button class="fin-credit-btn" onclick="finOpenParc('${r.id}')" title="Crédito: ver e editar as parcelas"><i class="fa-solid fa-credit-card"></i></button>`
+        ? `<span></span>`   /* crédito: sem check; clicar na linha abre as parcelas */
         : `<button class="chalk-check ${r.done ? 'is-done' : ''} ${anim ? 'animate' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleRow('${r.id}')"
                 title="${r.done ? 'Confirmado — já soma nos cards e gráficos' : 'Pendente — marque para somar'}">${FIN_CHECK_SVG}</button>`;
       return `<div class="fin-row fin-cols ${(r.done || cred) ? '' : 'is-pending'}" data-row="${r.id}"${cred ? ' data-credit="1"' : ''}>
@@ -7994,7 +8008,8 @@ void main(){
     function finOpenParc(id) {
       const r = finRow(id); if (!r || !finIsCredit(r)) return;
       if (!(r.value > 0)) { alert('Informe o valor total da compra antes de ver as parcelas.'); return; }
-      finParc = { id, plan: JSON.parse(JSON.stringify(finPlanOf(r))) };
+      finParc = { id, plan: JSON.parse(JSON.stringify(finPlanOf(r))), open: null };
+      byId('finParcPayDate').value = finToday(); byId('finParcPayVal').value = ''; byId('finParcMsg').style.display = 'none';
       byId('finParcTitle').innerText = (r.desc || r.dest || 'Crédito') + ' · ' + finParc.plan.length + 'x';
       finParcRender(); openOv('finParcModal');
     }
@@ -8008,26 +8023,87 @@ void main(){
       byId('finParcWarn').innerHTML = Math.abs(diff) >= 1
         ? `<i class="fa-solid fa-triangle-exclamation mr-1"></i>${diff > 0 ? 'Faltam ' : 'Passou '}<b>${finBRL(Math.abs(diff) / 100)}</b> ${diff > 0 ? 'para fechar o valor total (todas as parcelas livres já estão pagas ou fixadas).' : 'do valor total.'}` : '';
       byId('finParcWarn').style.display = Math.abs(diff) >= 1 ? '' : 'none';
-      byId('finParcList').innerHTML = plan.map((p, i) => `
-        <div class="grid items-center gap-2 py-1.5 border-b border-stone-700/70" style="grid-template-columns:2.6em 1fr 1fr 2.2em 2.2em">
-          <div class="font-bold text-stone-300 text-sm">${p.n}/${plan.length}</div>
-          <input type="date" value="${escapeHtml(p.date || '')}" onchange="finParcDate(${i},this)" class="bg-stone-900 border border-stone-600 rounded-lg px-2 py-1 text-sm text-stone-100" style="color-scheme:dark">
-          <input type="text" inputmode="decimal" value="R$ ${finFmtNum(p.value)}" onfocus="this.select()" onchange="finParcVal(${i},this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-                 class="bg-stone-900 border ${p.fix && !p.paid ? 'border-amber-500' : 'border-stone-600'} rounded-lg px-2 py-1 text-sm text-right text-stone-100" ${p.paid ? 'style="opacity:.6"' : ''}>
-          <button onclick="finParcPaid(${i})" title="${p.paid ? 'Paga — toque para desmarcar' : 'Marcar como paga'}" class="w-8 h-8 rounded-lg border ${p.paid ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-stone-500 text-stone-500 hover:text-stone-200'}"><i class="fa-solid fa-check"></i></button>
-          ${p.fix && !p.paid ? `<button onclick="finParcRelease(${i})" title="Valor fixado por você — toque para soltar e deixar recalcular" class="w-8 h-8 rounded-lg text-amber-400 hover:bg-stone-700"><i class="fa-solid fa-thumbtack"></i></button>` : '<span></span>'}
-        </div>`).join('');
+      const fdt = (d) => d ? d.split('-').reverse().join('/') : '—';
+      byId('finParcList').innerHTML = plan.map((p, i) => {
+        const pays = p.pays || [], has = p.paid && pays.length, op = P.open === i && has;
+        const sum = pays.reduce((x, y) => x + Math.round(y.value * 100), 0);
+        return `
+        <div class="parc-row relative border-b border-stone-700/70" ${has ? 'data-haspays="1" style="cursor:pointer" onclick="finParcRowClick(event,' + i + ')"' : ''}>
+          <div class="grid items-center gap-2 py-1.5" style="grid-template-columns:2.6em 1fr 1fr 2.2em 2.2em">
+            <div class="font-bold text-stone-300 text-sm">${p.n}/${plan.length}${pays.length > 1 && p.paid ? `<div class="text-[10px] text-amber-300 font-normal">${pays.length} pgtos</div>` : ''}</div>
+            <input type="date" value="${escapeHtml(p.date || '')}" onchange="finParcDate(${i},this)" class="bg-stone-900 border border-stone-600 rounded-lg px-2 py-1 text-sm text-stone-100" style="color-scheme:dark">
+            <input type="text" inputmode="decimal" value="R$ ${finFmtNum(p.value)}" ${has ? 'readonly title="Soma dos pagamentos registrados"' : ''} onfocus="this.select()" onchange="finParcVal(${i},this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                   class="bg-stone-900 border ${p.fix && !p.paid ? 'border-amber-500' : 'border-stone-600'} rounded-lg px-2 py-1 text-sm text-right text-stone-100" ${p.paid ? 'style="opacity:.75"' : ''}>
+            <button onclick="finParcPaid(${i})" title="${p.paid ? 'Paga — toque para desmarcar' : 'Marcar como paga'}" class="w-8 h-8 rounded-lg border ${p.paid ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-stone-500 text-stone-500 hover:text-stone-200'}"><i class="fa-solid fa-check"></i></button>
+            ${has ? `<button onclick="finParcRowClick(event,${i})" title="Ver os pagamentos desta parcela" class="parc-bars w-8 h-8 rounded-lg ${op ? 'bg-stone-600 text-white' : 'text-stone-300 hover:bg-stone-700'}"><i class="fa-solid fa-bars"></i></button>`
+              : (p.fix && !p.paid ? `<button onclick="finParcRelease(${i})" title="Valor fixado por você — toque para soltar e deixar recalcular" class="w-8 h-8 rounded-lg text-amber-400 hover:bg-stone-700"><i class="fa-solid fa-thumbtack"></i></button>` : '<span></span>')}
+          </div>
+          ${op ? `<div class="parc-pop absolute right-0 z-20 w-full max-w-sm bg-stone-900 border border-amber-700 rounded-xl shadow-2xl p-3" style="top:calc(100% - 2px)" onclick="event.stopPropagation()">
+            <div class="text-[11px] text-stone-400 mb-1.5 font-bold uppercase tracking-wide">Pagamentos da parcela ${p.n}/${plan.length}</div>
+            ${pays.map((y, j) => `<div class="flex items-center gap-2 py-1 border-b border-stone-700/60 text-sm">
+              <span class="text-stone-400 w-5 text-right">${j + 1}.</span><span class="flex-1 text-stone-200"><i class="fa-regular fa-calendar mr-1 text-stone-500"></i>${fdt(y.date)}</span>
+              <b class="text-emerald-300">${finBRL(y.value)}</b>
+              <button onclick="finParcDelPay(${i},${j})" title="Apagar este pagamento" class="text-stone-500 hover:text-red-400 px-1"><i class="fa-solid fa-xmark"></i></button></div>`).join('')}
+            <div class="flex justify-between text-sm pt-1.5"><span class="text-stone-400">Total pago</span><b class="text-stone-100">${finBRL(sum / 100)}</b></div>
+          </div>` : ''}
+        </div>`; }).join('');
     }
     function finParcDate(i, el) { if (finParc) finParc.plan[i].date = el.value; }
     function finParcVal(i, el) {
       if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
+      if (p.paid && p.pays && p.pays.length) { finParcRender(); return; }   // valor vem da soma dos pagamentos
       p.value = finParseMoney(el.value); p.fix = true;
       finRebalance(finParc.plan, r.value || 0); finParcRender();
     }
     function finParcPaid(i) {
       if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
+      if (p.paid && p.pays && p.pays.length) {
+        if (!confirm('Desmarcar esta parcela apaga os ' + p.pays.length + ' pagamento(s) registrado(s) nela. Continuar?')) return;
+        p.pays = []; p.fix = false; if (finParc.open === i) finParc.open = null;
+      }
       p.paid = !p.paid; finRebalance(finParc.plan, r.value || 0); finParcRender();
     }
+    /* registrar pagamento: vai para a parcela do mês da data (soma se já houver pagamento no mês);
+       a parcela fica confirmada e o que sobrar do total é redistribuído nas parcelas não pagas */
+    function finParcCalc() {
+      if (!finParc) return; const r = finRow(finParc.id); if (!r) return;
+      const dt = byId('finParcPayDate').value, v = finParseMoney(byId('finParcPayVal').value);
+      if (!dt) { alert('Informe a data do pagamento.'); return; }
+      if (!(v > 0)) { alert('Informe o valor pago.'); return; }
+      const plan = finParc.plan, ym = dt.slice(0, 7);
+      let k = plan.findIndex(x => (x.date || '').slice(0, 7) === ym);
+      if (k < 0) { k = plan.findIndex(x => !x.paid); if (k < 0) k = plan.length - 1; }   // sem parcela nesse mês: adianta a próxima em aberto
+      const p = plan[k];
+      if (!Array.isArray(p.pays)) p.pays = [];
+      if (p.paid && !p.pays.length) p.pays.push({ date: p.date, value: p.value });   // parcela marcada à mão antes: vira o 1º pagamento
+      p.pays.push({ date: dt, value: v });
+      p.value = p.pays.reduce((x, y) => x + Math.round(y.value * 100), 0) / 100;
+      p.paid = true; p.fix = false;
+      finRebalance(plan, r.value || 0);
+      finParc.open = p.pays.length > 1 ? k : null;
+      byId('finParcPayVal').value = '';
+      finParcRender();
+      const m = byId('finParcMsg');
+      m.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i>' + finBRL(v) + ' em ' + dt.split('-').reverse().join('/') + ' lançado na parcela ' + p.n + '/' + plan.length + (p.pays.length > 1 ? ' (somado ao pagamento do mês)' : ' e confirmado') + '.';
+      m.style.display = '';
+    }
+    function finParcRowClick(e, i) {
+      if (e) { if (e.target.closest && e.target.closest('input, [onclick*="finParcPaid"], .parc-pop') ) return; e.stopPropagation(); }
+      if (!finParc) return; finParc.open = finParc.open === i ? null : i; finParcRender();   // só um aberto por vez
+    }
+    function finParcDelPay(i, j) {
+      if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p || !p.pays) return;
+      p.pays.splice(j, 1);
+      if (p.pays.length) p.value = p.pays.reduce((x, y) => x + Math.round(y.value * 100), 0) / 100;
+      else { p.paid = false; p.fix = false; finParc.open = null; }
+      finRebalance(finParc.plan, r.value || 0); finParcRender();
+    }
+    /* clicar fora do menu de pagamentos fecha ele */
+    document.addEventListener('click', (e) => {
+      if (!finParc || finParc.open == null) return;
+      if (e.target.closest && e.target.closest('.parc-pop, .parc-row[data-haspays]')) return;
+      finParc.open = null; finParcRender();
+    });
     function finParcRelease(i) {
       if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
       p.fix = false; finRebalance(finParc.plan, r.value || 0); finParcRender();
