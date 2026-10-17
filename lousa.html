@@ -13641,7 +13641,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       let h = `<div class="panel"><h3>${useOut ? 'Para onde vai o dinheiro' : 'De onde vem o dinheiro'}${finGroupBy() === 'desc' ? ' <span>(por descrição)</span>' : ''}</h3>`;
       if (!top.length) h += `<div class="empty">Sem lançamentos ainda.</div>`;
       top.forEach(x => {
-        h += `<div class="hb"><div class="hb-t"><span>${finEmoji(x.g.label)} ${esc(x.g.label)}</span><b>${money(x[key])}</b></div><div class="hb-bar"><u style="width:${Math.max(3, Math.round(x[key] * 100 / max))}%;--c:${col}"></u></div><small>${pct(x[key], total)}% do total</small></div>`;
+        h += `<div class="hb"><div class="hb-t"><span>${esc(x.g.label)}</span><b>${money(x[key])}</b></div><div class="hb-bar"><u style="width:${Math.max(3, Math.round(x[key] * 100 / max))}%;--c:${col}"></u></div><small>${pct(x[key], total)}% do total</small></div>`;
       });
       return h + `</div>`;
     }
@@ -13733,13 +13733,15 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       }
       return pages;
     }
+    const REP_MOD = { din: 'Dinheiro', pix: 'Pix', deb: 'Débito', cred: 'Crédito' };
+    const modTxt = r => (REP_MOD[r.mod || 'din'] || 'Dinheiro') + (r._parcN ? ' ' + r._parcN + '/' + r.parc : '');
     function tablePages(s) {
       const rows = s.rows.slice().sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
       const sizes = [24, 28], pages = [];
       let i = 0, pg = 0;
       const rowHtml = r => {
         const inn = r.cat === 'in', col = inn ? C.in : C.out;
-        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? '📈 Investimento' : inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
+        return `<tr><td class="d">${dateBR(r.date)}</td><td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</td><td class="d">${modTxt(r)}</td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`;
       };
       const totals = `<div class="tot"><div><small>ENTRADAS</small><b style="color:${C.in}">${money(s.t.in)}</b></div><div><small>SAÍDAS</small><b style="color:${C.out}">${money(s.t.out)}</b></div><div><small>SALDO</small><b style="color:${s.bal < 0 ? C.out : C.bal}">${money(s.bal)}</b></div></div>`;
       if (!rows.length) return [{ label: s.b.name || 'Finanças', html: `<div class="sec"><span>LANÇAMENTOS</span><b>${esc(s.b.name || 'Finanças')}</b></div><div class="empty">${OPT && OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento nesta lousa ainda.'}</div>` }];
@@ -13752,7 +13754,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
         const isLast = i >= rows.length;
         pages.push({ label: s.b.name || 'Finanças', html:
           `<div class="sec"><span>${pg === 0 ? 'LANÇAMENTOS' : 'LANÇAMENTOS · continuação'}</span><b>${esc(s.b.name || 'Finanças')}</b></div>` +
-          `<table class="tb"><thead><tr><th>Data</th><th>Situação</th><th>Tipo</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${chunk.map(rowHtml).join('')}</tbody></table>` + (isLast ? totals : '') });
+          `<table class="tb"><thead><tr><th>Data</th><th>Situação</th><th>Tipo</th><th>Modalidade</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${chunk.map(rowHtml).join('')}</tbody></table>` + (isLast ? totals : '') });
         pg++;
       }
       return pages;
@@ -13766,8 +13768,8 @@ html,body{background:#eef1ef}body{font-family:'Space Grotesk','Segoe UI',system-
 .page{position:relative;width:210mm;min-height:296mm;margin:16px auto;padding:30px 36px 18px;display:flex;flex-direction:column;border-radius:6px;box-shadow:0 6px 28px rgba(15,40,28,.14);background:#fff}
 .page:last-child{break-after:auto;page-break-after:auto}
 .hd{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid #e5e7eb}
-.wm{position:relative;display:inline-block;font-family:'Caveat','Patrick Hand',cursive;font-weight:700;font-size:44px;line-height:1;color:#1d6b46;letter-spacing:.5px;padding-bottom:0}
-.wm .scr{display:block;width:230px;height:14px;margin:4px 0 0 -2px}
+.wm{position:relative;display:inline-block;font-family:'Caveat','Patrick Hand',cursive;font-weight:700;font-size:44px;line-height:1.25;color:#1d6b46;letter-spacing:.5px;padding-bottom:0}
+.wm .scr{display:block;width:230px;height:14px;margin:2px 0 0 -2px}
 .tag{margin-top:7px;font-size:10.5px;letter-spacing:.4px;color:#64748b}
 .hd-r{font-size:10px;letter-spacing:2.5px;color:#64748b;text-align:right;font-weight:600}.hd-r span{display:block;color:#1f2937;letter-spacing:1px;margin-top:4px;font-weight:500;font-size:11px}
 .bd{flex:1;min-height:0}
@@ -13798,11 +13800,11 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
 .card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}.card-h b{font-size:13px;font-weight:600;color:#14291f}.card-h span{font-size:9.5px;color:#64748b;text-align:right}
 .chart{color:#1f2937;height:215px;overflow:visible;padding:10px 0 0}.chart svg{display:block;max-width:100%}.chart svg text{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;font-weight:500}
 .tb{width:100%;border-collapse:collapse;font-size:11.5px}.tb th{text-align:left;font-size:9.5px;letter-spacing:2px;color:#64748b;font-weight:600;padding:6px 8px;border-bottom:1.5px solid #cbd5e1}
-.tb td{padding:0 8px;height:23px;border-bottom:1px solid #eef0f3}.tb tbody tr:nth-child(even){background:#f8fafc}
+.tb td{padding:0 8px;height:23px;line-height:1.2;vertical-align:middle;border-bottom:1px solid #eef0f3}.tb tbody tr:nth-child(even){background:#f8fafc}
 .tb .v{text-align:right;font-weight:600;white-space:nowrap}.tb .d{color:#475569;white-space:nowrap}
-.st{display:inline-block;font-size:9.5px;padding:2px 9px;border-radius:99px;letter-spacing:.5px}.st.ok{color:#15803d;background:#dcfce7;border:1px solid #86efac}.st.pe{color:#b45309;border:1px dashed #f59e0b}
+.st{font-size:10.5px;font-weight:600;white-space:nowrap}.st.ok{color:#15803d}.st.pe{color:#b45309}
 .tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.tot div{padding:8px 12px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb}.tot small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#64748b}.tot b{font-size:19px}
-.tb .ds{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569}.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mc{position:relative;padding:11px 12px 9px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;overflow:hidden}.mc i{position:absolute;left:0;top:0;height:3px;width:100%;background:var(--c)}.mc small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#64748b;font-weight:600}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:var(--c);white-space:nowrap}.mc em{display:block;font-style:normal;font-size:10px;color:#64748b}.mc u{display:block;text-decoration:none;font-size:9.5px;color:#b45309;margin-top:4px}.flt{font-size:10.5px;color:#475569;margin:-12px 0 16px;line-height:1.4}
+.tb .ds{max-width:0;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569}.tb td,.tb th{white-space:nowrap}.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mc{position:relative;padding:11px 12px 9px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;overflow:hidden}.mc i{position:absolute;left:0;top:0;height:3px;width:100%;background:var(--c)}.mc small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#64748b;font-weight:600}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:var(--c);white-space:nowrap}.mc em{display:block;font-style:normal;font-size:10px;color:#64748b}.mc u{display:block;text-decoration:none;font-size:9.5px;color:#b45309;margin-top:4px}.flt{font-size:10.5px;color:#475569;margin:-12px 0 16px;line-height:1.4}
 @media print{.bar{display:none}.page{margin:0;border-radius:0;box-shadow:none;min-height:0;padding:0 36px}html,body{background:#fff}}`;
 
     function buildReport(scope, auto, opt) {
@@ -13830,10 +13832,10 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
         list.forEach(s => s.rows.forEach(r => rows.push({ r, b: s.b.name || 'Finanças' })));
         rows.sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
         const tr = x => { const r = x.r, inn = r.cat === 'in', col = inn ? C.in : C.out;
-          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? '📈 Investimento' : inn ? '↑ Entrada' : '↓ Saída'}</td><td>${finEmoji(r.dest)} ${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
+          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</td><td class="d">${modTxt(r)}</td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
         const bal = t.in - t.out;
         table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
-          ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
+          ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Modalidade</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
           : `<div class="empty">${OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento ainda.'}</div>`);
       }
       /* 3) gráficos */
@@ -13896,7 +13898,7 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
         : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado à lousa ainda. Monte um em “Gráficos”.</span>';
       byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos', RS.table);
       byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
-      byId('finRepFCats').innerHTML = chip('cats', 'in', '↑ Entradas', RS.f.cats.in) + chip('cats', 'out', '↓ Saídas', RS.f.cats.out) + chip('cats', 'inv', '📈 Investimentos', RS.f.cats.inv);
+      byId('finRepFCats').innerHTML = chip('cats', 'in', 'Entradas', RS.f.cats.in) + chip('cats', 'out', 'Saídas', RS.f.cats.out) + chip('cats', 'inv', 'Investimentos', RS.f.cats.inv);
       byId('finRepFDescs').innerHTML = AV.descs.map(x => chip('descs', x.k, x.l, RS.f.descs[x.k])).join('');
       const dbx = byId('finRepFDescsBox'); if (dbx) dbx.style.display = (finGroupBy() === 'desc' || AV.descs.length < 2) ? 'none' : '';
       byId('finRepFDests').innerHTML = AV.dests.map(x => chip('dests', x.k, x.l, RS.f.dests[x.k])).join('');
