@@ -742,7 +742,7 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em 7.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 4.6em 1em); gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em minmax(5.4em, 7.4em) minmax(4.2em, 6.6em) minmax(5em, 7.6em) minmax(2.6em, 1fr) minmax(2.6em, 1.2fr) minmax(4.6em, 7.4em) minmax(4em, 4.6em) 1em); gap: 6px; align-items: center; }
     .fin-head > span { position: relative; }
     .fin-rs { position: absolute; right: -6px; top: -2px; bottom: -2px; width: 12px; cursor: col-resize; touch-action: none; z-index: 2; }
     .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
@@ -6148,7 +6148,7 @@
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? 700 : note.type === 'invtable' ? 380 : 260, 170];
+      return [note.type === 'fintable' ? Math.round(610 * (note.fs || 18) / 18) : note.type === 'invtable' ? 380 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -7747,7 +7747,7 @@ void main(){
     /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
     function finColTpl(note) {
       const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
-      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('mod', '7.6em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 4.6em 1em`;
+      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,1fr)')} minmax(2.6em,1fr) ${px('val', 'minmax(4.6em,7.4em)')} minmax(4em,4.6em) 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
