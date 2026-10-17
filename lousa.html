@@ -734,7 +734,7 @@
 
     .fin-frame { height: 100%; display: flex; flex-direction: column; }
     .fin-layer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 1em); gap: 6px; align-items: center; }
+    .fin-cols { display: grid; grid-template-columns: var(--fc, 1.45em 7.4em 6.6em 6.4em minmax(3.2em, 1fr) minmax(3.2em, 1.2fr) minmax(5.6em, 7.4em) 4.6em 1em); gap: 6px; align-items: center; }
     .fin-head > span { position: relative; }
     .fin-rs { position: absolute; right: -6px; top: -2px; bottom: -2px; width: 12px; cursor: col-resize; touch-action: none; z-index: 2; }
     .fin-rs::after { content: ''; position: absolute; left: 5px; top: 12%; bottom: 12%; width: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
@@ -757,6 +757,17 @@
     .fin-cat { font: inherit; font-size: .85em; padding: 0 .55em; border: 1.5px solid currentColor; border-radius: 999px; background: transparent; cursor: pointer; line-height: 1.5; white-space: nowrap; }
     .fin-cat:hover { background: rgba(255,255,255,.12); }
     .theme-marker .fin-cat:hover { background: rgba(0,0,0,.06); }
+    /* Modalidade (select) e Parcelas (número) */
+    .fin-mod { cursor: pointer; appearance: none; -webkit-appearance: none; font-size: .9em; }
+    .fin-mod option { background: #292524; color: #fff; }
+    .theme-marker .fin-mod option { background: #fff; color: #000; }
+    .fin-parc { text-align: right; -moz-appearance: textfield; }
+    .fin-parc::-webkit-outer-spin-button, .fin-parc::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .fin-parc0 { display: block; text-align: right; padding: 0 2px; opacity: .45; }
+    .fin-credit-btn { width: 1.3em; height: 1.3em; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1.5px solid currentColor; border-radius: 6px; color: inherit; cursor: pointer; font-size: .8em; padding: 0; }
+    .fin-credit-btn:hover { background: rgba(255,255,255,.14); }
+    .theme-marker .fin-credit-btn:hover { background: rgba(0,0,0,.08); }
+    .fin-row[data-credit] { cursor: pointer; }
     .fin-add { display: flex; align-items: center; gap: .4em; padding: .25em 2px; opacity: .85; background: none; border: 0; color: inherit; cursor: pointer; text-align: left; }
     .fin-add:hover { opacity: 1; }
     .fin-foot { display: flex; flex-wrap: wrap; gap: 2px 14px; padding-top: 6px; margin-top: 4px; border-top: 2px solid currentColor; }
@@ -1529,6 +1540,29 @@
         <div class="flex gap-2.5">
           <button onclick="closeFinCardModal()" class="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg text-sm transition">Cancelar</button>
           <button id="finCardOkBtn" onclick="confirmFinCards()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-sm transition">Adicionar card</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANÇAS: parcelas do crédito -->
+  <div id="finParcModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden" style="z-index:10050" onclick="if(event.target===this) finParcCancel()">
+    <div class="bg-stone-800 border-2 border-amber-800 rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-stone-600">
+        <h3 class="font-chalk text-2xl text-amber-300 font-bold truncate"><i class="fa-solid fa-credit-card mr-2"></i><span id="finParcTitle">Parcelas</span></h3>
+        <button onclick="finParcCancel()" class="text-stone-400 hover:text-white p-1" title="Fechar sem salvar"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-5">
+        <div id="finParcSummary" class="grid grid-cols-3 gap-2 mb-3"></div>
+        <div id="finParcWarn" class="text-xs text-amber-300 bg-amber-900/30 border border-amber-700/60 rounded-lg px-3 py-2 mb-3" style="display:none"></div>
+        <div id="finParcList"></div>
+        <p class="text-[11px] text-stone-400 mt-3 leading-snug">Altere o <b>valor</b> de uma parcela (ex.: pagou 1.000 em vez de 500) e as parcelas <b>não pagas</b> são recalculadas para fechar o total. Marque o <b>✓</b> quando a parcela for paga: ela deixa de ser recalculada e passa a somar nas Entradas/Saídas. A data pode ser qualquer uma.</p>
+      </div>
+      <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-stone-600">
+        <button onclick="finParcReset()" class="px-3 py-2 text-sm text-stone-300 hover:text-white border border-stone-600 rounded-lg" title="Solta os valores fixados e divide igualmente o que falta"><i class="fa-solid fa-rotate mr-1"></i>Dividir igual</button>
+        <div class="flex gap-2">
+          <button onclick="finParcCancel()" class="px-4 py-2 text-sm text-stone-300 hover:text-white">Cancelar</button>
+          <button onclick="finParcSave()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-sm transition">Salvar</button>
         </div>
       </div>
     </div>
@@ -6096,7 +6130,7 @@
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? 520 : note.type === 'invtable' ? 380 : 260, 170];
+      return [note.type === 'fintable' ? 700 : note.type === 'invtable' ? 380 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -6204,14 +6238,59 @@
     function finRowsByKey(rows, key) { const m = finKeyMode(key), k = String(key).slice(2); return rows.filter(r => finRowKey(r, m) === k); }
     function finXLabel(x) { return x === 'dest' ? (finGroupBy() === 'desc' ? 'Descrição' : 'Destino') : FIN_X[x]; }
     function finRowsFor(period) {
-      let rows = finData().rows.filter(r => !finIsBlank(r));
+      let rows = finExpand(finData().rows.filter(r => !finIsBlank(r)));
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
       return rows;
     }
     function finMonthsList() {
       const set = {};
-      finData().rows.forEach(r => { const k = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) set[k] = 1; });
+      finExpand(finData().rows).forEach(r => { const k = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) set[k] = 1; });
       return Object.keys(set).sort().reverse();
+    }
+
+    /* ---------- MODALIDADE / PARCELAS (crédito) ----------
+       r.mod: 'din' | 'pix' | 'deb' | 'cred'  (sem r.mod = dinheiro) · r.parc: 0 se não for crédito
+       r.plan (opcional, salvo no pop-up): [{ n, date, value (R$), paid, fix }]
+       Nos cálculos, a linha de crédito vira uma "linha" por parcela (com a data e o valor de cada uma;
+       paga = entra em Entradas/Saídas, não paga = pendente). */
+    const FIN_MODS = [['din', 'Dinheiro'], ['pix', 'Pix'], ['deb', 'Débito'], ['cred', 'Crédito']];
+    function finIsCredit(r) { return !!r && r.mod === 'cred'; }
+    function finSplitCents(total, n) {
+      const base = Math.floor(total / n), out = [];
+      for (let i = 0; i < n; i++) out.push(base);
+      out[n - 1] += total - base * n;   // sobra de centavos vai na última
+      return out;
+    }
+    function finMonthAdd(dateStr, add) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || ''), t = new Date();
+      const y = m ? +m[1] : t.getFullYear(), mo = m ? +m[2] - 1 : t.getMonth(), d = m ? +m[3] : t.getDate();
+      const tot = mo + add, ny = y + Math.floor(tot / 12), nm = ((tot % 12) + 12) % 12;
+      const last = new Date(ny, nm + 1, 0).getDate();
+      return ny + '-' + String(nm + 1).padStart(2, '0') + '-' + String(Math.min(d, last)).padStart(2, '0');
+    }
+    function finDefaultPlan(r) {
+      const n = Math.max(1, Math.min(60, parseInt(r.parc, 10) || 1)), parts = finSplitCents(Math.round((r.value || 0) * 100), n);
+      return parts.map((c, i) => ({ n: i + 1, date: finMonthAdd(r.date, i), value: c / 100, paid: false, fix: false }));
+    }
+    function finPlanOf(r) {
+      const n = Math.max(1, parseInt(r.parc, 10) || 1);
+      return (Array.isArray(r.plan) && r.plan.length === n) ? r.plan : finDefaultPlan(r);
+    }
+    /* redistribui o que sobra do total entre as parcelas NÃO pagas e NÃO fixadas (as pagas/fixadas ficam como estão) */
+    function finRebalance(plan, totalReais) {
+      let fixed = 0; const free = [];
+      plan.forEach(p => { if (p.paid || p.fix) fixed += Math.round((p.value || 0) * 100); else free.push(p); });
+      if (!free.length) return;
+      const parts = finSplitCents(Math.max(0, Math.round(totalReais * 100) - fixed), free.length);
+      free.forEach((p, i) => { p.value = parts[i] / 100; });
+    }
+    function finExpand(rows) {
+      const out = [];
+      rows.forEach(r => {
+        if (!finIsCredit(r) || !(r.value > 0)) { out.push(r); return; }
+        finPlanOf(r).forEach(p => out.push(Object.assign({}, r, { value: p.value, date: p.date, done: !!p.paid, _parcN: p.n })));
+      });
+      return out;
     }
 
     /* totais em centavos (evita erro de arredondamento) */
@@ -6234,7 +6313,7 @@
       return a + b;
     }
     function finRowsOfBoard(b, period) {
-      let rows = finData(b).rows.filter(r => !finIsBlank(r));
+      let rows = finExpand(finData(b).rows.filter(r => !finIsBlank(r)));
       if (window.finRepFilter) rows = rows.filter(window.finRepFilter);
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
       return rows;
@@ -7623,15 +7702,21 @@ void main(){
     function finRowHtml(r) {
       const isIn = r.cat === 'in', isInv = r.cat === 'inv';
       const anim = finLastToggled === r.id && r.done;
-      return `<div class="fin-row fin-cols ${r.done ? '' : 'is-pending'}" data-row="${r.id}">
-        <button class="chalk-check ${r.done ? 'is-done' : ''} ${anim ? 'animate' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleRow('${r.id}')"
-                title="${r.done ? 'Confirmado — já soma nos cards e gráficos' : 'Pendente — marque para somar'}">${FIN_CHECK_SVG}</button>
+      const cred = finIsCredit(r), mod = r.mod || 'din';
+      const lead = cred
+        ? `<button class="fin-credit-btn" onclick="finOpenParc('${r.id}')" title="Crédito: ver e editar as parcelas"><i class="fa-solid fa-credit-card"></i></button>`
+        : `<button class="chalk-check ${r.done ? 'is-done' : ''} ${anim ? 'animate' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleRow('${r.id}')"
+                title="${r.done ? 'Confirmado — já soma nos cards e gráficos' : 'Pendente — marque para somar'}">${FIN_CHECK_SVG}</button>`;
+      return `<div class="fin-row fin-cols ${(r.done || cred) ? '' : 'is-pending'}" data-row="${r.id}"${cred ? ' data-credit="1"' : ''}>
+        ${lead}
         <div data-cell="date" data-ink><input type="date" class="fin-in" value="${escapeHtml(r.date || '')}" onchange="finSetField('${r.id}','date',this)"></div>
         <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : isInv ? 'yellow' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar: Entrada → Saída → Investimento">${isIn ? '↑ Entrada' : isInv ? '📈 Invest.' : '↓ Saída'}</button></div>
+        <div data-cell="mod" data-ink><select class="fin-in fin-mod" onchange="finSetMod('${r.id}',this)" title="Modalidade de pagamento">${FIN_MODS.map(m => `<option value="${m[0]}"${m[0] === mod ? ' selected' : ''}>${m[1]}</option>`).join('')}</select></div>
         <div data-cell="dest" data-ink><input type="text" list="finDestList" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="finSetField('${r.id}','dest',this)"></div>
         <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
              onfocus="this.select()" oninput="finLiveValue('${r.id}', this)" onchange="finCommitValue('${r.id}', this)" onkeydown="finValKey(event,'${r.id}')"></div>
+        <div data-cell="parc" data-ink>${cred ? `<input type="number" min="1" max="60" step="1" class="fin-in fin-parc" value="${Math.max(1, parseInt(r.parc, 10) || 1)}" onfocus="this.select()" onchange="finSetParc('${r.id}',this)" title="Quantidade de parcelas">` : `<span class="fin-parc0" title="Só o Crédito pode ser parcelado">0</span>`}</div>
         <button class="item-remove chalk-del" onclick="finDeleteRow('${r.id}')" title="Excluir lançamento"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>`;
     }
@@ -7639,7 +7724,7 @@ void main(){
     /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
     function finColTpl(note) {
       const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
-      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 1em`;
+      return `1.45em ${px('date', '7.4em')} ${px('cat', '6.6em')} ${px('mod', '6.4em')} ${px('dest', 'minmax(3.2em,1fr)')} minmax(3.2em,1fr) ${px('val', 'minmax(5.6em,7.4em)')} 4.6em 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
@@ -7661,12 +7746,12 @@ void main(){
 
     function finTableInner(note) {
       const rows = finData().rows, fs = note.fs || 18;
-      const allDone = rows.length > 0 && rows.every(r => r.done);
+      const simple = rows.filter(r => !finIsCredit(r)), allDone = simple.length > 0 && simple.every(r => r.done);
       return `
         ${finTitleInput(note, '💰 Controle financeiro')}
         <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink style="text-align:right;padding-right:2px">Valor</span><span></span>
+          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Modalidade<i class="fin-rs" data-col="mod" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink style="text-align:right;padding-right:2px">Valor</span><span data-ink style="text-align:right;padding-right:2px">Parcelas</span><span></span>
         </div>
         <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           ${rows.length ? rows.map(finRowHtml).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
@@ -7801,7 +7886,7 @@ void main(){
     function finAddRow(noteId) {
       const fin = finData(), last = fin.rows[fin.rows.length - 1];
       const row = { id: 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), seq: ++fin.seq,
-        date: finToday(), cat: last ? last.cat : 'out', dest: '', desc: '', value: null, done: false };
+        date: finToday(), cat: last ? last.cat : 'out', mod: 'din', parc: 0, dest: '', desc: '', value: null, done: false };
       fin.rows.push(row);
       finDropMasks(['fintable', 'fincards']);
       saveData(); finRefreshAll();
@@ -7816,7 +7901,7 @@ void main(){
       saveData(); finRefreshAll(); finLastToggled = null;
     }
     function finToggleAll() {
-      const rows = finData().rows; if (!rows.length) return;
+      const rows = finData().rows.filter(r => !finIsCredit(r)); if (!rows.length) return;   // crédito: o "pago" é por parcela
       const all = rows.every(r => r.done);
       rows.forEach(r => { r.done = !all; });
       saveData(); finRefreshAll();
@@ -7861,12 +7946,14 @@ void main(){
     function finLiveValue(id, el) {
       const r = finRow(id); if (!r) return;
       r.value = finParseMoney(el.value) || null;
+      finAfterValue(r);
       saveData(); finRefreshViews(); finSyncRowViews(id, el);
     }
     function finCommitValue(id, el) {
       const r = finRow(id); if (!r) return;
       r.value = finParseMoney(el.value) || null;
       el.value = r.value ? 'R$ ' + finFmtNum(r.value) : '';
+      finAfterValue(r);
       saveData(); finRefreshViews(); finSyncRowViews(id, el);
     }
     function finValKey(e, id) {
@@ -7878,6 +7965,90 @@ void main(){
       if (rows.length && rows[rows.length - 1].id === id && wr) finAddRow(wr.id);
       else e.target.blur();
     }
+
+    /* ---------- Modalidade / Parcelas: ações na tabela ---------- */
+    function finAfterValue(r) {   // mudou o valor total de um crédito já editado: refaz só as parcelas livres
+      if (finIsCredit(r) && Array.isArray(r.plan)) finRebalance(r.plan, r.value || 0);
+    }
+    function finPlanTouched(r) { return Array.isArray(r.plan) && r.plan.some(p => p.paid || p.fix); }
+    function finSetMod(id, el) {
+      const r = finRow(id); if (!r) return;
+      const nv = el.value;
+      if (finIsCredit(r) && nv !== 'cred' && finPlanTouched(r) && !confirm('Esta linha tem parcelas pagas ou ajustadas. Mudar a modalidade apaga o parcelamento. Continuar?')) { el.value = 'cred'; return; }
+      r.mod = nv; r.plan = null;
+      if (nv === 'cred') { r.parc = Math.max(1, parseInt(r.parc, 10) || 1); r.done = false; } else r.parc = 0;
+      finDropMasks(['fintable', 'fincards']);
+      saveData(); finRefreshAll();
+    }
+    function finSetParc(id, el) {
+      const r = finRow(id); if (!r || !finIsCredit(r)) return;
+      const n = Math.max(1, Math.min(60, parseInt(el.value, 10) || 1));
+      if (n !== r.parc && finPlanTouched(r) && !confirm('Esta linha tem parcelas pagas ou ajustadas. Mudar a quantidade refaz o parcelamento do zero. Continuar?')) { el.value = r.parc; return; }
+      if (n !== r.parc) r.plan = null;
+      r.parc = n; el.value = n;
+      saveData(); finRefreshAll();
+    }
+
+    /* ---------- pop-up das parcelas ---------- */
+    let finParc = null;   // { id, plan (rascunho) }
+    function finOpenParc(id) {
+      const r = finRow(id); if (!r || !finIsCredit(r)) return;
+      if (!(r.value > 0)) { alert('Informe o valor total da compra antes de ver as parcelas.'); return; }
+      finParc = { id, plan: JSON.parse(JSON.stringify(finPlanOf(r))) };
+      byId('finParcTitle').innerText = (r.desc || r.dest || 'Crédito') + ' · ' + finParc.plan.length + 'x';
+      finParcRender(); openOv('finParcModal');
+    }
+    function finParcRender() {
+      const P = finParc; if (!P) return; const r = finRow(P.id); if (!r) return;
+      const total = Math.round((r.value || 0) * 100), plan = P.plan;
+      let paid = 0, open = 0; plan.forEach(p => { const c = Math.round((p.value || 0) * 100); if (p.paid) paid += c; else open += c; });
+      const diff = total - paid - open, nPaid = plan.filter(p => p.paid).length;
+      const box = (lbl, val, cls) => `<div class="rounded-lg bg-stone-900/70 border border-stone-600 px-3 py-2"><div class="text-[11px] text-stone-400">${lbl}</div><div class="font-bold ${cls || 'text-stone-100'}">${finBRL(val / 100)}</div></div>`;
+      byId('finParcSummary').innerHTML = box('Valor total', total) + box('Pago (' + nPaid + '/' + plan.length + ')', paid, 'text-emerald-300') + box('A pagar', open, 'text-amber-300');
+      byId('finParcWarn').innerHTML = Math.abs(diff) >= 1
+        ? `<i class="fa-solid fa-triangle-exclamation mr-1"></i>${diff > 0 ? 'Faltam ' : 'Passou '}<b>${finBRL(Math.abs(diff) / 100)}</b> ${diff > 0 ? 'para fechar o valor total (todas as parcelas livres já estão pagas ou fixadas).' : 'do valor total.'}` : '';
+      byId('finParcWarn').style.display = Math.abs(diff) >= 1 ? '' : 'none';
+      byId('finParcList').innerHTML = plan.map((p, i) => `
+        <div class="grid items-center gap-2 py-1.5 border-b border-stone-700/70" style="grid-template-columns:2.6em 1fr 1fr 2.2em 2.2em">
+          <div class="font-bold text-stone-300 text-sm">${p.n}/${plan.length}</div>
+          <input type="date" value="${escapeHtml(p.date || '')}" onchange="finParcDate(${i},this)" class="bg-stone-900 border border-stone-600 rounded-lg px-2 py-1 text-sm text-stone-100" style="color-scheme:dark">
+          <input type="text" inputmode="decimal" value="R$ ${finFmtNum(p.value)}" onfocus="this.select()" onchange="finParcVal(${i},this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                 class="bg-stone-900 border ${p.fix && !p.paid ? 'border-amber-500' : 'border-stone-600'} rounded-lg px-2 py-1 text-sm text-right text-stone-100" ${p.paid ? 'style="opacity:.6"' : ''}>
+          <button onclick="finParcPaid(${i})" title="${p.paid ? 'Paga — toque para desmarcar' : 'Marcar como paga'}" class="w-8 h-8 rounded-lg border ${p.paid ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-stone-500 text-stone-500 hover:text-stone-200'}"><i class="fa-solid fa-check"></i></button>
+          ${p.fix && !p.paid ? `<button onclick="finParcRelease(${i})" title="Valor fixado por você — toque para soltar e deixar recalcular" class="w-8 h-8 rounded-lg text-amber-400 hover:bg-stone-700"><i class="fa-solid fa-thumbtack"></i></button>` : '<span></span>'}
+        </div>`).join('');
+    }
+    function finParcDate(i, el) { if (finParc) finParc.plan[i].date = el.value; }
+    function finParcVal(i, el) {
+      if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
+      p.value = finParseMoney(el.value); p.fix = true;
+      finRebalance(finParc.plan, r.value || 0); finParcRender();
+    }
+    function finParcPaid(i) {
+      if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
+      p.paid = !p.paid; finRebalance(finParc.plan, r.value || 0); finParcRender();
+    }
+    function finParcRelease(i) {
+      if (!finParc) return; const r = finRow(finParc.id), p = finParc.plan[i]; if (!r || !p) return;
+      p.fix = false; finRebalance(finParc.plan, r.value || 0); finParcRender();
+    }
+    function finParcReset() {   // solta os valores fixados e divide igual o que falta (pagas ficam como estão)
+      if (!finParc) return; const r = finRow(finParc.id); if (!r) return;
+      finParc.plan.forEach(p => { if (!p.paid) p.fix = false; });
+      finRebalance(finParc.plan, r.value || 0); finParcRender();
+    }
+    function finParcSave() {
+      if (!finParc) return; const r = finRow(finParc.id);
+      if (r) { r.plan = finParc.plan; finDropMasks(['fintable', 'fincards']); saveData(); finRefreshAll(); }
+      finParc = null; closeOv('finParcModal');
+    }
+    function finParcCancel() { finParc = null; closeOv('finParcModal'); }
+    /* clicar na linha de crédito (fora dos campos) abre as parcelas */
+    document.addEventListener('click', (e) => {
+      const row = e.target.closest && e.target.closest('.fin-row[data-credit]');
+      if (!row || e.target.closest('input, select, button, textarea, a')) return;
+      finOpenParc(row.getAttribute('data-row'));
+    });
     function finDeleteRow(id) {
       const fin = finData();
       fin.rows = fin.rows.filter(r => r.id !== id);
@@ -7889,7 +8060,7 @@ void main(){
     function finCreatePiece(type, extra) {
       if (!finIsFinance()) return null;
       const board = getActiveBoard();
-      const sizes = { fintable: [680, 400], fincards: [640, 430], finchart: [500, 330], invtable: [520, 360] };
+      const sizes = { fintable: [800, 400], fincards: [640, 430], finchart: [500, 330], invtable: [520, 360] };
       const mn = byId('boardCanvas');
       const cw = mn ? mn.offsetWidth : 1000, ch = mn ? mn.offsetHeight : 600;
       const single = type === 'fincards' && !!(extra && extra.only);
@@ -8849,14 +9020,14 @@ void main(){
       return a.kind === 'finance' ? a : (finBoards()[0] || a);
     };
     window.finRowsFor = function (period) {
-      let rows = finEffRows().filter(r => !finIsBlank(r));
+      let rows = finExpand(finEffRows().filter(r => !finIsBlank(r)));
       if (window.finRepFilter) rows = rows.filter(window.finRepFilter);
       if (period && period !== 'all') rows = rows.filter(r => (r.date || '').slice(0, 7) === period);
       return rows;
     };
     window.finMonthsList = function () {
       const set = {};
-      finEffRows().forEach(r => { const k = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) set[k] = 1; });
+      finExpand(finEffRows()).forEach(r => { const k = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) set[k] = 1; });
       return Object.keys(set).sort().reverse();
     };
 
