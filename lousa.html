@@ -908,6 +908,8 @@
     .bl-card:hover { transform: translateY(-3px); border-color: #fbbf24; box-shadow: 0 10px 26px rgba(0,0,0,.5); }
     .bl-card.on { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.25); }
     .bl-th { aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #1f4a35, #0d241a 75%); border: 1px solid #ffffff14; display: grid; place-items: center; }
+    .theme-marker .bl-th { background: radial-gradient(circle at 30% 20%, #ffffff 0%, #eef2f7 100%); border-color: #cbd5e1; }
+    .theme-marker .bl-empty { color: #64748b; }
     .bl-th img { width: 100%; height: 100%; display: block; object-fit: contain; }
     .bl-th > svg { width: 100%; height: 100%; display: block; }
     .bl-th { position: relative; }
@@ -1603,6 +1605,7 @@
           <div class="flex flex-wrap gap-1.5">
             <button id="finTableTitleBtn" class="fsb" onclick="finTableToggleTitle()"></button>
             <button id="finTableFootBtn" class="fsb" onclick="finTableToggleFoot()"></button>
+            <button id="finTableObsBtn" class="fsb" onclick="finTableToggleObs()" title="Coluna opcional para anotar uma observação em cada lançamento"></button>
           </div>
         </div>
         <div id="finTableCatsBox">
@@ -6148,7 +6151,7 @@
     /* tamanho mínimo [largura, altura] de cada peça de finanças (card individual pode ser bem pequeno) */
     function finMinSize(note) {
       if (note.type === 'fincards' && note.only) return [150, 84];
-      return [note.type === 'fintable' ? Math.round(610 * (note.fs || 18) / 18) : note.type === 'invtable' ? 380 : 260, 170];
+      return [note.type === 'fintable' ? Math.round((610 + (note.obs ? 110 : 0)) * (note.fs || 18) / 18) : note.type === 'invtable' ? 380 : 260, 170];
     }
 
     const FIN_PRESET_DESTS = ['Casa', 'Carro', 'Dívidas', 'Energia', 'Água', 'Aluguel', 'Mercado', 'Investimento',
@@ -7722,7 +7725,7 @@ void main(){
         <div class="chalk-line mb-2" data-ink></div>`;
     }
 
-    function finRowHtml(r) {
+    function finRowHtml(r, note) {
       const isIn = r.cat === 'in', isInv = r.cat === 'inv';
       const anim = finLastToggled === r.id && r.done;
       const cred = finIsCredit(r), mod = r.mod || 'din';
@@ -7736,7 +7739,8 @@ void main(){
         <div data-cell="cat" data-ink><button class="fin-cat" style="color:${finHex(isIn ? 'green' : isInv ? 'yellow' : 'pink')}" onclick="finToggleCat('${r.id}')" title="Toque para alternar: Entrada → Saída → Investimento">${isIn ? 'Entrada' : isInv ? 'Invest.' : 'Saída'}</button></div>
         <div data-cell="mod" data-ink><button class="fin-cat" style="color:${finHex(FIN_MOD_COLOR[mod] || 'white')}" onclick="finCycleMod('${r.id}')" title="Toque para alternar: Dinheiro → Pix → Débito → Crédito">${(FIN_MODS.find(m => m[0] === mod) || FIN_MODS[0])[1]}</button></div>
         <div data-cell="dest" data-ink><input type="text" list="finDestList" class="fin-in" value="${escapeHtml(r.dest || '')}" placeholder="Destino..." onchange="finSetField('${r.id}','dest',this)"></div>
-        <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
+        <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>${note && note.obs ? `
+        <div data-cell="obs" data-ink><input type="text" class="fin-in" value="${escapeHtml(r.obs || '')}" placeholder="Obs..." onchange="finSetField('${r.id}','obs',this)"></div>` : ''}
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
              onfocus="this.select()" oninput="finLiveValue('${r.id}', this)" onchange="finCommitValue('${r.id}', this)" onkeydown="finValKey(event,'${r.id}')"></div>
         <div data-cell="parc" data-ink>${cred ? `<input type="number" min="1" max="60" step="1" class="fin-in fin-parc" value="${Math.max(1, parseInt(r.parc, 10) || 1)}" onfocus="this.select()" onchange="finSetParc('${r.id}',this)" title="Quantidade de parcelas">` : `<span class="fin-parc0" title="Só o Crédito pode ser parcelado">0</span>`}</div>
@@ -7747,7 +7751,7 @@ void main(){
     /* larguras das colunas da tabela (ajustáveis arrastando o limite no cabeçalho); Descrição ocupa o que sobra */
     function finColTpl(note) {
       const w = (note && note.cw) || {}, px = (k, d) => w[k] ? w[k] + 'px' : d;
-      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,1fr)')} minmax(2.6em,1fr) ${px('val', 'minmax(4.6em,7.4em)')} minmax(4em,4.6em) 1em`;
+      return `1.45em ${px('date', 'minmax(5.4em,7.4em)')} ${px('cat', 'minmax(4.2em,6.6em)')} ${px('mod', 'minmax(5em,7.6em)')} ${px('dest', 'minmax(2.6em,1fr)')} minmax(2.6em,1fr)${note && note.obs ? ' minmax(4em,1fr)' : ''} ${px('val', 'minmax(4.6em,7.4em)')} minmax(4em,4.6em) 1em`;
     }
     document.addEventListener('pointerdown', (e) => {
       const h = e.target.closest && e.target.closest('.fin-rs'); if (!h) return;
@@ -7774,10 +7778,10 @@ void main(){
         ${finTitleInput(note, '💰 Controle financeiro')}
         <div class="fin-head fin-cols font-chalk chalk-ink" style="font-size:${fs}px;--fc:${finColTpl(note)}">
           <button class="chalk-check ${allDone ? 'is-done' : ''}" style="width:1.3em;height:1.3em" onclick="finToggleAll()" title="Marcar / desmarcar todos">${FIN_CHECK_SVG}</button>
-          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Modalidade<i class="fin-rs" data-col="mod" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink style="text-align:right;padding-right:2px">Valor</span><span data-ink style="text-align:right;padding-right:2px">Parcelas</span><span></span>
+          <span data-ink>Data<i class="fin-rs" data-col="date" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Categoria<i class="fin-rs" data-col="cat" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Modalidade<i class="fin-rs" data-col="mod" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span><span data-ink>Destino<i class="fin-rs" data-col="dest" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span>${note.obs ? `<span data-ink>Descrição</span><span data-ink>Obs<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span>` : `<span data-ink>Descrição<i class="fin-rs" data-col="val" data-inv="1" data-nid="${note.id}" title="Arraste para ajustar a largura"></i></span>`}<span data-ink style="text-align:right;padding-right:2px">Valor</span><span data-ink style="text-align:right;padding-right:2px">Parcelas</span><span></span>
         </div>
         <div class="fin-scroll chalk-ink font-chalk" style="font-size:${fs}px;--fc:${finColTpl(note)}">
-          ${rows.length ? rows.map(finRowHtml).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
+          ${rows.length ? rows.map(r => finRowHtml(r, note)).join('') : `<div class="fin-empty" data-ink>Nenhum lançamento ainda. Toque em “+ Novo lançamento”.</div>`}
         </div>
         <button class="fin-add chalk-ink font-chalk" style="font-size:${fs}px" onclick="finAddRow('${note.id}')"><span>＋</span> Novo lançamento</button>
         ${note.hideFoot ? '' : `<div id="finfoot_${note.id}" class="fin-foot chalk-ink font-chalk" data-ink style="font-size:${Math.max(12, Math.round(fs * 0.8))}px">${finFootHtml()}</div>`}`;
@@ -7963,6 +7967,7 @@ void main(){
         set('[data-cell="date"] input', r.date || '');
         set('[data-cell="dest"] input', r.dest || '');
         set('[data-cell="desc"] input', r.desc || '');
+        set('[data-cell="obs"] input', r.obs || '');
         set('[data-cell="val"] input', r.value ? 'R$ ' + finFmtNum(r.value) : '');
       });
     }
@@ -8256,8 +8261,10 @@ void main(){
       finTableDraft = {
         editId: n ? n.id : null,
         hideFoot: n ? !!n.hideFoot : false,
-        hideTitle: n ? !!n.noTitle : false
+        hideTitle: n ? !!n.noTitle : false,
+        obs: n ? !!n.obs : false
       };
+      const ob = byId('finTableObsBtn'); if (ob) ob.style.display = isInv ? 'none' : '';
       byId('finTableName').value = n ? (n.title == null ? (isInv ? '📈 Investimentos' : '💰 Controle financeiro') : n.title) : (count ? 'Tabela ' + (count + 1) : 'Controle financeiro');
       byId('finTableModalTitle').innerText = n ? 'Configurar tabela' : 'Nova tabela';
       byId('finTableOkBtn').innerText = n ? 'Aplicar' : 'Criar tabela';
@@ -8275,9 +8282,12 @@ void main(){
       const t = byId('finTableTitleBtn');
       t.classList.toggle('on', finTableDraft.hideTitle);
       t.innerHTML = finTableDraft.hideTitle ? '<i class="fa-solid fa-eye-slash mr-1"></i>Título oculto' : '<i class="fa-solid fa-eye mr-1"></i>Título visível';
+      const o = byId('finTableObsBtn');
+      if (o) { o.classList.toggle('on', finTableDraft.obs); o.innerHTML = finTableDraft.obs ? '<i class="fa-solid fa-table-columns mr-1"></i>Coluna Obs ativada' : '<i class="fa-solid fa-table-columns mr-1"></i>Coluna Obs desativada'; }
       byId('finTableName').style.opacity = finTableDraft.hideTitle ? .45 : 1;
     }
     function finTableToggleTitle() { if (!finTableDraft) return; finTableDraft.hideTitle = !finTableDraft.hideTitle; finSyncTableModal(); }
+    function finTableToggleObs() { if (!finTableDraft) return; finTableDraft.obs = !finTableDraft.obs; finSyncTableModal(); }
     function finTableToggleFoot() { if (!finTableDraft) return; finTableDraft.hideFoot = !finTableDraft.hideFoot; finSyncTableModal(); }
     function closeFinTableModal() { const m = byId('finTableModal'); if (m) m.classList.add('hidden'); finTableDraft = null; }
     function confirmFinTable() {
@@ -8288,13 +8298,13 @@ void main(){
       const name = byId('finTableName').value.trim();
       if (d.editId) {
         const n = cur;
-        if (n) { n.title = name || (n.type === 'invtable' ? '📈 Investimentos' : 'Tabela'); n.hideFoot = d.hideFoot; n.noTitle = d.hideTitle; finDropMask(n); saveData(); finRenderPiece(n); }
+        if (n) { n.title = name || (n.type === 'invtable' ? '📈 Investimentos' : 'Tabela'); n.hideFoot = d.hideFoot; n.noTitle = d.hideTitle; if (n.type === 'fintable') n.obs = !!d.obs; finDropMask(n); saveData(); finRenderPiece(n); }
       } else {
         const fin = finData();
         if (!fin.rows.length) {
           fin.rows.push({ id: 'r' + Date.now().toString(36), seq: ++fin.seq, date: finToday(), cat: 'out', dest: '', desc: '', value: null, done: false });
         }
-        finCreatePiece('fintable', { title: name || ('Tabela ' + (finNotes('fintable').length + 1)), hideFoot: d.hideFoot, noTitle: d.hideTitle });
+        finCreatePiece('fintable', { title: name || ('Tabela ' + (finNotes('fintable').length + 1)), hideFoot: d.hideFoot, noTitle: d.hideTitle, obs: !!d.obs });
         finUpdateDatalist();
       }
       closeFinTableModal();
@@ -13849,10 +13859,11 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
         list.forEach(s => s.rows.forEach(r => { if (OPT.credit && finIsCredit(r)) return; rows.push({ r, b: s.b.name || 'Finanças' }); }));   // crédito tem tabela própria
         rows.sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
         const tr = x => { const r = x.r, inn = r.cat === 'in', col = inn ? C.in : C.out;
-          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</td><td class="d">${modTxt(r)}</td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
+          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</td><td class="d">${modTxt(r)}</td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td>${hasObs ? `<td class="ds">${r.obs ? esc(r.obs) : ''}</td>` : ''}<td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
+        const hasObs = rows.some(x => x.r.obs);
         const bal = t.in - t.out;
         table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
-          ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Modalidade</th><th>Destino</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
+          ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Modalidade</th><th>Destino</th><th>Descrição</th>${hasObs ? '<th>Obs</th>' : ''}<th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
           : `<div class="empty">${OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento ainda.'}</div>`);
       }
       /* 2b) tabela exclusiva do crédito: parcelas pagas e/ou pendentes, uma tabela por compra */
