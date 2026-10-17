@@ -717,6 +717,14 @@
     .fin-rep-opt:hover { background: rgba(255,255,255,.08); }
     .fin-rep-opt.on { border-color: #4cc9ff; background: linear-gradient(135deg, rgba(76,201,255,.16), rgba(167,139,250,.16)); box-shadow: 0 0 14px rgba(76,201,255,.25); }
     .fin-rep-opt.dis { opacity: .45; cursor: not-allowed; }
+    .fin-rep-sec { border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 12px 14px; background: rgba(255,255,255,.025); }
+    .fin-rep-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .fin-rep-h b { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #fcd34d; }
+    .fin-rep-sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: #d6d3d1; margin: 12px 0 6px; }
+    .fin-rep-act, .fin-rep-act button { font-size: 11px; font-weight: 400; color: #7dd3fc; background: none; border: 0; cursor: pointer; text-decoration: underline; }
+    .fin-rep-det > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
+    .fin-rep-det > summary::-webkit-details-marker { display: none; }
+    .fin-rep-det > summary b::before { content: '▸ '; } .fin-rep-det[open] > summary b::before { content: '▾ '; }
     .fin-dock-btn:active { transform: scale(.95); }
     .theme-marker #finDock { background: rgba(255,255,255,.94); border-color: #94a3b8; box-shadow: 0 2px 10px rgba(15,23,42,.22); }
     .theme-marker .fin-dock-title { color: #065f46; }
@@ -1478,39 +1486,36 @@
         <h3 class="font-chalk text-2xl text-amber-300 font-bold"><i class="fa-solid fa-file-pdf mr-2" style="color:#7dd3fc"></i>Relatório em PDF</h3>
         <button onclick="closeOv('finRepModal')" class="text-stone-400 hover:text-white p-1" title="Fechar"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div class="p-5 space-y-4 overflow-y-auto" style="min-height:0">
-        <div class="grid sm:grid-cols-2 gap-2">
-          <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
-          <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
+      <div class="p-5 space-y-3 overflow-y-auto" style="min-height:0">
+        <div class="fin-rep-sec">
+          <div class="fin-rep-h"><b>1 · Dados do relatório</b></div>
+          <div class="grid sm:grid-cols-2 gap-2">
+            <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
+            <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('linked')"></button>
+          </div>
         </div>
-        <div>
-          <div class="fin-lbl flex items-center justify-between"><span>Cards do resumo</span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('kpis',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('kpis',false)">nenhum</button></span></div>
+        <div class="fin-rep-sec">
+          <div class="fin-rep-h"><b>2 · O que incluir</b></div>
+          <div class="fin-rep-sub"><span>Resumo geral</span><span class="fin-rep-act"><button onclick="finRepAllToggle('kpis',true)">todos</button> · <button onclick="finRepAllToggle('kpis',false)">nenhum</button></span></div>
           <div id="finRepKpis" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div>
-          <div class="fin-lbl flex items-center justify-between"><span>Cards da lousa <span class="normal-case font-normal opacity-70">(🔗 = ligado a outra lousa, já somado)</span></span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('cards',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('cards',false)">nenhum</button></span></div>
+          <div class="fin-rep-sub"><span>Cards da lousa</span><span class="fin-rep-act"><button onclick="finRepAllToggle('cards',true)">todos</button> · <button onclick="finRepAllToggle('cards',false)">nenhum</button></span></div>
           <div id="finRepCards" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div style="display:none">
-          <div class="fin-lbl flex items-center justify-between"><span>Painéis</span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('panels',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('panels',false)">nenhum</button></span></div>
-          <div id="finRepPanels" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div>
-          <div class="fin-lbl flex items-center justify-between"><span>Gráficos <span class="normal-case font-normal opacity-70">(só os da lousa · 🔗 = ligado a outra lousa)</span></span><span class="normal-case font-normal text-[11px]"><button class="underline text-sky-300" onclick="finRepAllToggle('charts',true)">todos</button> · <button class="underline text-sky-300" onclick="finRepAllToggle('charts',false)">nenhum</button></span></div>
+          <div style="display:none"><div id="finRepPanels"></div></div>
+          <div class="fin-rep-sub"><span>Gráficos</span><span class="fin-rep-act"><button onclick="finRepAllToggle('charts',true)">todos</button> · <button onclick="finRepAllToggle('charts',false)">nenhum</button></span></div>
           <div id="finRepCharts" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div>
-          <div class="fin-lbl">Tabela</div>
+          <div class="fin-rep-sub"><span>Tabela</span></div>
           <div id="finRepTable" class="flex flex-wrap gap-1.5"></div>
         </div>
-        <div class="border-t border-stone-600 pt-3 space-y-3">
-          <div class="fin-lbl flex items-center justify-between"><span><i class="fa-solid fa-filter mr-1"></i>Filtros <span class="normal-case font-normal opacity-70">(nada marcado = tudo)</span></span><button class="normal-case font-normal text-[11px] underline text-sky-300" onclick="finRepClear()">limpar filtros</button></div>
-          <div><div class="text-[11px] text-stone-400 mb-1">Mês</div><div id="finRepFMonths" class="flex flex-wrap gap-1.5"></div></div>
-          <div><div class="text-[11px] text-stone-400 mb-1">Categoria</div><div id="finRepFCats" class="flex flex-wrap gap-1.5"></div></div>
-          <div id="finRepFDescsBox"><div class="text-[11px] text-stone-400 mb-1">Descrição</div><div id="finRepFDescs" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
-          <div><div class="text-[11px] text-stone-400 mb-1">Destino</div><div id="finRepFDests" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
-          <p class="text-[11px] text-stone-400 leading-snug">Os filtros valem para cards, painéis, gráficos e tabela. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
-        </div>
+        <details class="fin-rep-sec fin-rep-det">
+          <summary class="fin-rep-h"><b>3 · Filtros <span class="normal-case font-normal opacity-70">(opcional — nada marcado = tudo)</span></b><button class="fin-rep-act" onclick="event.preventDefault();finRepClear()">limpar</button></summary>
+          <div class="space-y-3 mt-2">
+            <div><div class="fin-rep-sub" style="margin-top:0"><span>Mês</span></div><div id="finRepFMonths" class="flex flex-wrap gap-1.5"></div></div>
+            <div><div class="fin-rep-sub" style="margin-top:0"><span>Categoria</span></div><div id="finRepFCats" class="flex flex-wrap gap-1.5"></div></div>
+            <div id="finRepFDescsBox"><div class="fin-rep-sub" style="margin-top:0"><span>Descrição</span></div><div id="finRepFDescs" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
+            <div><div class="fin-rep-sub" style="margin-top:0"><span>Destino</span></div><div id="finRepFDests" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
+            <p class="text-[11px] text-stone-400 leading-snug">Os filtros valem para cards, gráficos e tabela. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
+          </div>
+        </details>
       </div>
       <div class="flex items-center justify-between gap-2.5 px-5 py-3 border-t border-stone-600">
         <span id="finRepCount" class="text-[12px] text-stone-300"></span>
@@ -9075,7 +9080,7 @@ void main(){
     }
     /* itens ligados a uma peça (cards/gráficos), cada um com a operação escolhida */
     function finTerms(note) {
-      if (!note) return [];
+      if (!note || window.finRepNoLink) return [];
       const L = finLinks(), ops = L.ops[note.id] || {}, out = [];
       (L.pieces[note.id] || []).forEach(pid => {
         const p = findPieceAnywhere(pid), src = p && finSrcOf(p);
@@ -9092,7 +9097,7 @@ void main(){
     function finEffRows() {
       const b = finBoard();
       let rows = finData(b).rows.slice();
-      finLinkedBoards(b, finCtxNote).forEach(o => { rows = rows.concat(finData(o).rows); });
+      if (!window.finRepNoLink) finLinkedBoards(b, finCtxNote).forEach(o => { rows = rows.concat(finData(o).rows); });   // relatório "sem ligação" ignora as lousas ligadas
       return rows;
     }
 
@@ -13549,7 +13554,7 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
       const o = OPT || defOpts();
       let rows = finData(b).rows.filter(r => !finIsBlank(r));
       let linked = [];
-      if (OPT && OPT.scope === 'one') {   // relatório de uma lousa: soma também as lousas ligadas a ela (igual aos cards da lousa)
+      if (OPT && OPT.scope === 'linked') {   // "lousa com ligação": soma também as lousas ligadas a ela (igual aos cards da lousa)
         try { linked = finLinkedBoards(b, null); } catch (e) {}
         linked.forEach(x => { rows = rows.concat(finData(x).rows.filter(r => !finIsBlank(r))); });
       }
@@ -13574,7 +13579,8 @@ ${n.hideFoot ? '' : `<div id="finfoot_${n.id}" class="fin-foot chalk-ink font-ch
     function linkTxt(n) {   // ex.: "🔗 + Saídas · − Mercado": o que está ligado a este card/gráfico
       try {
         const t = finTerms(n); if (!t.length) return '';
-        return ' 🔗 ' + t.map(tm => FIN_OPS[tm.op].sym + ' ' + pieceLabel(tm.piece).replace(/^[^\p{L}\p{N}]+/u, '')).join(' ');
+        if (scope === 'one') return '';
+        return ' · ligado: ' + t.map(tm => FIN_OPS[tm.op].sym + ' ' + pieceLabel(tm.piece).replace(/^[^\p{L}\p{N}]+/u, '')).join(' ');
       } catch (e) { return ''; }
     }
     function cardTitle(n) {
@@ -13811,7 +13817,8 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
       OPT = Object.assign(defOpts(), opt || {});
       OPT.pred = mkFilter(OPT.f); OPT.scope = scope;
       window.finRepFilter = OPT.pred;   // gráficos (e lousas ligadas) respeitam os mesmos filtros
-      try { return buildReportInner(scope, auto); } finally { window.finRepFilter = null; OPT = null; }
+      window.finRepNoLink = scope === 'one';   // "sem ligação": só os dados desta lousa
+      try { return buildReportInner(scope, auto); } finally { window.finRepFilter = null; window.finRepNoLink = false; OPT = null; }
     }
     function buildReportInner(scope, auto) {
       const boards = scope === 'all' ? finBoards() : [finTarget()];
@@ -13874,7 +13881,10 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
     const chip = (g, k, label, on) => `<button class="fsb ${on ? 'on' : ''}" data-g="${g}" data-k="${esc(k)}" onclick="finRepToggle(this)">${esc(label)}</button>`;
     const scopeBoards = () => scope === 'all' ? finBoards() : [finTarget()].filter(Boolean);
     function finRepRender() {
-      const bs = scopeBoards(), rows = [].concat(...bs.map(b => finData(b).rows.filter(r => !finIsBlank(r))));
+      const bs = scopeBoards();
+      let rows = [].concat(...bs.map(b => finData(b).rows.filter(r => !finIsBlank(r))));
+      if (scope === 'linked') bs.forEach(b => { try { finLinkedBoards(b, null).forEach(x => { rows = rows.concat(finData(x).rows.filter(r => !finIsBlank(r))); }); } catch (e) {} });
+      rows = finExpand(rows);
       const charts = [].concat(...bs.map(b => chartsOf(b).map(n => ({ n, b }))));
       const cards = [].concat(...bs.map(b => cardsOf(b).map(n => ({ n, b }))));
       const months = {}, descs = {}, dests = {};
@@ -13889,13 +13899,13 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
       charts.forEach(c => { if (RS.charts[c.n.id] === undefined) RS.charts[c.n.id] = true; });
       cards.forEach(c => { if (RS.cards[c.n.id] === undefined) RS.cards[c.n.id] = true; });
       byId('finRepCards').innerHTML = cards.length
-        ? cards.map(c => chip('cards', c.n.id, '💳 ' + cardTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.cards[c.n.id])).join('')
-        : '<span class="text-xs text-stone-500">Nenhum card adicionado à lousa ainda.</span>';
+        ? cards.map(c => chip('cards', c.n.id, cardTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.cards[c.n.id])).join('')
+        : '<span class="text-xs text-stone-500">Nenhum card adicionado a esta lousa.</span>';
       byId('finRepKpis').innerHTML = KPI_DEFS.map(d => chip('kpis', d[0], d[1], RS.kpis[d[0]])).join('');
       byId('finRepPanels').innerHTML = PANEL_DEFS.filter(d => d[0] !== 'boards' || scope === 'all').map(d => chip('panels', d[0], d[1], RS.panels[d[0]])).join('');
       byId('finRepCharts').innerHTML = charts.length
-        ? charts.map(c => chip('charts', c.n.id, '📊 ' + chartTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.charts[c.n.id])).join('')
-        : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado à lousa ainda. Monte um em “Gráficos”.</span>';
+        ? charts.map(c => chip('charts', c.n.id, chartTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.charts[c.n.id])).join('')
+        : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado a esta lousa.</span>';
       byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos', RS.table);
       byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
       byId('finRepFCats').innerHTML = chip('cats', 'in', 'Entradas', RS.f.cats.in) + chip('cats', 'out', 'Saídas', RS.f.cats.out) + chip('cats', 'inv', 'Investimentos', RS.f.cats.inv);
@@ -13938,19 +13948,24 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
     };
     window.finOpenReport = function () {
       const bs = finBoards(); if (!bs.length) return;
-      const t = finTarget(), one = statsOf(t), all = bs.map(statsOf);
-      byId('finRepOne').innerHTML = `<b>Só esta lousa</b><span>${esc(t.name || 'Finanças')} · ${pl(one.rows.length, 'lançamento', 'lançamentos')} · ${pl(one.charts.length, 'gráfico', 'gráficos')}</span>`;
-      byId('finRepAll').innerHTML = `<b>Todas as lousas de finanças</b><span>${bs.length} lousa${bs.length === 1 ? '' : 's'} · ${pl(all.reduce((a, s) => a + s.rows.length, 0), 'lançamento', 'lançamentos')} · ${pl(all.reduce((a, s) => a + s.charts.length, 0), 'gráfico', 'gráficos')} · inclui um resumo geral</span>`;
-      if (bs.length < 2) scope = 'one';
-      byId('finRepOne').classList.toggle('on', scope === 'one'); byId('finRepAll').classList.toggle('on', scope === 'all');
-      byId('finRepAll').classList.toggle('dis', bs.length < 2);
+      const t = finTarget(); let lk = [];
+      try { lk = finLinkedBoards(t, null); } catch (e) {}
+      const own = finExpand(finData(t).rows.filter(r => !finIsBlank(r))).length;
+      const lkRows = lk.reduce((a, x) => a + finExpand(finData(x).rows.filter(r => !finIsBlank(r))).length, 0);
+      byId('finRepOne').innerHTML = `<b>Lousa sem ligação</b><span>Só os dados de <i>${esc(t.name || 'Finanças')}</i> · ${pl(own, 'lançamento', 'lançamentos')}</span>`;
+      byId('finRepAll').innerHTML = lk.length
+        ? `<b>Lousa com ligação</b><span>${esc(t.name || 'Finanças')} + ${lk.map(x => esc(x.name || 'Finanças')).join(', ')} · ${pl(own + lkRows, 'lançamento', 'lançamentos')}</span>`
+        : `<b>Lousa com ligação</b><span>Esta lousa não está ligada a nenhuma outra</span>`;
+      if (scope === 'all' || !lk.length) scope = 'one';
+      byId('finRepOne').classList.toggle('on', scope === 'one'); byId('finRepAll').classList.toggle('on', scope === 'linked');
+      byId('finRepAll').classList.toggle('dis', !lk.length);
       finRepRender();
       openOv('finRepModal');
     };
     window.finRepScope = function (s) {
-      if (s === 'all' && finBoards().length < 2) return;
+      if (s === 'linked') { let lk = []; try { lk = finLinkedBoards(finTarget(), null); } catch (e) {} if (!lk.length) return; }
       scope = s;
-      byId('finRepOne').classList.toggle('on', s === 'one'); byId('finRepAll').classList.toggle('on', s === 'all');
+      byId('finRepOne').classList.toggle('on', s === 'one'); byId('finRepAll').classList.toggle('on', s === 'linked');
       finRepRender();
     };
     /* ---------- PDF dentro da lousa: pré-visualizar, baixar e compartilhar (sem abrir a impressora) ---------- */
