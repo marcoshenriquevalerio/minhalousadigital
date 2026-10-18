@@ -1508,7 +1508,7 @@
           <div id="finRepCharts" class="flex flex-wrap gap-1.5"></div>
           <div class="fin-rep-sub"><span>Tabela</span></div>
           <div id="finRepTable" class="flex flex-wrap gap-1.5"></div>
-          <div class="fin-rep-sub"><span>Tabela de crédito <span class="font-normal opacity-70">(pagas e/ou pendentes)</span></span></div>
+          <div class="fin-rep-sub"><span>Tabela de parcelados <span class="font-normal opacity-70">(pagas e/ou pendentes)</span></span></div>
           <div id="finRepCredit" class="flex flex-wrap gap-1.5"></div>
         </div>
         <details class="fin-rep-sec fin-rep-det">
@@ -6278,7 +6278,8 @@
     const FIN_MODS = [['din', 'Dinheiro'], ['pix', 'Pix'], ['deb', 'Débito'], ['cred', 'Crédito']];
     const FIN_MOD_COLOR = { din: 'green', pix: 'blue', deb: 'yellow', cred: 'pink' };
     const FIN_MOD_ICON = { din: '💵', pix: '⚡', deb: '💳', cred: '💳' };
-    function finIsCredit(r) { return !!r && r.mod === 'cred'; }
+    /* "parcelado": qualquer modalidade com mais de 1 parcela (nome mantido por causa do código antigo) */
+    function finIsCredit(r) { return !!r && (parseInt(r.parc, 10) || 0) > 1; }
     function finSplitCents(total, n) {
       const base = Math.floor(total / n), out = [];
       for (let i = 0; i < n; i++) out.push(base);
@@ -7744,7 +7745,7 @@ void main(){
         <div data-cell="desc" data-ink><input type="text" list="finDescList" class="fin-in" value="${escapeHtml(r.desc || '')}" placeholder="Descrição..." onchange="finSetField('${r.id}','desc',this)"></div>
         <div data-cell="val" data-ink><input type="text" inputmode="decimal" class="fin-in fin-val" value="${r.value ? 'R$ ' + finFmtNum(r.value) : ''}" placeholder="R$ 0,00"
              onfocus="this.select()" oninput="finLiveValue('${r.id}', this)" onchange="finCommitValue('${r.id}', this)" onkeydown="finValKey(event,'${r.id}')"></div>
-        <div data-cell="parc" data-ink>${cred ? `<input type="number" min="1" max="60" step="1" class="fin-in fin-parc" value="${Math.max(1, parseInt(r.parc, 10) || 1)}" onfocus="this.select()" onchange="finSetParc('${r.id}',this)" title="Quantidade de parcelas">` : `<span class="fin-parc0" title="Só o Crédito pode ser parcelado">0</span>`}</div>${note && note.obs ? `
+        <div data-cell="parc" data-ink><input type="number" min="0" max="60" step="1" class="fin-in fin-parc" ${cred ? '' : 'style="opacity:.5"'} value="${Math.max(0, parseInt(r.parc, 10) || 0)}" onfocus="this.select()" onchange="finSetParc('${r.id}',this)" title="Quantidade de parcelas (acima de 1 vira parcelado)"></div>${note && note.obs ? `
         <div data-cell="obs" data-ink><input type="text" class="fin-in" value="${escapeHtml(r.obs || '')}" placeholder="Obs..." onchange="finSetField('${r.id}','obs',this)"></div>` : ''}
         <button class="item-remove chalk-del" onclick="finDeleteRow('${r.id}')" title="Excluir lançamento"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>`;
@@ -8018,19 +8019,16 @@ void main(){
     }
     function finSetMod(id, el) {
       const r = finRow(id); if (!r) return;
-      const nv = el.value;
-      if (finIsCredit(r) && nv !== 'cred' && finPlanTouched(r) && !confirm('Esta linha tem parcelas pagas ou ajustadas. Mudar a modalidade apaga o parcelamento. Continuar?')) { el.value = 'cred'; return; }
-      r.mod = nv; r.plan = null;
-      if (nv === 'cred') { r.parc = Math.max(1, parseInt(r.parc, 10) || 1); r.done = false; } else r.parc = 0;
-      finDropMasks(['fintable', 'fincards']);
+      r.mod = el.value;   // a modalidade não altera as parcelas: elas dependem só da quantidade (>1)
       saveData(); finRefreshAll();
     }
     function finSetParc(id, el) {
-      const r = finRow(id); if (!r || !finIsCredit(r)) return;
-      const n = Math.max(1, Math.min(60, parseInt(el.value, 10) || 1));
-      if (n !== r.parc && finPlanTouched(r) && !confirm('Esta linha tem parcelas pagas ou ajustadas. Mudar a quantidade refaz o parcelamento do zero. Continuar?')) { el.value = r.parc; return; }
-      if (n !== r.parc) r.plan = null;
+      const r = finRow(id); if (!r) return;
+      const old = parseInt(r.parc, 10) || 0, n = Math.max(0, Math.min(60, parseInt(el.value, 10) || 0));
+      if (n !== old && finPlanTouched(r) && !confirm('Esta linha tem parcelas pagas ou ajustadas. Mudar a quantidade refaz o parcelamento do zero. Continuar?')) { el.value = old; return; }
+      if (n !== old) r.plan = null;
       r.parc = n; el.value = n;
+      finDropMasks(['fintable', 'fincards']);
       saveData(); finRefreshAll();
     }
 
@@ -13919,17 +13917,17 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
             const pays = (q.paid && q.pays && q.pays.length) ? q.pays.map(y => dateBR(y.date).slice(0, 5) + ' · ' + finBRL(y.value)).join('  |  ') : (q.paid ? dateBR(q.date) : '—');
             return `<tr><td class="pg">${q.n}/${n}</td><td class="d">${dateBR(q.date)}</td><td><span class="st ${q.paid ? 'ok' : 'pe'}">${q.paid ? (inn ? 'Recebida' : 'Paga') : 'Pendente'}</span></td><td class="ds">${esc(pays)}</td><td class="v" style="color:${col}">${finBRL(q.value || 0)}</td></tr>`;
           }).join('');
-          const ttl = esc(finCleanDest(r.desc) || finCleanDest(r.dest) || 'Compra no crédito');
+          const ttl = esc(finCleanDest(r.desc) || finCleanDest(r.dest) || 'Compra parcelada');
           blocks.push(`<div class="crb"><div class="crh"><div><b>${ttl}</b><small>${esc(finCleanDest(r.dest) || 'Sem destino')} · compra em ${dateBR(r.date)} · total ${finBRL(r.value || 0)} · ${n}x${multi ? ' · ' + esc(s.b.name || 'Finanças') : ''}</small></div><div class="pl">${st.paid ? `<span class="ok">${inn ? 'Recebido' : 'Pago'} ${finBRL(sp / 100)}</span>` : ''}${st.pend ? `<span class="pe">Pendente ${finBRL(sd / 100)}</span>` : ''}</div></div>` +
             `<table class="tb"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Situação</th><th>Pagamentos</th><th class="v">Valor</th></tr></thead><tbody>${rowsH}</tbody></table></div>`);
         }));
         const lbl = st.paid && st.pend ? 'pagas e pendentes' : st.paid ? 'só pagas' : st.pend ? 'só pendentes' : '';
         if (blocks.length) {
           const box = (l, v, c) => `<div><small>${l}</small><b style="color:${c}">${money(v)}</b></div>`;
-          credit = `<div class="sec"><span>CRÉDITO</span><b>${pl(nBuys, 'compra', 'compras')} · ${lbl}</b></div>` + blocks.join('') +
+          credit = `<div class="sec"><span>PARCELADOS</span><b>${pl(nBuys, 'compra', 'compras')} · ${lbl}</b></div>` + blocks.join('') +
             `<div class="tot">${st.paid ? box('PAGO', tPaid, C.in) : ''}${st.pend ? box('PENDENTE', tPend, C.warn) : ''}${st.paid && st.pend ? box('TOTAL', tPaid + tPend, C.bal) : ''}</div>`;
         } else if (st.paid || st.pend) {
-          credit = `<div class="sec"><span>CRÉDITO</span><b>${lbl}</b></div><div class="empty">${(OPT.pred ? 'Nenhuma parcela de crédito com esses filtros.' : 'Nenhuma compra no crédito ainda.')}</div>`;
+          credit = `<div class="sec"><span>PARCELADOS</span><b>${lbl}</b></div><div class="empty">${(OPT.pred ? 'Nenhuma parcela com esses filtros.' : 'Nenhuma compra parcelada ainda.')}</div>`;
         }
       }
       /* 3) gráficos */
@@ -13996,8 +13994,8 @@ h1{font-size:28px;line-height:1.1;margin:6px 0 6px;font-weight:700;color:#14291f
         : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado a esta lousa.</span>';
       byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos', RS.table);
       byId('finRepCredit').innerHTML = nCred
-        ? chip('credit', 'credit', 'Tabela de crédito', RS.credit) + chip('cstat', 'paid', 'Parcelas pagas', RS.cstat.paid) + chip('cstat', 'pend', 'Parcelas pendentes', RS.cstat.pend)
-        : '<span class="text-xs text-stone-500">Nenhuma compra no crédito nesta lousa.</span>';
+        ? chip('credit', 'credit', 'Tabela de parcelados', RS.credit) + chip('cstat', 'paid', 'Parcelas pagas', RS.cstat.paid) + chip('cstat', 'pend', 'Parcelas pendentes', RS.cstat.pend)
+        : '<span class="text-xs text-stone-500">Nenhuma compra parcelada nesta lousa.</span>';
       byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
       byId('finRepFCats').innerHTML = chip('cats', 'in', 'Entradas', RS.f.cats.in) + chip('cats', 'out', 'Saídas', RS.f.cats.out) + chip('cats', 'inv', 'Investimentos', RS.f.cats.inv);
       byId('finRepFDescs').innerHTML = AV.descs.map(x => chip('descs', x.k, x.l, RS.f.descs[x.k])).join('');
