@@ -1491,36 +1491,13 @@
       </div>
       <div class="p-5 space-y-3 overflow-y-auto" style="min-height:0">
         <div class="fin-rep-sec">
-          <div class="fin-rep-h"><b>1 · Dados do relatório</b></div>
+          <div class="fin-rep-h"><b>Qual relatório?</b></div>
           <div class="grid sm:grid-cols-2 gap-2">
             <button id="finRepOne" class="fin-rep-opt on" onclick="finRepScope('one')"></button>
-            <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('linked')"></button>
+            <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
           </div>
         </div>
-        <div class="fin-rep-sec">
-          <div class="fin-rep-h"><b>2 · O que incluir</b></div>
-          <div class="fin-rep-sub"><span>Resumo geral</span><span class="fin-rep-act"><button onclick="finRepAllToggle('kpis',true)">todos</button> · <button onclick="finRepAllToggle('kpis',false)">nenhum</button></span></div>
-          <div id="finRepKpis" class="flex flex-wrap gap-1.5"></div>
-          <div class="fin-rep-sub"><span>Cards da lousa</span><span class="fin-rep-act"><button onclick="finRepAllToggle('cards',true)">todos</button> · <button onclick="finRepAllToggle('cards',false)">nenhum</button></span></div>
-          <div id="finRepCards" class="flex flex-wrap gap-1.5"></div>
-          <div style="display:none"><div id="finRepPanels"></div></div>
-          <div class="fin-rep-sub"><span>Gráficos</span><span class="fin-rep-act"><button onclick="finRepAllToggle('charts',true)">todos</button> · <button onclick="finRepAllToggle('charts',false)">nenhum</button></span></div>
-          <div id="finRepCharts" class="flex flex-wrap gap-1.5"></div>
-          <div class="fin-rep-sub"><span>Tabela</span></div>
-          <div id="finRepTable" class="flex flex-wrap gap-1.5"></div>
-          <div class="fin-rep-sub"><span>Tabela de parcelados <span class="font-normal opacity-70">(pagas e/ou pendentes)</span></span></div>
-          <div id="finRepCredit" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <details class="fin-rep-sec fin-rep-det">
-          <summary class="fin-rep-h"><b>3 · Filtros <span class="normal-case font-normal opacity-70">(opcional — nada marcado = tudo)</span></b><button class="fin-rep-act" onclick="event.preventDefault();finRepClear()">limpar</button></summary>
-          <div class="space-y-3 mt-2">
-            <div><div class="fin-rep-sub" style="margin-top:0"><span>Mês</span></div><div id="finRepFMonths" class="flex flex-wrap gap-1.5"></div></div>
-            <div><div class="fin-rep-sub" style="margin-top:0"><span>Categoria</span></div><div id="finRepFCats" class="flex flex-wrap gap-1.5"></div></div>
-            <div id="finRepFDescsBox"><div class="fin-rep-sub" style="margin-top:0"><span>Descrição</span></div><div id="finRepFDescs" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
-            <div><div class="fin-rep-sub" style="margin-top:0"><span>Destino</span></div><div id="finRepFDests" class="flex flex-wrap gap-1.5 overflow-y-auto" style="max-height:96px"></div></div>
-            <p class="text-[11px] text-stone-400 leading-snug">Os filtros valem para cards, gráficos e tabela. Na janela que abrir, escolha <b>Salvar como PDF</b>.</p>
-          </div>
-        </details>
+        <p class="text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa: resumo, tabela de lançamentos, parcelados e gráficos. Na tela seguinte, baixe ou compartilhe o PDF.</p>
       </div>
       <div class="flex items-center justify-between gap-2.5 px-5 py-3 border-t border-stone-600">
         <span id="finRepCount" class="text-[12px] text-stone-300"></span>
@@ -13880,72 +13857,80 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
 .cg{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 20px;margin-top:6px}
 .mc{position:relative;padding:2px 0 2px 12px;border-left:2px solid var(--c)}.mc i{display:none}
 .mc small{display:block;font-size:8.5px;letter-spacing:1.5px;color:#94a3b8;font-weight:600}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:#0f172a;white-space:nowrap;letter-spacing:-.4px}.mc em{display:block;font-style:normal;font-size:10px;color:#94a3b8}.mc u{display:block;text-decoration:none;font-size:9px;color:#cbd5e1;margin-top:2px}
+.tb.cap{border-collapse:separate;border-spacing:0 3px;font-size:10.5px}
+.tb.cap th{border-bottom:0;padding:0 9px 3px;font-size:8px}
+.tb.cap td{height:25px;padding:0 9px;border-bottom:0;background:#f6f8fa}
+.tb.cap td:first-child{border-radius:99px 0 0 99px;padding-left:10px}.tb.cap td:last-child{border-radius:0 99px 99px 0;padding-right:14px}
+.tb.cap th:first-child{padding-left:10px}.tb.cap th:last-child{padding-right:14px}
+.tb .c{text-align:center}
+.pill{display:inline-block;padding:0 8px;border-radius:99px;font-size:9px;font-weight:600;line-height:16px;white-space:nowrap;background:#e9edf1;color:#475569}
+.pill.ok,.pill.in{background:#dcfce7;color:#15803d}.pill.out{background:#ffe4e6;color:#be123c}.pill.iv{background:#ede9fe;color:#6d28d9}.pill.pe{background:#fef3c7;color:#b45309}.pill.pa{background:#e0ecff;color:#1d4ed8}
+.tot div{padding-top:0}
 @media print{.bar{display:none}.page{margin:0;box-shadow:none;min-height:0;padding:0 40px}html,body{background:#fff}}`;
 
     function buildReport(scope, auto, opt) {
-      OPT = Object.assign(defOpts(), opt || {});
-      OPT.pred = mkFilter(OPT.f); OPT.scope = scope;
-      window.finRepFilter = OPT.pred;   // gráficos (e lousas ligadas) respeitam os mesmos filtros
-      window.finRepNoLink = scope === 'one';   // "sem ligação": só os dados desta lousa
-      try { return buildReportInner(scope, auto); } finally { window.finRepFilter = null; window.finRepNoLink = false; OPT = null; }
+      OPT = defOpts(); OPT.scope = scope; OPT.pred = null;
+      window.finRepFilter = null; window.finRepNoLink = false;   // gráficos e cards iguais aos da tela
+      try { return buildReportInner(scope, auto); } finally { OPT = null; }
     }
     function buildReportInner(scope, auto) {
-      const boards = scope === 'all' ? finBoards() : [finTarget()];
-      const list = boards.filter(Boolean).map(statsOf), multi = list.length > 1;
-      const all = [].concat(...list.map(s => s.rows)), t = finTotals(all);
-      const fl = filtersTxt().slice(0, 140), dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt();
-      const name = multi ? 'Todas as lousas de finanças' : (list[0] && list[0].b.name || 'Finanças');
-      /* 1) cards */
-      let cards;
-      const cp = [];
-      list.forEach(s => cardPages(s).forEach(p => cp.push(p.html.replace(/^<div class="sec">.*?<\/div>/, ''))));
-      const cg = cp.length ? cp.map(h => h.replace(/^<div class="cg">/, '').replace(/<\/div>$/, '')).join('') : '';
-      cards = kpis(t, all.length) + (cg ? `<div class="cg">${cg}</div>` : '');
-      /* 2) tabela única (junta as lousas) */
-      let table = '';
-      if (OPT.table) {
-        const rows = [];
-        list.forEach(s => s.rows.forEach(r => { if (OPT.credit && finIsCredit(r)) return; rows.push({ r, b: s.b.name || 'Finanças' }); }));   // crédito tem tabela própria
-        rows.sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
-        const tr = x => { const r = x.r, inn = r.cat === 'in', col = inn ? C.in : C.out;
-          return `<tr><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="st ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span></td><td style="color:${col}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</td><td class="d">${modTxt(r)}</td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td>${hasObs ? `<td class="ds">${r.obs ? esc(r.obs) : ''}</td>` : ''}<td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0).replace('-', '')}</td></tr>`; };
-        const hasObs = rows.some(x => x.r.obs);
-        const bal = t.in - t.out;
-        table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
-          ? `<table class="tb"><thead><tr><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Situação</th><th>Tipo</th><th>Modalidade</th><th>Destino</th><th>Descrição</th>${hasObs ? '<th>Obs</th>' : ''}<th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>`
-          : `<div class="empty">${OPT.pred ? 'Nenhum lançamento com esses filtros.' : 'Nenhum lançamento ainda.'}</div>`);
+      const multi = scope === 'all';
+      const boards = (multi ? finBoards() : [finTarget()]).filter(Boolean);
+      const per = boards.map(b => { const raw = finData(b).rows.filter(r => !finIsBlank(r)), exp = finExpand(raw); return { b, raw, exp, t: finTotals(exp), cred: raw.filter(r => finIsCredit(r) && r.value > 0) }; });
+      const allRaw = [].concat(...per.map(p => p.raw.map(r => ({ r, b: p.b.name || 'Finanças' })))), allExp = [].concat(...per.map(p => p.exp)), t = finTotals(allExp);
+      const dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt();
+      const name = multi ? 'Visão geral' : (per[0] && per[0].b.name || 'Finanças');
+      const bal = t.in - t.out;
+      /* 1) resumo: em "esta lousa" são os próprios cards da lousa (iguais à tela); sem cards, os totais da lousa */
+      let summary = '';
+      if (!multi && per[0]) {
+        const cp = cardPages({ b: per[0].b, cards: cardsOf(per[0].b) }).map(p => p.html.replace(/^<div class="sec">.*?<\/div>/, '').replace(/^<div class="cg">/, '').replace(/<\/div>$/, '')).join('');
+        summary = cp ? `<div class="cg">${cp}</div>` : '';
       }
-      /* 2b) tabela exclusiva do crédito: parcelas pagas e/ou pendentes, uma tabela por compra */
-      let credit = '';
-      if (OPT.credit) {
-        const st = OPT.cstat || { paid: true, pend: true }, blocks = [];
-        let tPaid = 0, tPend = 0, nBuys = 0;
-        list.forEach(s => (s.cred || []).forEach(r => {
-          const inn = r.cat === 'in', col = inn ? C.in : C.out, plan = finPlanOf(r), n = plan.length;
-          const items = plan.filter(q => (q.paid ? st.paid : st.pend) && (!OPT.pred || OPT.pred(Object.assign({}, r, { date: q.date, value: q.value, done: !!q.paid }))));
-          if (!items.length) return;
-          let sp = 0, sd = 0;
-          items.forEach(q => { const c = Math.round((q.value || 0) * 100); if (q.paid) sp += c; else sd += c; });
-          tPaid += sp; tPend += sd; nBuys++;
-          const rowsH = items.map(q => {
-            const pays = (q.paid && q.pays && q.pays.length) ? q.pays.map(y => dateBR(y.date).slice(0, 5) + ' · ' + finBRL(y.value)).join('  |  ') : (q.paid ? dateBR(q.date) : '—');
-            return `<tr><td class="pg">${q.n}/${n}</td><td class="d">${dateBR(q.date)}</td><td><span class="st ${q.paid ? 'ok' : 'pe'}">${q.paid ? (inn ? 'Recebida' : 'Paga') : 'Pendente'}</span></td><td class="ds">${esc(pays)}</td><td class="v" style="color:${col}">${finBRL(q.value || 0)}</td></tr>`;
-          }).join('');
-          const ttl = esc(finCleanDest(r.desc) || finCleanDest(r.dest) || 'Compra parcelada');
-          blocks.push(`<div class="crb"><div class="crh"><div><b>${ttl}</b><small>${esc(finCleanDest(r.dest) || 'Sem destino')} · compra em ${dateBR(r.date)} · total ${finBRL(r.value || 0)} · ${n}x${multi ? ' · ' + esc(s.b.name || 'Finanças') : ''}</small></div><div class="pl">${st.paid ? `<span class="ok">${inn ? 'Recebido' : 'Pago'} ${finBRL(sp / 100)}</span>` : ''}${st.pend ? `<span class="pe">Pendente ${finBRL(sd / 100)}</span>` : ''}</div></div>` + `<div class="pbar"><u style="width:${(sp + sd) ? Math.round(sp * 100 / (sp + sd)) : 0}%"></u></div>` +
-            `<table class="tb"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Situação</th><th>Pagamentos</th><th class="v">Valor</th></tr></thead><tbody>${rowsH}</tbody></table></div>`);
-        }));
-        const lbl = st.paid && st.pend ? 'pagas e pendentes' : st.paid ? 'só pagas' : st.pend ? 'só pendentes' : '';
-        if (blocks.length) {
-          const box = (l, v, c) => `<div><small>${l}</small><b style="color:${c}">${money(v)}</b></div>`;
-          credit = `<div class="sec"><span>PARCELADOS</span><b>${pl(nBuys, 'compra', 'compras')} · ${lbl}</b></div>` + blocks.join('') +
-            `<div class="tot">${st.paid ? box('PAGO', tPaid, C.in) : ''}${st.pend ? box('PENDENTE', tPend, C.warn) : ''}${st.paid && st.pend ? box('TOTAL', tPaid + tPend, C.bal) : ''}</div>`;
-        } else if (st.paid || st.pend) {
-          credit = `<div class="sec"><span>PARCELADOS</span><b>${lbl}</b></div><div class="empty">${(OPT.pred ? 'Nenhuma parcela com esses filtros.' : 'Nenhuma compra parcelada ainda.')}</div>`;
-        }
+      if (!summary) { OPT.kpis = ['in', 'out', 'bal', 'pin', 'pout', 'fc'].concat(t.inv ? ['inv'] : []); summary = kpis(t, allExp.length); }
+      /* 2) comparativo por lousa (só no geral) */
+      let compare = '';
+      if (multi && per.length > 1) {
+        const cell = (v, c) => `<td class="v" style="color:${c}">${money(v)}</td>`;
+        compare = `<div class="sec"><span>POR LOUSA</span><b>${pl(per.length, 'lousa', 'lousas')}</b></div><table class="tb cap"><thead><tr><th>Lousa</th><th class="v">Lançamentos</th><th class="v">Entradas</th><th class="v">Saídas</th><th class="v">Saldo</th><th class="v">A receber</th><th class="v">A pagar</th></tr></thead><tbody>` +
+          per.map(p => { const b = p.t.in - p.t.out; return `<tr><td class="pg">${esc(p.b.name || 'Finanças')}</td><td class="v">${p.raw.length}</td>${cell(p.t.in, C.in)}${cell(p.t.out, C.out)}${cell(b, b < 0 ? C.out : C.bal)}${cell(p.t.pin, C.warn)}${cell(p.t.pout, C.warn)}</tr>`; }).join('') + `</tbody></table>`;
       }
-      /* 3) gráficos */
-      const cl = [].concat(...list.map(s => s.charts));
+      /* 3) tabela de lançamentos: uma linha por lançamento, igual à lousa */
+      const rows = allRaw.slice().sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
+      const hasObs = rows.some(x => x.r.obs);
+      const tr = x => {
+        const r = x.r, inn = r.cat === 'in', col = inn ? C.in : (r.cat === 'inv' ? C.vio : C.out);
+        let st;
+        if (finIsCredit(r) && r.value > 0) { const pn = finPlanOf(r), pd = pn.filter(q => q.paid).length; st = pd >= pn.length ? `<span class="pill ok">${inn ? 'Recebido' : 'Pago'}</span>` : `<span class="pill ${pd ? 'pa' : 'pe'}">${pd}/${pn.length} ${inn ? 'recebidas' : 'pagas'}</span>`; }
+        else st = `<span class="pill ${r.done ? 'ok' : 'pe'}">${r.done ? (inn ? 'Recebido' : 'Pago') : 'Pendente'}</span>`;
+        const np = +r.parc > 1 ? r.parc : 0;
+        return `<tr><td>${st}</td><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="pill ${inn ? 'in' : (r.cat === 'inv' ? 'iv' : 'out')}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</span></td><td><span class="pill">${modTxt(r)}</span></td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td>${hasObs ? `<td class="ds">${r.obs ? esc(r.obs) : ''}</td>` : ''}<td class="d c">${np ? np + 'x' : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0)}</td></tr>`;
+      };
+      const tile = (l, v, c) => `<div><small>${l}</small><b style="color:${c}">${money(v)}</b></div>`;
+      const tiles = [['RECEBIDO', t.in, C.in], ['A RECEBER', t.pin, C.warn], ['PAGO', t.out, C.out], ['A PAGAR', t.pout, C.warn]].filter(x => x[1]);
+      const table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
+        ? `<table class="tb cap"><thead><tr><th>Situação</th><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Categoria</th><th>Modalidade</th><th>Destino</th><th>Descrição</th>${hasObs ? '<th>Obs</th>' : ''}<th class="c">Parc.</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>` +
+          (tiles.length ? `<div class="tot" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(x => tile(x[0], x[1], x[2])).join('')}</div>` : '')
+        : `<div class="empty">Nenhum lançamento ainda.</div>`);
+      /* 4) parcelados: todas as parcelas, pagas e pendentes */
+      let credit = '', tPaid = 0, tPend = 0, nBuys = 0; const blocks = [];
+      per.forEach(p => p.cred.forEach(r => {
+        const inn = r.cat === 'in', col = inn ? C.in : C.out, plan = finPlanOf(r), n = plan.length;
+        let sp = 0, sd = 0; plan.forEach(q => { const c = Math.round((q.value || 0) * 100); if (q.paid) sp += c; else sd += c; });
+        tPaid += sp; tPend += sd; nBuys++;
+        const rowsH = plan.map(q => {
+          const pays = (q.paid && q.pays && q.pays.length) ? q.pays.map(y => dateBR(y.date).slice(0, 5) + ' · ' + finBRL(y.value)).join('  |  ') : (q.paid ? dateBR(q.date) : '—');
+          return `<tr><td class="pg">${q.n}/${n}</td><td class="d">${dateBR(q.date)}</td><td><span class="pill ${q.paid ? 'ok' : 'pe'}">${q.paid ? (inn ? 'Recebida' : 'Paga') : 'Pendente'}</span></td><td class="ds">${esc(pays)}</td><td class="v" style="color:${col}">${finBRL(q.value || 0)}</td></tr>`;
+        }).join('');
+        const ttl = esc(finCleanDest(r.desc) || finCleanDest(r.dest) || 'Compra parcelada');
+        blocks.push(`<div class="crb"><div class="crh"><div><b>${ttl}</b><small>${esc(finCleanDest(r.dest) || 'Sem destino')} · ${modTxt(r)} · ${dateBR(r.date)} · total ${finBRL(r.value || 0)} · ${n}x${multi ? ' · ' + esc(p.b.name || 'Finanças') : ''}</small></div><div class="pl"><span class="ok">${inn ? 'Recebido' : 'Pago'} ${finBRL(sp / 100)}</span><span class="pe">Pendente ${finBRL(sd / 100)}</span></div></div>` +
+          `<div class="pbar"><u style="width:${(sp + sd) ? Math.round(sp * 100 / (sp + sd)) : 0}%"></u></div>` +
+          `<table class="tb cap"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Situação</th><th>Pagamentos</th><th class="v">Valor</th></tr></thead><tbody>${rowsH}</tbody></table></div>`);
+      }));
+      if (blocks.length) credit = `<div class="sec"><span>PARCELADOS</span><b>${pl(nBuys, 'compra', 'compras')}</b></div>` + blocks.join('') +
+        `<div class="tot">${tile('PAGO', tPaid, C.in)}${tile('PENDENTE', tPend, C.warn)}${tile('TOTAL', tPaid + tPend, C.bal)}</div>`;
+      /* 5) gráficos da(s) lousa(s), como estão na tela */
+      const cl = [].concat(...per.map(p => chartsOf(p.b)));
       let charts = '';
       if (cl.length) {
         const items = [];
@@ -13958,8 +13943,8 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
           return `<div class="card"><div class="card-h"><b>${esc(chartTitle(n))}${esc(linkTxt(n))}</b></div><div class="chart">${chartSvg(n, W, H)}</div></div>`;
         }).join('') + `</div>`).join('');
       }
-      const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO</div><h1>${esc(name)}</h1><div class="sub">${periodTxt(all)} · ${pl(all.length, 'lançamento', 'lançamentos')}${fl ? ' · Filtros: ' + esc(fl) : ''}</div>` +
-        (cards ? `<div class="blk">${cards}</div>` : '') + (table ? `<div class="blk">${table}</div>` : '') + (credit ? `<div class="blk">${credit}</div>` : '') + (charts ? `<div class="blk">${charts}</div>` : '');
+      const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO · ${multi ? 'GERAL' : 'ESTA LOUSA'}</div><h1>${esc(name)}</h1><div class="sub">${pl(rows.length, 'lançamento', 'lançamentos')}${multi ? ' · ' + pl(per.length, 'lousa', 'lousas') : ''}${nBuys ? ' · ' + pl(nBuys, 'compra parcelada', 'compras parceladas') : ''}</div>` +
+        (summary ? `<div class="blk">${summary}</div>` : '') + (compare ? `<div class="blk">${compare}</div>` : '') + `<div class="blk">${table}</div>` + (credit ? `<div class="blk">${credit}</div>` : '') + (charts ? `<div class="blk">${charts}</div>` : '');
       const doc = `<section class="page"><header class="hd"><div class="hd-l"><div class="wm">Lousa Digital<svg class="scr" width="230" height="14" viewBox="0 0 260 14" aria-hidden="true"><path d="M3 9.5C34 4 66 11.5 104 6.5S178 3.5 220 7.5s30 1 37-1.5" fill="none" stroke="#f6c945" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.5C60 8.5 118 12 176 9" fill="none" stroke="#f6c945" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tag">Sua lousa de giz, feita para o futuro.</div></div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span><b>Lousa Digital</b></footer></section>`;
       const title = multi ? 'Relatório geral de finanças' : 'Relatório — ' + name;
       const tail = auto ? `<script>window.addEventListener('load',function(){var go=function(){setTimeout(function(){window.print()},350)};try{Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,2500)})]).then(go)}catch(e){go()}})<\/script>` : '';
@@ -13973,107 +13958,28 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
     let scope = 'one';
     const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
     /* seleção feita na janela (cards, painéis, gráficos da lousa, tabela e filtros) */
-    const RS = { kpis: {}, panels: {}, charts: {}, cards: {}, table: true, credit: true, cstat: { paid: true, pend: true }, f: { months: {}, cats: {}, descs: {}, dests: {} } };
-    KPI_DEFS.forEach(d => { RS.kpis[d[0]] = true; });
-    PANEL_DEFS.forEach(d => { RS.panels[d[0]] = true; });
-    let AV = { charts: [], cards: [], months: [], descs: [], dests: [], rows: [] };
-    const chip = (g, k, label, on) => `<button class="fsb ${on ? 'on' : ''}" data-g="${g}" data-k="${esc(k)}" onclick="finRepToggle(this)">${esc(label)}</button>`;
     const scopeBoards = () => scope === 'all' ? finBoards() : [finTarget()].filter(Boolean);
-    function finRepRender() {
-      const bs = scopeBoards();
-      let rows = [].concat(...bs.map(b => finData(b).rows.filter(r => !finIsBlank(r))));
-      if (scope === 'linked') bs.forEach(b => { try { finLinkedBoards(b, null).forEach(x => { rows = rows.concat(finData(x).rows.filter(r => !finIsBlank(r))); }); } catch (e) {} });
-      const nCred = rows.filter(r => finIsCredit(r) && r.value > 0).length;
-      rows = finExpand(rows);
-      const charts = [].concat(...bs.map(b => chartsOf(b).map(n => ({ n, b }))));
-      const cards = [].concat(...bs.map(b => cardsOf(b).map(n => ({ n, b }))));
-      const months = {}, descs = {}, dests = {};
-      rows.forEach(r => {
-        const m = (r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(m)) months[m] = 1;
-        const d = finNorm(r.desc); descs[d] = r.desc ? finCleanDest(r.desc) : 'Sem descrição';
-        const x = finNorm(r.dest); dests[x] = r.dest ? finCleanDest(r.dest) : 'Sem destino';
-      });
-      const byLabel = (a, b) => a.l.localeCompare(b.l, 'pt-BR');
-      AV = { rows, charts: charts.map(c => c.n), cards: cards.map(c => c.n), months: Object.keys(months).sort().reverse(),
-        descs: Object.keys(descs).map(k => ({ k, l: descs[k] })).sort(byLabel), dests: Object.keys(dests).map(k => ({ k, l: dests[k] })).sort(byLabel) };
-      charts.forEach(c => { if (RS.charts[c.n.id] === undefined) RS.charts[c.n.id] = true; });
-      cards.forEach(c => { if (RS.cards[c.n.id] === undefined) RS.cards[c.n.id] = true; });
-      byId('finRepCards').innerHTML = cards.length
-        ? cards.map(c => chip('cards', c.n.id, cardTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.cards[c.n.id])).join('')
-        : '<span class="text-xs text-stone-500">Nenhum card adicionado a esta lousa.</span>';
-      byId('finRepKpis').innerHTML = KPI_DEFS.map(d => chip('kpis', d[0], d[1], RS.kpis[d[0]])).join('');
-      byId('finRepPanels').innerHTML = PANEL_DEFS.filter(d => d[0] !== 'boards' || scope === 'all').map(d => chip('panels', d[0], d[1], RS.panels[d[0]])).join('');
-      byId('finRepCharts').innerHTML = charts.length
-        ? charts.map(c => chip('charts', c.n.id, chartTitle(c.n) + linkTxt(c.n) + (scope === 'all' ? ' · ' + (c.b.name || 'Finanças') : ''), RS.charts[c.n.id])).join('')
-        : '<span class="text-xs text-stone-500">Nenhum gráfico adicionado a esta lousa.</span>';
-      byId('finRepTable').innerHTML = chip('table', 'table', 'Tabela de lançamentos', RS.table);
-      byId('finRepCredit').innerHTML = nCred
-        ? chip('credit', 'credit', 'Tabela de parcelados', RS.credit) + chip('cstat', 'paid', 'Parcelas pagas', RS.cstat.paid) + chip('cstat', 'pend', 'Parcelas pendentes', RS.cstat.pend)
-        : '<span class="text-xs text-stone-500">Nenhuma compra parcelada nesta lousa.</span>';
-      byId('finRepFMonths').innerHTML = AV.months.length ? AV.months.map(m => chip('months', m, finMonthLong(m), RS.f.months[m])).join('') : '<span class="text-xs text-stone-500">Sem datas.</span>';
-      byId('finRepFCats').innerHTML = chip('cats', 'in', 'Entradas', RS.f.cats.in) + chip('cats', 'out', 'Saídas', RS.f.cats.out) + chip('cats', 'inv', 'Investimentos', RS.f.cats.inv);
-      byId('finRepFDescs').innerHTML = AV.descs.map(x => chip('descs', x.k, x.l, RS.f.descs[x.k])).join('');
-      const dbx = byId('finRepFDescsBox'); if (dbx) dbx.style.display = (finGroupBy() === 'desc' || AV.descs.length < 2) ? 'none' : '';
-      byId('finRepFDests').innerHTML = AV.dests.map(x => chip('dests', x.k, x.l, RS.f.dests[x.k])).join('');
-      finRepCount();
-    }
-    function collectOpts() {
-      const on = (map, list) => list.filter(k => map[k]);
-      return {
-        kpis: on(RS.kpis, KPI_DEFS.map(d => d[0])),
-        panels: [],
-        charts: AV.charts.filter(n => RS.charts[n.id]).map(n => n.id),
-        cards: AV.cards.filter(n => RS.cards[n.id]).map(n => n.id),
-        table: !!RS.table,
-        credit: !!RS.credit && (RS.cstat.paid || RS.cstat.pend),
-        cstat: { paid: !!RS.cstat.paid, pend: !!RS.cstat.pend },
-        f: { months: on(RS.f.months, AV.months), cats: on(RS.f.cats, ['in', 'out', 'inv']), descs: on(RS.f.descs, AV.descs.map(x => x.k)), dests: on(RS.f.dests, AV.dests.map(x => x.k)) }
-      };
-    }
+    const ownRows = b => finData(b).rows.filter(r => !finIsBlank(r));
     function finRepCount() {
-      const o = collectOpts(), pr = mkFilter(o.f), n = pr ? AV.rows.filter(pr).length : AV.rows.length, el = byId('finRepCount');
-      if (el) el.innerHTML = `<b>${pl(n, 'lançamento', 'lançamentos')}</b> ${pr ? 'depois dos filtros' : 'no relatório'} · ${pl(o.charts.length, 'gráfico', 'gráficos')} · ${pl(o.cards.length, 'card', 'cards')}`;
+      const el = byId('finRepCount'); if (!el) return;
+      const bs = scopeBoards(), n = bs.reduce((a, b) => a + ownRows(b).length, 0);
+      el.innerHTML = `<b>${pl(n, 'lançamento', 'lançamentos')}</b> no relatório`;
     }
-    window.finRepToggle = function (el) {
-      const g = el.dataset.g, k = el.dataset.k;
-      if (g === 'table') RS.table = !RS.table;
-      else if (g === 'credit') RS.credit = !RS.credit;
-      else if (RS[g]) RS[g][k] = !RS[g][k];
-      else if (RS.f[g]) RS.f[g][k] = !RS.f[g][k];
-      el.classList.toggle('on');
+    function finRepRender() {
+      const t = finTarget(), bs = finBoards();
+      const nOne = t ? ownRows(t).length : 0, nAll = bs.reduce((a, b) => a + ownRows(b).length, 0);
+      byId('finRepOne').innerHTML = `<b>Esta lousa</b><span>Só o que está em <i>${esc(t && t.name || 'Finanças')}</i> · ${pl(nOne, 'lançamento', 'lançamentos')}</span>`;
+      byId('finRepAll').innerHTML = `<b>Geral</b><span>Todas as lousas de finanças (${bs.length}) · ${pl(nAll, 'lançamento', 'lançamentos')}</span>`;
+      byId('finRepOne').classList.toggle('on', scope !== 'all'); byId('finRepAll').classList.toggle('on', scope === 'all');
       finRepCount();
-    };
-    window.finRepClear = function () {
-      RS.f = { months: {}, cats: {}, descs: {}, dests: {} };
-      finRepRender();
-    };
-    window.finRepAllToggle = function (g, on) {   // "marcar todos / nenhum" de cards, painéis e gráficos
-      if (g === 'charts' || g === 'cards') AV[g].forEach(n => { RS[g][n.id] = on; });
-      else Object.keys(RS[g]).forEach(k => { RS[g][k] = on; });
-      finRepRender();
-    };
+    }
+    function collectOpts() { return {}; }
     window.finOpenReport = function () {
-      const bs = finBoards(); if (!bs.length) return;
-      const t = finTarget(); let lk = [];
-      try { lk = finLinkedBoards(t, null); } catch (e) {}
-      const own = finExpand(finData(t).rows.filter(r => !finIsBlank(r))).length;
-      const lkRows = lk.reduce((a, x) => a + finExpand(finData(x).rows.filter(r => !finIsBlank(r))).length, 0);
-      byId('finRepOne').innerHTML = `<b>Lousa sem ligação</b><span>Só os dados de <i>${esc(t.name || 'Finanças')}</i> · ${pl(own, 'lançamento', 'lançamentos')}</span>`;
-      byId('finRepAll').innerHTML = lk.length
-        ? `<b>Lousa com ligação</b><span>${esc(t.name || 'Finanças')} + ${lk.map(x => esc(x.name || 'Finanças')).join(', ')} · ${pl(own + lkRows, 'lançamento', 'lançamentos')}</span>`
-        : `<b>Lousa com ligação</b><span>Esta lousa não está ligada a nenhuma outra</span>`;
-      if (scope === 'all' || !lk.length) scope = 'one';
-      byId('finRepOne').classList.toggle('on', scope === 'one'); byId('finRepAll').classList.toggle('on', scope === 'linked');
-      byId('finRepAll').classList.toggle('dis', !lk.length);
-      finRepRender();
-      openOv('finRepModal');
+      if (!finBoards().length) return;
+      if (scope !== 'all') scope = 'one';
+      finRepRender(); openOv('finRepModal');
     };
-    window.finRepScope = function (s) {
-      if (s === 'linked') { let lk = []; try { lk = finLinkedBoards(finTarget(), null); } catch (e) {} if (!lk.length) return; }
-      scope = s;
-      byId('finRepOne').classList.toggle('on', s === 'one'); byId('finRepAll').classList.toggle('on', s === 'linked');
-      finRepRender();
-    };
+    window.finRepScope = function (s) { scope = s === 'all' ? 'all' : 'one'; finRepRender(); };
     /* ---------- PDF dentro da lousa: pré-visualizar, baixar e compartilhar (sem abrir a impressora) ---------- */
     const H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
@@ -14171,9 +14077,6 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
 
     window.finRunReport = async function () {
       const o = collectOpts();
-      if (!o.kpis.length && !o.charts.length && !o.cards.length && !o.table) {
-        showCustomDialog({ title: 'Relatório', message: 'Marque pelo menos um card, painel, gráfico ou a tabela para o relatório.' }); return;
-      }
       let doc;
       try { doc = buildReport(scope, false, o); } catch (e) { console.error(e); showCustomDialog({ title: 'Relatório', message: 'Não foi possível montar o relatório agora.' }); return; }
       const tm = /<title>([\s\S]*?)<\/title>/.exec(doc), title = tm ? tm[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'") : 'Relatório de finanças';
