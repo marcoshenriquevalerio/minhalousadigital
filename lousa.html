@@ -13871,7 +13871,7 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
 .tb.cap td:first-child{border-radius:99px 0 0 99px;padding-left:10px}.tb.cap td:last-child{border-radius:0 99px 99px 0;padding-right:14px}
 .tb.cap th:first-child{padding-left:10px}.tb.cap th:last-child{padding-right:14px}
 .tb .c{text-align:center}
-.pill{display:block;width:max-content;text-align:center;padding:0 9px;height:16px;border-radius:99px;font-size:9px;font-weight:600;line-height:16px;white-space:nowrap;background:#e9edf1;color:#475569}
+.pill{display:block;width:max-content;text-align:center;padding:0 9px 4px;height:16px;border-radius:99px;font-size:9px;font-weight:600;line-height:12px;white-space:nowrap;background:#e9edf1;color:#475569}
 .pill.ok,.pill.in{background:#dcfce7;color:#15803d}.pill.out{background:#ffe4e6;color:#be123c}.pill.iv{background:#ede9fe;color:#6d28d9}.pill.pe{background:#fef3c7;color:#b45309}.pill.pa{background:#e0ecff;color:#1d4ed8}
 .tot div{padding-top:0}
 @media print{.bar{display:none}.page{margin:0;box-shadow:none;min-height:0;padding:0 40px}html,body{background:#fff}}`;
@@ -13905,7 +13905,8 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
           per.map(p => { const b = p.t.in - p.t.out; return `<tr><td class="pg">${esc(p.b.name || 'Finanças')}</td><td class="v">${p.raw.length}</td>${cell(p.t.in, C.in)}${cell(p.t.out, C.out)}${cell(b, b < 0 ? C.out : C.bal)}${cell(p.t.pin, C.warn)}${cell(p.t.pout, C.warn)}</tr>`; }).join('') + `</tbody></table>`;
       }
       /* 3) tabela de lançamentos: uma linha por lançamento, igual à lousa */
-      const rows = allRaw.slice().sort((a, c) => String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
+      const ord = r => r.cat === 'in' ? 0 : (r.cat === 'inv' ? 2 : 1);   // sempre entradas, depois saídas (investimentos por último)
+      const rows = allRaw.slice().sort((a, c) => ord(a.r) - ord(c.r) || String(a.r.date || '9999').localeCompare(String(c.r.date || '9999')));
       const hasObs = rows.some(x => x.r.obs);
       const tr = x => {
         const r = x.r, inn = r.cat === 'in', col = inn ? C.in : (r.cat === 'inv' ? C.vio : C.out);
