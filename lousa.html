@@ -13892,11 +13892,11 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
       const fl = (() => { if (!OPT.pred) return ''; const o = []; const c = Object.keys(RF.cats).filter(k => RF.cats[k]), m = Object.keys(RF.mods).filter(k => RF.mods[k]); if (c.length) o.push(c.map(k => k === 'in' ? 'Entradas' : k === 'inv' ? 'Investimentos' : 'Saídas').join(', ')); if (m.length) o.push(m.map(k => REP_MOD[k]).join(', ')); return o.join(' · '); })();
       /* 1) resumo: em "esta lousa" são os próprios cards da lousa (iguais à tela); sem cards, os totais da lousa */
       let summary = '';
-      if (!multi && per[0] && !OPT.pred) {
+      if (!multi && per[0]) {
         const cp = cardPages({ b: per[0].b, cards: cardsOf(per[0].b) }).map(p => p.html.replace(/^<div class="sec">.*?<\/div>/, '').replace(/^<div class="cg">/, '').replace(/<\/div>$/, '')).join('');
         summary = cp ? `<div class="cg">${cp}</div>` : '';
       }
-      if (!summary) { OPT.kpis = ['in', 'out', 'bal', 'pin', 'pout', 'fc'].concat(t.inv ? ['inv'] : []); summary = kpis(t, allExp.length); }
+      if (!summary) { OPT.kpis = ['in', 'out', 'bal']; summary = kpis(t, allExp.length); }
       /* 2) comparativo por lousa (só no geral) */
       let compare = '';
       if (multi && per.length > 1) {
@@ -13916,7 +13916,7 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
         return `<tr><td>${st}</td><td class="d">${dateBR(r.date)}</td>${multi ? `<td class="ds">${esc(x.b)}</td>` : ''}<td><span class="pill ${inn ? 'in' : (r.cat === 'inv' ? 'iv' : 'out')}">${r.cat === 'inv' ? 'Investimento' : inn ? 'Entrada' : 'Saída'}</span></td><td><span class="pill">${modTxt(r)}</span></td><td>${esc(finCleanDest(r.dest) || 'Sem destino')}</td><td class="ds">${r.desc ? esc(finCleanDest(r.desc)) : '—'}</td>${hasObs ? `<td class="ds">${r.obs ? esc(r.obs) : ''}</td>` : ''}<td class="d c">${np ? np + 'x' : '—'}</td><td class="v" style="color:${col}">${inn ? '+' : '−'} ${finBRL(r.value || 0)}</td></tr>`;
       };
       const tile = (l, v, c) => `<div><small>${l}</small><b style="color:${c}">${money(v)}</b></div>`;
-      const tiles = [['RECEBIDO', t.in, C.in], ['A RECEBER', t.pin, C.warn], ['PAGO', t.out, C.out], ['A PAGAR', t.pout, C.warn]].filter(x => x[1]);
+      const tiles = [];   // só o que está na lousa: sem totais extras
       const table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
         ? `<table class="tb cap"><thead><tr><th>Situação</th><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Categoria</th><th>Modalidade</th><th>Destino</th><th>Descrição</th>${hasObs ? '<th>Obs</th>' : ''}<th class="c">Parc.</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>` +
           (tiles.length ? `<div class="tot" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(x => tile(x[0], x[1], x[2])).join('')}</div>` : '')
