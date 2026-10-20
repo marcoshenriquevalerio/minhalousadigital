@@ -1497,7 +1497,15 @@
             <button id="finRepAll" class="fin-rep-opt" onclick="finRepScope('all')"></button>
           </div>
         </div>
-        <p class="text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa: resumo, tabela de lançamentos, parcelados e gráficos. Na tela seguinte, baixe ou compartilhe o PDF.</p>
+        <div class="fin-rep-sec">
+          <div class="fin-rep-h"><b>Filtrar <span class="normal-case font-normal opacity-70">(opcional — nada marcado = tudo)</span></b><button class="fin-rep-act" onclick="finRepClear()">limpar</button></div>
+          <div class="fin-rep-sub" style="margin-top:0"><span>Categoria</span></div>
+          <div id="finRepFCats" class="flex flex-wrap gap-1.5"></div>
+          <div class="fin-rep-sub"><span>Modalidade</span></div>
+          <div id="finRepFMods" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <p class="text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa (ou só o que passar pelo filtro): resumo, tabela de lançamentos, parcelados e gráficos. O filtro vale para todas as partes. Na tela seguinte, baixe ou compartilhe o PDF.</p>
+        <p class="hidden text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa: resumo, tabela de lançamentos, parcelados e gráficos. Na tela seguinte, baixe ou compartilhe o PDF.</p>
       </div>
       <div class="flex items-center justify-between gap-2.5 px-5 py-3 border-t border-stone-600">
         <span id="finRepCount" class="text-[12px] text-stone-300"></span>
@@ -13857,33 +13865,34 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
 .cg{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 20px;margin-top:6px}
 .mc{position:relative;padding:2px 0 2px 12px;border-left:2px solid var(--c)}.mc i{display:none}
 .mc small{display:block;font-size:8.5px;letter-spacing:1.5px;color:#94a3b8;font-weight:600}.mc b{display:block;font-size:17px;margin:4px 0 1px;color:#0f172a;white-space:nowrap;letter-spacing:-.4px}.mc em{display:block;font-style:normal;font-size:10px;color:#94a3b8}.mc u{display:block;text-decoration:none;font-size:9px;color:#cbd5e1;margin-top:2px}
-.tb.cap{border-collapse:separate;border-spacing:0 3px;font-size:10.5px}
+.tb.cap{border-collapse:collapse;font-size:10.5px}
 .tb.cap th{border-bottom:0;padding:0 9px 3px;font-size:8px}
-.tb.cap td{height:25px;padding:0 9px;border-bottom:0;background:#f6f8fa}
+.tb.cap td{height:26px;padding:0 9px;background:#f6f8fa;border-bottom:3px solid #fff;line-height:1;vertical-align:middle}
 .tb.cap td:first-child{border-radius:99px 0 0 99px;padding-left:10px}.tb.cap td:last-child{border-radius:0 99px 99px 0;padding-right:14px}
 .tb.cap th:first-child{padding-left:10px}.tb.cap th:last-child{padding-right:14px}
 .tb .c{text-align:center}
-.pill{display:inline-block;padding:0 8px;border-radius:99px;font-size:9px;font-weight:600;line-height:16px;white-space:nowrap;background:#e9edf1;color:#475569}
+.pill{display:block;width:max-content;text-align:center;padding:0 9px;height:16px;border-radius:99px;font-size:9px;font-weight:600;line-height:16px;white-space:nowrap;background:#e9edf1;color:#475569}
 .pill.ok,.pill.in{background:#dcfce7;color:#15803d}.pill.out{background:#ffe4e6;color:#be123c}.pill.iv{background:#ede9fe;color:#6d28d9}.pill.pe{background:#fef3c7;color:#b45309}.pill.pa{background:#e0ecff;color:#1d4ed8}
 .tot div{padding-top:0}
 @media print{.bar{display:none}.page{margin:0;box-shadow:none;min-height:0;padding:0 40px}html,body{background:#fff}}`;
 
     function buildReport(scope, auto, opt) {
-      OPT = defOpts(); OPT.scope = scope; OPT.pred = null;
-      window.finRepFilter = null; window.finRepNoLink = false;   // gráficos e cards iguais aos da tela
-      try { return buildReportInner(scope, auto); } finally { OPT = null; }
+      OPT = defOpts(); OPT.scope = scope; OPT.pred = repPred((opt && opt.f) || { cats: {}, mods: {} });
+      window.finRepFilter = OPT.pred; window.finRepNoLink = false;   // gráficos e cards iguais aos da tela (e ao filtro)
+      try { return buildReportInner(scope, auto); } finally { OPT = null; window.finRepFilter = null; }
     }
     function buildReportInner(scope, auto) {
       const multi = scope === 'all';
       const boards = (multi ? finBoards() : [finTarget()]).filter(Boolean);
-      const per = boards.map(b => { const raw = finData(b).rows.filter(r => !finIsBlank(r)), exp = finExpand(raw); return { b, raw, exp, t: finTotals(exp), cred: raw.filter(r => finIsCredit(r) && r.value > 0) }; });
+      const per = boards.map(b => { let raw = finData(b).rows.filter(r => !finIsBlank(r)); if (OPT.pred) raw = raw.filter(OPT.pred); const exp = finExpand(raw); return { b, raw, exp, t: finTotals(exp), cred: raw.filter(r => finIsCredit(r) && r.value > 0) }; });
       const allRaw = [].concat(...per.map(p => p.raw.map(r => ({ r, b: p.b.name || 'Finanças' })))), allExp = [].concat(...per.map(p => p.exp)), t = finTotals(allExp);
       const dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt();
       const name = multi ? 'Visão geral' : (per[0] && per[0].b.name || 'Finanças');
       const bal = t.in - t.out;
+      const fl = (() => { if (!OPT.pred) return ''; const o = []; const c = Object.keys(RF.cats).filter(k => RF.cats[k]), m = Object.keys(RF.mods).filter(k => RF.mods[k]); if (c.length) o.push(c.map(k => k === 'in' ? 'Entradas' : k === 'inv' ? 'Investimentos' : 'Saídas').join(', ')); if (m.length) o.push(m.map(k => REP_MOD[k]).join(', ')); return o.join(' · '); })();
       /* 1) resumo: em "esta lousa" são os próprios cards da lousa (iguais à tela); sem cards, os totais da lousa */
       let summary = '';
-      if (!multi && per[0]) {
+      if (!multi && per[0] && !OPT.pred) {
         const cp = cardPages({ b: per[0].b, cards: cardsOf(per[0].b) }).map(p => p.html.replace(/^<div class="sec">.*?<\/div>/, '').replace(/^<div class="cg">/, '').replace(/<\/div>$/, '')).join('');
         summary = cp ? `<div class="cg">${cp}</div>` : '';
       }
@@ -13911,7 +13920,7 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
       const table = `<div class="sec"><span>LANÇAMENTOS</span><b>${pl(rows.length, 'lançamento', 'lançamentos')}</b></div>` + (rows.length
         ? `<table class="tb cap"><thead><tr><th>Situação</th><th>Data</th>${multi ? '<th>Lousa</th>' : ''}<th>Categoria</th><th>Modalidade</th><th>Destino</th><th>Descrição</th>${hasObs ? '<th>Obs</th>' : ''}<th class="c">Parc.</th><th class="v">Valor</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>` +
           (tiles.length ? `<div class="tot" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(x => tile(x[0], x[1], x[2])).join('')}</div>` : '')
-        : `<div class="empty">Nenhum lançamento ainda.</div>`);
+        : `<div class="empty">${OPT.pred ? 'Nenhum lançamento com esse filtro.' : 'Nenhum lançamento ainda.'}</div>`);
       /* 4) parcelados: todas as parcelas, pagas e pendentes */
       let credit = '', tPaid = 0, tPend = 0, nBuys = 0; const blocks = [];
       per.forEach(p => p.cred.forEach(r => {
@@ -13943,7 +13952,7 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
           return `<div class="card"><div class="card-h"><b>${esc(chartTitle(n))}${esc(linkTxt(n))}</b></div><div class="chart">${chartSvg(n, W, H)}</div></div>`;
         }).join('') + `</div>`).join('');
       }
-      const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO · ${multi ? 'GERAL' : 'ESTA LOUSA'}</div><h1>${esc(name)}</h1><div class="sub">${pl(rows.length, 'lançamento', 'lançamentos')}${multi ? ' · ' + pl(per.length, 'lousa', 'lousas') : ''}${nBuys ? ' · ' + pl(nBuys, 'compra parcelada', 'compras parceladas') : ''}</div>` +
+      const body = `<div class="eyebrow">RELATÓRIO FINANCEIRO · ${multi ? 'GERAL' : 'ESTA LOUSA'}</div><h1>${esc(name)}</h1><div class="sub">${pl(rows.length, 'lançamento', 'lançamentos')}${multi ? ' · ' + pl(per.length, 'lousa', 'lousas') : ''}${nBuys ? ' · ' + pl(nBuys, 'compra parcelada', 'compras parceladas') : ''}${fl ? ' · Filtro: ' + esc(fl) : ''}</div>` +
         (summary ? `<div class="blk">${summary}</div>` : '') + (compare ? `<div class="blk">${compare}</div>` : '') + `<div class="blk">${table}</div>` + (credit ? `<div class="blk">${credit}</div>` : '') + (charts ? `<div class="blk">${charts}</div>` : '');
       const doc = `<section class="page"><header class="hd"><div class="hd-l"><div class="wm">Lousa Digital<svg class="scr" width="230" height="14" viewBox="0 0 260 14" aria-hidden="true"><path d="M3 9.5C34 4 66 11.5 104 6.5S178 3.5 220 7.5s30 1 37-1.5" fill="none" stroke="#f6c945" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.5C60 8.5 118 12 176 9" fill="none" stroke="#f6c945" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tag">Sua lousa de giz, feita para o futuro.</div></div><div class="hd-r">RELATÓRIO FINANCEIRO<span>${dt}</span></div></header><div class="bd">${body}</div><footer class="ft"><span>${esc(name)} · gerado em ${stamp}</span><b>Lousa Digital</b></footer></section>`;
       const title = multi ? 'Relatório geral de finanças' : 'Relatório — ' + name;
@@ -13958,12 +13967,21 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
     let scope = 'one';
     const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
     /* seleção feita na janela (cards, painéis, gráficos da lousa, tabela e filtros) */
+    const RF = { cats: {}, mods: {} };
+    const repPred = f => {
+      const c = Object.keys(f.cats).filter(k => f.cats[k]), m = Object.keys(f.mods).filter(k => f.mods[k]);
+      if (!c.length && !m.length) return null;
+      return r => (!c.length || c.indexOf(r.cat === 'in' ? 'in' : (r.cat === 'inv' ? 'inv' : 'out')) >= 0) && (!m.length || m.indexOf(r.mod || 'din') >= 0);
+    };
+    const repChip = (g, k, label) => `<button class="fsb ${RF[g][k] ? 'on' : ''}" data-g="${g}" data-k="${k}" onclick="finRepToggle(this)">${label}</button>`;
+    window.finRepToggle = function (el) { RF[el.dataset.g][el.dataset.k] = !RF[el.dataset.g][el.dataset.k]; el.classList.toggle('on'); finRepCount(); };
+    window.finRepClear = function () { RF.cats = {}; RF.mods = {}; finRepRender(); };
     const scopeBoards = () => scope === 'all' ? finBoards() : [finTarget()].filter(Boolean);
     const ownRows = b => finData(b).rows.filter(r => !finIsBlank(r));
     function finRepCount() {
       const el = byId('finRepCount'); if (!el) return;
-      const bs = scopeBoards(), n = bs.reduce((a, b) => a + ownRows(b).length, 0);
-      el.innerHTML = `<b>${pl(n, 'lançamento', 'lançamentos')}</b> no relatório`;
+      const bs = scopeBoards(), pr = repPred(RF), n = bs.reduce((a, b) => a + (pr ? ownRows(b).filter(pr).length : ownRows(b).length), 0);
+      el.innerHTML = `<b>${pl(n, 'lançamento', 'lançamentos')}</b> ${pr ? 'depois do filtro' : 'no relatório'}`;
     }
     function finRepRender() {
       const t = finTarget(), bs = finBoards();
@@ -13971,9 +13989,11 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
       byId('finRepOne').innerHTML = `<b>Esta lousa</b><span>Só o que está em <i>${esc(t && t.name || 'Finanças')}</i> · ${pl(nOne, 'lançamento', 'lançamentos')}</span>`;
       byId('finRepAll').innerHTML = `<b>Geral</b><span>Todas as lousas de finanças (${bs.length}) · ${pl(nAll, 'lançamento', 'lançamentos')}</span>`;
       byId('finRepOne').classList.toggle('on', scope !== 'all'); byId('finRepAll').classList.toggle('on', scope === 'all');
+      byId('finRepFCats').innerHTML = repChip('cats', 'in', 'Entradas') + repChip('cats', 'out', 'Saídas') + repChip('cats', 'inv', 'Investimentos');
+      byId('finRepFMods').innerHTML = FIN_MODS.map(m => repChip('mods', m[0], m[1])).join('');
       finRepCount();
     }
-    function collectOpts() { return {}; }
+    function collectOpts() { return { f: { cats: Object.assign({}, RF.cats), mods: Object.assign({}, RF.mods) } }; }
     window.finOpenReport = function () {
       if (!finBoards().length) return;
       if (scope !== 'all') scope = 'one';
