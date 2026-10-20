@@ -15,7 +15,7 @@
   <!-- Google Fonts: Patrick Hand, Caveat e Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     .font-chalk {
@@ -14032,6 +14032,8 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
     }
     async function makePdf(html) {
       await Promise.all([loadLib(H2C_URL, () => window.html2canvas), loadLib(JSPDF_URL, () => window.jspdf && window.jspdf.jsPDF)]);
+      /* o html2canvas desenha com as fontes DESTA página: sem elas o texto cai numa fonte reserva e fica fora do centro das pílulas */
+      try { await Promise.race([Promise.all(['400', '500', '600', '700'].map(w => document.fonts.load(w + ' 12px "Space Grotesk"')).concat([document.fonts.load('700 40px Caveat')])), new Promise(r => setTimeout(r, 4000))]); } catch (e) {}
       const f = document.createElement('iframe');
       f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
       f.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + PDF_W + 'px;height:1123px;border:0;pointer-events:none';
