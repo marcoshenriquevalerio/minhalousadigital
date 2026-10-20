@@ -720,6 +720,12 @@
     .fin-rep-sec { border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 12px 14px; background: rgba(255,255,255,.025); }
     .fin-rep-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .fin-rep-h b { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #fcd34d; }
+    .rep-q { width: 100%; padding: 5px 9px; margin-bottom: 5px; border-radius: 8px; border: 1px solid #57534e; background: #1c1917; color: #e7e5e4; font-size: 12px; outline: none; }
+    .rep-ck { max-height: 132px; overflow-y: auto; border: 1px solid #57534e; border-radius: 8px; padding: 3px 4px; background: rgba(0,0,0,.18); }
+    .rep-ck label { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; font-size: 12px; color: #e7e5e4; cursor: pointer; }
+    .rep-ck label:hover { background: rgba(255,255,255,.06); }
+    .rep-ck input { accent-color: #38bdf8; width: 14px; height: 14px; flex-shrink: 0; }
+    .rep-ck span.n { margin-left: auto; opacity: .5; font-size: 11px; }
     .fin-rep-sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: #d6d3d1; margin: 12px 0 6px; }
     .fin-rep-act, .fin-rep-act button { font-size: 11px; font-weight: 400; color: #7dd3fc; background: none; border: 0; cursor: pointer; text-decoration: underline; }
     .fin-rep-det > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
@@ -1503,6 +1509,12 @@
           <div id="finRepFCats" class="flex flex-wrap gap-1.5"></div>
           <div class="fin-rep-sub"><span>Modalidade</span></div>
           <div id="finRepFMods" class="flex flex-wrap gap-1.5"></div>
+          <div class="fin-rep-sub"><span>Destino</span><span class="fin-rep-act"><button onclick="finRepListAll('dests',true)">todos</button> · <button onclick="finRepListAll('dests',false)">nenhum</button></span></div>
+          <input id="finRepQDests" class="rep-q" placeholder="Buscar destino…" oninput="finRepLists()">
+          <div id="finRepFDests" class="rep-ck"></div>
+          <div class="fin-rep-sub"><span>Descrição</span><span class="fin-rep-act"><button onclick="finRepListAll('descs',true)">todas</button> · <button onclick="finRepListAll('descs',false)">nenhuma</button></span></div>
+          <input id="finRepQDescs" class="rep-q" placeholder="Buscar descrição…" oninput="finRepLists()">
+          <div id="finRepFDescs" class="rep-ck"></div>
         </div>
         <p class="text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa (ou só o que passar pelo filtro): resumo, tabela de lançamentos, parcelados e gráficos. O filtro vale para todas as partes. Na tela seguinte, baixe ou compartilhe o PDF.</p>
         <p class="hidden text-[12px] text-stone-400 leading-snug px-1">O relatório sai pronto, com tudo o que está na lousa: resumo, tabela de lançamentos, parcelados e gráficos. Na tela seguinte, baixe ou compartilhe o PDF.</p>
@@ -13877,7 +13889,7 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
 @media print{.bar{display:none}.page{margin:0;box-shadow:none;min-height:0;padding:0 40px}html,body{background:#fff}}`;
 
     function buildReport(scope, auto, opt) {
-      OPT = defOpts(); OPT.scope = scope; OPT.pred = repPred((opt && opt.f) || { cats: {}, mods: {} });
+      OPT = defOpts(); OPT.scope = scope; OPT.pred = repPred((opt && opt.f) || { cats: {}, mods: {}, dests: {}, descs: {} });
       window.finRepFilter = OPT.pred; window.finRepNoLink = false;   // gráficos e cards iguais aos da tela (e ao filtro)
       try { return buildReportInner(scope, auto); } finally { OPT = null; window.finRepFilter = null; }
     }
@@ -13889,7 +13901,10 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
       const dt = new Date().toLocaleDateString('pt-BR'), stamp = nowTxt();
       const name = multi ? 'Visão geral' : (per[0] && per[0].b.name || 'Finanças');
       const bal = t.in - t.out;
-      const fl = (() => { if (!OPT.pred) return ''; const o = []; const c = Object.keys(RF.cats).filter(k => RF.cats[k]), m = Object.keys(RF.mods).filter(k => RF.mods[k]); if (c.length) o.push(c.map(k => k === 'in' ? 'Entradas' : k === 'inv' ? 'Investimentos' : 'Saídas').join(', ')); if (m.length) o.push(m.map(k => REP_MOD[k]).join(', ')); return o.join(' · '); })();
+      const fl = (() => { if (!OPT.pred) return ''; const o = []; const c = Object.keys(RF.cats).filter(k => RF.cats[k]), m = Object.keys(RF.mods).filter(k => RF.mods[k]); if (c.length) o.push(c.map(k => k === 'in' ? 'Entradas' : k === 'inv' ? 'Investimentos' : 'Saídas').join(', ')); if (m.length) o.push(m.map(k => REP_MOD[k]).join(', '));
+        const lab = (g, arr) => { const ls = repSel(RF[g]).map(k => { const x = arr.find(y => y.k === k); return x ? x.l : k; }); return ls.length > 3 ? ls.slice(0, 3).join(', ') + ' +' + (ls.length - 3) : ls.join(', '); };
+        if (repSel(RF.dests).length) o.push('Destino: ' + lab('dests', REPAV.dests)); if (repSel(RF.descs).length) o.push('Descrição: ' + lab('descs', REPAV.descs));
+        return o.join(' · '); })();
       /* 1) resumo: em "esta lousa" são os próprios cards da lousa (iguais à tela); sem cards, os totais da lousa */
       let summary = '';
       if (!multi && per[0]) {
@@ -13968,15 +13983,31 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
     let scope = 'one';
     const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
     /* seleção feita na janela (cards, painéis, gráficos da lousa, tabela e filtros) */
-    const RF = { cats: {}, mods: {} };
+    const RF = { cats: {}, mods: {}, dests: {}, descs: {} };
+    const repSel = (o) => Object.keys(o || {}).filter(k => o[k]);
     const repPred = f => {
-      const c = Object.keys(f.cats).filter(k => f.cats[k]), m = Object.keys(f.mods).filter(k => f.mods[k]);
-      if (!c.length && !m.length) return null;
-      return r => (!c.length || c.indexOf(r.cat === 'in' ? 'in' : (r.cat === 'inv' ? 'inv' : 'out')) >= 0) && (!m.length || m.indexOf(r.mod || 'din') >= 0);
+      const c = repSel(f.cats), m = repSel(f.mods), d = repSel(f.dests), x = repSel(f.descs);
+      if (!c.length && !m.length && !d.length && !x.length) return null;
+      return r => (!c.length || c.indexOf(r.cat === 'in' ? 'in' : (r.cat === 'inv' ? 'inv' : 'out')) >= 0) && (!m.length || m.indexOf(r.mod || 'din') >= 0) &&
+        (!d.length || d.indexOf(finNorm(r.dest)) >= 0) && (!x.length || x.indexOf(finNorm(r.desc)) >= 0);
+    };
+    let REPAV = { dests: [], descs: [] };
+    function finRepLists() {
+      [['dests', 'finRepFDests', 'finRepQDests', 'Sem destino'], ['descs', 'finRepFDescs', 'finRepQDescs', 'Sem descrição']].forEach(([g, id, qid]) => {
+        const q = finNorm((byId(qid) || {}).value || ''), box = byId(id); if (!box) return;
+        const list = REPAV[g].filter(x => !q || finNorm(x.l).indexOf(q) >= 0);
+        box.innerHTML = list.length ? list.map(x => `<label><input type="checkbox" data-g="${g}" data-k="${esc(x.k)}" ${RF[g][x.k] ? 'checked' : ''} onchange="finRepCk(this)"><span>${esc(x.l)}</span><span class="n">${x.n}</span></label>`).join('') : '<div class="text-xs text-stone-500 p-2">Nada por aqui.</div>';
+      });
+    }
+    window.finRepCk = function (el) { RF[el.dataset.g][el.dataset.k] = el.checked; finRepCount(); };
+    window.finRepListAll = function (g, on) {
+      const q = finNorm((byId(g === 'dests' ? 'finRepQDests' : 'finRepQDescs') || {}).value || '');
+      REPAV[g].forEach(x => { if (!q || finNorm(x.l).indexOf(q) >= 0) RF[g][x.k] = on; });
+      finRepLists(); finRepCount();
     };
     const repChip = (g, k, label) => `<button class="fsb ${RF[g][k] ? 'on' : ''}" data-g="${g}" data-k="${k}" onclick="finRepToggle(this)">${label}</button>`;
     window.finRepToggle = function (el) { RF[el.dataset.g][el.dataset.k] = !RF[el.dataset.g][el.dataset.k]; el.classList.toggle('on'); finRepCount(); };
-    window.finRepClear = function () { RF.cats = {}; RF.mods = {}; finRepRender(); };
+    window.finRepClear = function () { RF.cats = {}; RF.mods = {}; RF.dests = {}; RF.descs = {}; ['finRepQDests', 'finRepQDescs'].forEach(i => { if (byId(i)) byId(i).value = ''; }); finRepRender(); };
     const scopeBoards = () => scope === 'all' ? finBoards() : [finTarget()].filter(Boolean);
     const ownRows = b => finData(b).rows.filter(r => !finIsBlank(r));
     function finRepCount() {
@@ -13992,9 +14023,18 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
       byId('finRepOne').classList.toggle('on', scope !== 'all'); byId('finRepAll').classList.toggle('on', scope === 'all');
       byId('finRepFCats').innerHTML = repChip('cats', 'in', 'Entradas') + repChip('cats', 'out', 'Saídas') + repChip('cats', 'inv', 'Investimentos');
       byId('finRepFMods').innerHTML = FIN_MODS.map(m => repChip('mods', m[0], m[1])).join('');
+      const cnt = { dests: {}, descs: {} };
+      scopeBoards().forEach(b => ownRows(b).forEach(r => {
+        const d = finNorm(r.dest), x = finNorm(r.desc);
+        (cnt.dests[d] = cnt.dests[d] || { k: d, l: r.dest ? finCleanDest(r.dest) : 'Sem destino', n: 0 }).n++;
+        (cnt.descs[x] = cnt.descs[x] || { k: x, l: r.desc ? finCleanDest(r.desc) : 'Sem descrição', n: 0 }).n++;
+      }));
+      const srt = (a, b) => a.l.localeCompare(b.l, 'pt-BR');
+      REPAV = { dests: Object.keys(cnt.dests).map(k => cnt.dests[k]).sort(srt), descs: Object.keys(cnt.descs).map(k => cnt.descs[k]).sort(srt) };
+      finRepLists();
       finRepCount();
     }
-    function collectOpts() { return { f: { cats: Object.assign({}, RF.cats), mods: Object.assign({}, RF.mods) } }; }
+    function collectOpts() { return { f: { cats: Object.assign({}, RF.cats), mods: Object.assign({}, RF.mods), dests: Object.assign({}, RF.dests), descs: Object.assign({}, RF.descs) } }; }
     window.finOpenReport = function () {
       if (!finBoards().length) return;
       if (scope !== 'all') scope = 'one';
@@ -14052,6 +14092,15 @@ h1{font-size:34px;line-height:1.05;margin:8px 0 8px;font-weight:700;color:#0f172
           const r = n.getBoundingClientRect();
           blocks.push({ top: r.top - r0.top, bottom: r.bottom - r0.top + (n.classList.contains('sec') ? 44 : 0) });   // título de seção não fica sozinho no fim da página
         });
+        /* tabelas: o cabeçalho nunca fica sozinho no fim da página (vai junto com as 3 primeiras linhas); compra parcelada curta não é partida */
+        const rel = n => { const r = n.getBoundingClientRect(); return { top: r.top - r0.top, bottom: r.bottom - r0.top }; };
+        el.querySelectorAll('.tb').forEach(tb => {
+          const th = tb.querySelector('thead'), rs = tb.querySelectorAll('tbody tr'); if (!th || !rs.length) return;
+          const prev = tb.previousElementSibling, top = rel(prev && prev.classList.contains('sec') ? prev : th).top;
+          blocks.push({ top, bottom: rel(rs[Math.min(rs.length, 3) - 1]).bottom + 4 });
+          if (rs.length > 3) blocks.push({ top: rel(rs[rs.length - 2]).top, bottom: rel(rs[rs.length - 1]).bottom + 4 });   // nem 1 linha sozinha na página seguinte
+        });
+        el.querySelectorAll('.crb').forEach(n => blocks.push(rel(n)));
         const cv = await window.html2canvas(el, { scale: Math.min(2, 15000 / H), backgroundColor: '#ffffff', useCORS: true, logging: false, width: PDF_W, windowWidth: PDF_W, scrollX: 0, scrollY: 0 });
         const k = cv.height / H;   // pixels do canvas por px da página
         const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'p' });
